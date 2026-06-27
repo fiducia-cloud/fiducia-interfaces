@@ -1,5 +1,8 @@
 node_modules/
 target/
 Cargo.lock
+.env
+.env.*
+!.env.example
 *.log
 .DS_Store

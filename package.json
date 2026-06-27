@@ -7,7 +7,7 @@
   "scripts": {
     "generate": "node src/generate.mjs",
     "check": "node src/generate.mjs --check",
-    "test": "node src/generate.mjs --check"
+    "test": "node --test src/*.test.mjs && node src/generate.mjs --check && cargo test --manifest-path generated/rust/Cargo.toml && tsc --noEmit --target es2020 --module esnext --lib es2020,dom src/typescript-usage.test.ts"
   },
   "exports": {
     "./schema": "./schema/index.json",

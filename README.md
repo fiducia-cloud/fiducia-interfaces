@@ -4,8 +4,9 @@ Shared interfaces + definitions for [fiducia.cloud](https://fiducia.cloud), on t
 sources of truth:
 
 1. **JSON Schema** (`schema/*.schema.json`, Draft 2020-12) — typed-IO for the
-   API payloads (KV, locks/semaphores/RW, elections, discovery, common
-   envelopes). The generator emits idiomatic types per language.
+   API payloads (KV, locks/semaphores/RW, rate limiting, scheduling, elections,
+   discovery, common envelopes). The generator emits idiomatic types per
+   language.
 2. **SQL** (`sql/schema.sql`) — the canonical Postgres schema for the
    control/business plane (orgs, users, API keys, audit), in the same
    desired-state-contract style as the `pg-defs` lib.
@@ -13,9 +14,10 @@ sources of truth:
 Same spirit as `remote/libs/interfaces` (JSON Schema → types) and
 `remote/libs/pg-defs` (canonical SQL).
 
-> Coordination data (locks/KV/elections/discovery state) does **not** live in
-> Postgres — it's the per-node Raft state machine. The SQL here is only the
-> relational business data. See the discussion in the data-storage design.
+> Coordination data (locks/KV/rate limits/schedules/elections/discovery state)
+> does **not** live in Postgres — it's the per-node Raft state machine. The SQL
+> here is only the relational business data. See the discussion in the
+> data-storage design.
 
 ## Layout
 
@@ -26,6 +28,8 @@ fiducia-interfaces/
 │   ├── common.schema.json      # ProposeOutcome, ProposeError, Introspection
 │   ├── kv.schema.json          # KvEntry, KvPutRequest, KvGetResponse
 │   ├── locks.schema.json       # LockAcquire/Grant/Release, RwAcquire
+│   ├── rate_limits.schema.json # RateLimitCheck/Snapshot/GetResponse
+│   ├── schedules.schema.json   # ScheduleTarget/Upsert/Run/History
 │   ├── elections.schema.json   # Campaign/Hold, Leadership, ElectionGet
 │   └── discovery.schema.json   # ServiceRegister/Instance/List
 ├── sql/schema.sql              # canonical Postgres schema (auth/business)

@@ -163,3 +163,129 @@ type RwAcquireRequest struct {
 	// Block until granted; false = try.
 	Wait *bool `json:"wait,omitempty"`
 }
+
+// RateLimitCheckRequest: Body of POST /v1/rate-limit/{tenant}/{key}/check.
+type RateLimitCheckRequest struct {
+	// Rate-limiting algorithm to apply for this key. (one of: token_bucket, sliding_window)
+	Algorithm string `json:"algorithm"`
+	// Maximum allowed events in the configured window or bucket.
+	Limit int64 `json:"limit"`
+	// Window length or bucket capacity horizon in milliseconds.
+	WindowMs int64 `json:"window_ms"`
+	// Token-bucket refill rate. Defaults to limit / window.
+	RefillPerSecond *float64 `json:"refill_per_second,omitempty"`
+	// How many units this request consumes. Defaults to 1.
+	Cost *int64 `json:"cost,omitempty"`
+}
+
+// RateLimitSnapshot: Current distributed limiter state for one tenant/key.
+type RateLimitSnapshot struct {
+	// Limiter key.
+	Key string `json:"key"`
+	// Tenant/org whose quota is being enforced.
+	Tenant string `json:"tenant"`
+	// Limiter algorithm that produced this snapshot. (one of: token_bucket, sliding_window)
+	Algorithm string `json:"algorithm"`
+	// Whether the most recent check was allowed.
+	Allowed bool `json:"allowed"`
+	// Remaining units after the most recent check.
+	Remaining int64 `json:"remaining"`
+	// Approximate reset/refill time in ms since epoch.
+	ResetMs int64 `json:"reset_ms"`
+}
+
+// RateLimitGetResponse: Response of GET /v1/rate-limit/{tenant}/{key}.
+type RateLimitGetResponse struct {
+	// Tenant/org whose quota was requested.
+	Tenant string `json:"tenant"`
+	// Limiter key.
+	Key string `json:"key"`
+	// Whether limiter state exists.
+	Found bool `json:"found"`
+	// Snapshot when found.
+	Limit *RateLimitSnapshot `json:"limit,omitempty"`
+}
+
+// ScheduleTarget: Where a schedule fires: webhook, queue, or gRPC.
+type ScheduleTarget struct {
+	// Target transport. (one of: webhook, queue, grpc)
+	Kind string `json:"kind"`
+	// Webhook URL when kind=webhook.
+	Url *string `json:"url,omitempty"`
+	// Queue name when kind=queue.
+	Name *string `json:"name,omitempty"`
+	// gRPC endpoint when kind=grpc.
+	Endpoint *string `json:"endpoint,omitempty"`
+}
+
+// ScheduleUpsertRequest: Body of PUT /v1/cron/schedules/{name}. Exactly one of cron or one_shot_at_ms must be set.
+type ScheduleUpsertRequest struct {
+	// Standard five-field cron expression.
+	Cron *string `json:"cron,omitempty"`
+	// One-shot fire time in ms since epoch.
+	OneShotAtMs *int64 `json:"one_shot_at_ms,omitempty"`
+	// Delivery target.
+	Target ScheduleTarget `json:"target"`
+	// Delivery semantics. Defaults to at_least_once. (one of: at_least_once, exactly_once)
+	Delivery *string `json:"delivery,omitempty"`
+	// Maximum delivery retries. Defaults to 3.
+	MaxRetries *int64 `json:"max_retries,omitempty"`
+}
+
+// Schedule: A replicated schedule definition.
+type Schedule struct {
+	// Schedule name.
+	Name string `json:"name"`
+	// Cron expression for recurring schedules.
+	Cron *string `json:"cron,omitempty"`
+	// One-shot fire time in ms since epoch.
+	OneShotAtMs *int64 `json:"one_shot_at_ms,omitempty"`
+	// Delivery target.
+	Target ScheduleTarget `json:"target"`
+	// Delivery semantics. (one of: at_least_once, exactly_once)
+	Delivery string `json:"delivery"`
+	// Maximum delivery retries.
+	MaxRetries int64 `json:"max_retries"`
+	// Whether this schedule can fire.
+	Enabled bool `json:"enabled"`
+}
+
+// ScheduleRun: Durable record of one schedule fire attempt.
+type ScheduleRun struct {
+	// Idempotency id for the scheduled fire.
+	FireId string `json:"fire_id"`
+	// Fire time in ms since epoch.
+	FiredAtMs int64 `json:"fired_at_ms"`
+	// Delivery attempts made.
+	Attempts int64 `json:"attempts"`
+	// Whether this fire was deduped by exactly-once semantics.
+	Duplicate bool `json:"duplicate"`
+	// Target used for this fire.
+	Target ScheduleTarget `json:"target"`
+}
+
+// ScheduleRecordRunRequest: Body of POST /v1/cron/schedules/{name}/runs.
+type ScheduleRecordRunRequest struct {
+	// Idempotency id for this fire.
+	FireId string `json:"fire_id"`
+	// Override fire time in ms since epoch.
+	FiredAtMs *int64 `json:"fired_at_ms,omitempty"`
+}
+
+// ScheduleGetResponse: Response of GET /v1/cron/schedules/{name}.
+type ScheduleGetResponse struct {
+	// Schedule name.
+	Name string `json:"name"`
+	// Whether this schedule exists.
+	Found bool `json:"found"`
+	// Schedule definition when found.
+	Schedule *Schedule `json:"schedule,omitempty"`
+}
+
+// ScheduleHistoryResponse: Response of GET /v1/cron/schedules/{name}/history.
+type ScheduleHistoryResponse struct {
+	// Schedule name.
+	Name string `json:"name"`
+	// Durable run history.
+	History []ScheduleRun `json:"history"`
+}

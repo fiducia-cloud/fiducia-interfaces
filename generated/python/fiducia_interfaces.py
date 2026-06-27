@@ -117,3 +117,86 @@ class RwAcquireRequest:
     """Body of POST /v1/rw/{key}/read|write."""
     ttl_ms: Optional[int] = None
     wait: Optional[bool] = None
+
+@dataclass
+class RateLimitCheckRequest:
+    """Body of POST /v1/rate-limit/{tenant}/{key}/check."""
+    algorithm: Literal["token_bucket", "sliding_window"]
+    limit: int
+    window_ms: int
+    refill_per_second: Optional[float] = None
+    cost: Optional[int] = None
+
+@dataclass
+class RateLimitSnapshot:
+    """Current distributed limiter state for one tenant/key."""
+    key: str
+    tenant: str
+    algorithm: Literal["token_bucket", "sliding_window"]
+    allowed: bool
+    remaining: int
+    reset_ms: int
+
+@dataclass
+class RateLimitGetResponse:
+    """Response of GET /v1/rate-limit/{tenant}/{key}."""
+    tenant: str
+    key: str
+    found: bool
+    limit: Optional[RateLimitSnapshot] = None
+
+@dataclass
+class ScheduleTarget:
+    """Where a schedule fires: webhook, queue, or gRPC."""
+    kind: Literal["webhook", "queue", "grpc"]
+    url: Optional[str] = None
+    name: Optional[str] = None
+    endpoint: Optional[str] = None
+
+@dataclass
+class ScheduleUpsertRequest:
+    """Body of PUT /v1/cron/schedules/{name}. Exactly one of cron or one_shot_at_ms must be set."""
+    target: ScheduleTarget
+    cron: Optional[str] = None
+    one_shot_at_ms: Optional[int] = None
+    delivery: Optional[Literal["at_least_once", "exactly_once"]] = None
+    max_retries: Optional[int] = None
+
+@dataclass
+class Schedule:
+    """A replicated schedule definition."""
+    name: str
+    target: ScheduleTarget
+    delivery: Literal["at_least_once", "exactly_once"]
+    max_retries: int
+    enabled: bool
+    cron: Optional[str] = None
+    one_shot_at_ms: Optional[int] = None
+
+@dataclass
+class ScheduleRun:
+    """Durable record of one schedule fire attempt."""
+    fire_id: str
+    fired_at_ms: int
+    attempts: int
+    duplicate: bool
+    target: ScheduleTarget
+
+@dataclass
+class ScheduleRecordRunRequest:
+    """Body of POST /v1/cron/schedules/{name}/runs."""
+    fire_id: str
+    fired_at_ms: Optional[int] = None
+
+@dataclass
+class ScheduleGetResponse:
+    """Response of GET /v1/cron/schedules/{name}."""
+    name: str
+    found: bool
+    schedule: Optional[Schedule] = None
+
+@dataclass
+class ScheduleHistoryResponse:
+    """Response of GET /v1/cron/schedules/{name}/history."""
+    name: str
+    history: List[ScheduleRun]

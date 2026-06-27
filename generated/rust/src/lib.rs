@@ -10,6 +10,48 @@ pub enum ProposeErrorReason {
     Unavailable,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RateLimitCheckRequestAlgorithm {
+    #[serde(rename = "token_bucket")]
+    TokenBucket,
+    #[serde(rename = "sliding_window")]
+    SlidingWindow,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RateLimitSnapshotAlgorithm {
+    #[serde(rename = "token_bucket")]
+    TokenBucket,
+    #[serde(rename = "sliding_window")]
+    SlidingWindow,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ScheduleTargetKind {
+    #[serde(rename = "webhook")]
+    Webhook,
+    #[serde(rename = "queue")]
+    Queue,
+    #[serde(rename = "grpc")]
+    Grpc,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ScheduleUpsertRequestDelivery {
+    #[serde(rename = "at_least_once")]
+    AtLeastOnce,
+    #[serde(rename = "exactly_once")]
+    ExactlyOnce,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ScheduleDelivery {
+    #[serde(rename = "at_least_once")]
+    AtLeastOnce,
+    #[serde(rename = "exactly_once")]
+    ExactlyOnce,
+}
+
 /// Result of a committed write (lock/kv/election/discovery mutation).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProposeOutcome {
@@ -204,4 +246,154 @@ pub struct RwAcquireRequest {
     /// Block until granted; false = try.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wait: Option<bool>,
+}
+
+/// Body of POST /v1/rate-limit/{tenant}/{key}/check.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RateLimitCheckRequest {
+    /// Rate-limiting algorithm to apply for this key.
+    pub algorithm: RateLimitCheckRequestAlgorithm,
+    /// Maximum allowed events in the configured window or bucket.
+    pub limit: i64,
+    /// Window length or bucket capacity horizon in milliseconds.
+    pub window_ms: i64,
+    /// Token-bucket refill rate. Defaults to limit / window.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub refill_per_second: Option<f64>,
+    /// How many units this request consumes. Defaults to 1.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cost: Option<i64>,
+}
+
+/// Current distributed limiter state for one tenant/key.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RateLimitSnapshot {
+    /// Limiter key.
+    pub key: String,
+    /// Tenant/org whose quota is being enforced.
+    pub tenant: String,
+    /// Limiter algorithm that produced this snapshot.
+    pub algorithm: RateLimitSnapshotAlgorithm,
+    /// Whether the most recent check was allowed.
+    pub allowed: bool,
+    /// Remaining units after the most recent check.
+    pub remaining: i64,
+    /// Approximate reset/refill time in ms since epoch.
+    pub reset_ms: i64,
+}
+
+/// Response of GET /v1/rate-limit/{tenant}/{key}.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RateLimitGetResponse {
+    /// Tenant/org whose quota was requested.
+    pub tenant: String,
+    /// Limiter key.
+    pub key: String,
+    /// Whether limiter state exists.
+    pub found: bool,
+    /// Snapshot when found.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub limit: Option<RateLimitSnapshot>,
+}
+
+/// Where a schedule fires: webhook, queue, or gRPC.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScheduleTarget {
+    /// Target transport.
+    pub kind: ScheduleTargetKind,
+    /// Webhook URL when kind=webhook.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    /// Queue name when kind=queue.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// gRPC endpoint when kind=grpc.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub endpoint: Option<String>,
+}
+
+/// Body of PUT /v1/cron/schedules/{name}. Exactly one of cron or one_shot_at_ms must be set.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScheduleUpsertRequest {
+    /// Standard five-field cron expression.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cron: Option<String>,
+    /// One-shot fire time in ms since epoch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub one_shot_at_ms: Option<i64>,
+    /// Delivery target.
+    pub target: ScheduleTarget,
+    /// Delivery semantics. Defaults to at_least_once.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub delivery: Option<ScheduleUpsertRequestDelivery>,
+    /// Maximum delivery retries. Defaults to 3.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_retries: Option<i64>,
+}
+
+/// A replicated schedule definition.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Schedule {
+    /// Schedule name.
+    pub name: String,
+    /// Cron expression for recurring schedules.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cron: Option<String>,
+    /// One-shot fire time in ms since epoch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub one_shot_at_ms: Option<i64>,
+    /// Delivery target.
+    pub target: ScheduleTarget,
+    /// Delivery semantics.
+    pub delivery: ScheduleDelivery,
+    /// Maximum delivery retries.
+    pub max_retries: i64,
+    /// Whether this schedule can fire.
+    pub enabled: bool,
+}
+
+/// Durable record of one schedule fire attempt.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScheduleRun {
+    /// Idempotency id for the scheduled fire.
+    pub fire_id: String,
+    /// Fire time in ms since epoch.
+    pub fired_at_ms: i64,
+    /// Delivery attempts made.
+    pub attempts: i64,
+    /// Whether this fire was deduped by exactly-once semantics.
+    pub duplicate: bool,
+    /// Target used for this fire.
+    pub target: ScheduleTarget,
+}
+
+/// Body of POST /v1/cron/schedules/{name}/runs.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScheduleRecordRunRequest {
+    /// Idempotency id for this fire.
+    pub fire_id: String,
+    /// Override fire time in ms since epoch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fired_at_ms: Option<i64>,
+}
+
+/// Response of GET /v1/cron/schedules/{name}.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScheduleGetResponse {
+    /// Schedule name.
+    pub name: String,
+    /// Whether this schedule exists.
+    pub found: bool,
+    /// Schedule definition when found.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub schedule: Option<Schedule>,
+}
+
+/// Response of GET /v1/cron/schedules/{name}/history.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScheduleHistoryResponse {
+    /// Schedule name.
+    pub name: String,
+    /// Durable run history.
+    pub history: Vec<ScheduleRun>,
 }

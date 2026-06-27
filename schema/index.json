@@ -5,6 +5,8 @@
     "discovery.schema.json",
     "elections.schema.json",
     "kv.schema.json",
-    "locks.schema.json"
+    "locks.schema.json",
+    "rate_limits.schema.json",
+    "schedules.schema.json"
   ]
 }

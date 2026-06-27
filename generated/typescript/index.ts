@@ -161,3 +161,129 @@ export type RwAcquireRequest = {
   /** Block until granted; false = try. */
   wait?: boolean;
 };
+
+/** Body of POST /v1/rate-limit/{tenant}/{key}/check. */
+export type RateLimitCheckRequest = {
+  /** Rate-limiting algorithm to apply for this key. */
+  algorithm: "token_bucket" | "sliding_window";
+  /** Maximum allowed events in the configured window or bucket. */
+  limit: number;
+  /** Window length or bucket capacity horizon in milliseconds. */
+  window_ms: number;
+  /** Token-bucket refill rate. Defaults to limit / window. */
+  refill_per_second?: number;
+  /** How many units this request consumes. Defaults to 1. */
+  cost?: number;
+};
+
+/** Current distributed limiter state for one tenant/key. */
+export type RateLimitSnapshot = {
+  /** Limiter key. */
+  key: string;
+  /** Tenant/org whose quota is being enforced. */
+  tenant: string;
+  /** Limiter algorithm that produced this snapshot. */
+  algorithm: "token_bucket" | "sliding_window";
+  /** Whether the most recent check was allowed. */
+  allowed: boolean;
+  /** Remaining units after the most recent check. */
+  remaining: number;
+  /** Approximate reset/refill time in ms since epoch. */
+  reset_ms: number;
+};
+
+/** Response of GET /v1/rate-limit/{tenant}/{key}. */
+export type RateLimitGetResponse = {
+  /** Tenant/org whose quota was requested. */
+  tenant: string;
+  /** Limiter key. */
+  key: string;
+  /** Whether limiter state exists. */
+  found: boolean;
+  /** Snapshot when found. */
+  limit?: RateLimitSnapshot;
+};
+
+/** Where a schedule fires: webhook, queue, or gRPC. */
+export type ScheduleTarget = {
+  /** Target transport. */
+  kind: "webhook" | "queue" | "grpc";
+  /** Webhook URL when kind=webhook. */
+  url?: string;
+  /** Queue name when kind=queue. */
+  name?: string;
+  /** gRPC endpoint when kind=grpc. */
+  endpoint?: string;
+};
+
+/** Body of PUT /v1/cron/schedules/{name}. Exactly one of cron or one_shot_at_ms must be set. */
+export type ScheduleUpsertRequest = {
+  /** Standard five-field cron expression. */
+  cron?: string;
+  /** One-shot fire time in ms since epoch. */
+  one_shot_at_ms?: number;
+  /** Delivery target. */
+  target: ScheduleTarget;
+  /** Delivery semantics. Defaults to at_least_once. */
+  delivery?: "at_least_once" | "exactly_once";
+  /** Maximum delivery retries. Defaults to 3. */
+  max_retries?: number;
+};
+
+/** A replicated schedule definition. */
+export type Schedule = {
+  /** Schedule name. */
+  name: string;
+  /** Cron expression for recurring schedules. */
+  cron?: string;
+  /** One-shot fire time in ms since epoch. */
+  one_shot_at_ms?: number;
+  /** Delivery target. */
+  target: ScheduleTarget;
+  /** Delivery semantics. */
+  delivery: "at_least_once" | "exactly_once";
+  /** Maximum delivery retries. */
+  max_retries: number;
+  /** Whether this schedule can fire. */
+  enabled: boolean;
+};
+
+/** Durable record of one schedule fire attempt. */
+export type ScheduleRun = {
+  /** Idempotency id for the scheduled fire. */
+  fire_id: string;
+  /** Fire time in ms since epoch. */
+  fired_at_ms: number;
+  /** Delivery attempts made. */
+  attempts: number;
+  /** Whether this fire was deduped by exactly-once semantics. */
+  duplicate: boolean;
+  /** Target used for this fire. */
+  target: ScheduleTarget;
+};
+
+/** Body of POST /v1/cron/schedules/{name}/runs. */
+export type ScheduleRecordRunRequest = {
+  /** Idempotency id for this fire. */
+  fire_id: string;
+  /** Override fire time in ms since epoch. */
+  fired_at_ms?: number;
+};
+
+/** Response of GET /v1/cron/schedules/{name}. */
+export type ScheduleGetResponse = {
+  /** Schedule name. */
+  name: string;
+  /** Whether this schedule exists. */
+  found: boolean;
+  /** Schedule definition when found. */
+  schedule?: Schedule;
+};
+
+/** Response of GET /v1/cron/schedules/{name}/history. */
+export type ScheduleHistoryResponse = {
+  /** Schedule name. */
+  name: string;
+  /** Durable run history. */
+  history: ScheduleRun[];
+};

@@ -42,7 +42,14 @@ fiducia-interfaces/
 ```sh
 node src/generate.mjs          # write generated/<lang>/...
 node src/generate.mjs --check  # CI: fail if generated files are stale
+node --test src/*.test.mjs     # generator self-tests
 ```
+
+The generator is hardened: it validates `index.json` + every schema, rejects
+duplicate type names and dangling `$ref`s, enforces snake_case field names,
+sanitizes doc comments, raw-escapes Rust keyword fields (`r#type`), and emits
+typed enums for string `enum`s (Rust enum · TS union · Python `Literal` · Go
+string + allowed-values doc). CI runs the self-tests and `--check` on every push.
 
 ## Languages
 

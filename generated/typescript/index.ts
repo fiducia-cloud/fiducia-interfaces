@@ -13,7 +13,7 @@ export type ProposeOutcome = {
 /** Why a write could not be committed. */
 export type ProposeError = {
   /** Failure class. */
-  reason: string;
+  reason: "not_leader" | "unavailable";
   /** Target shard. */
   shard: number;
   /** Current leader to retry against, when known (not_leader). */

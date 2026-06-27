@@ -14,7 +14,7 @@ type ProposeOutcome struct {
 
 // ProposeError: Why a write could not be committed.
 type ProposeError struct {
-	// Failure class.
+	// Failure class. (one of: not_leader, unavailable)
 	Reason string `json:"reason"`
 	// Target shard.
 	Shard int64 `json:"shard"`

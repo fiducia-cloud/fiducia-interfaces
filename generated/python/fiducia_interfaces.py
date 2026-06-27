@@ -96,7 +96,26 @@ class LockAcquireRequest:
     """Body of POST /v1/locks/{key}/acquire. max=1 is a mutex; max>1 a semaphore."""
     ttl_ms: Optional[int] = None
     wait: Optional[bool] = None
+    holder: Optional[str] = None
     max: Optional[int] = None
+
+@dataclass
+class LockAcquireManyRequest:
+    """Body of POST /v1/locks/acquire-many. Acquires a bounded union of keys atomically."""
+    keys: List[str]
+    holder: Optional[str] = None
+    ttl_ms: Optional[int] = None
+    wait: Optional[bool] = None
+
+@dataclass
+class LockHolder:
+    """Current holder of a mutex, semaphore slot, or composite lock member."""
+    holder: str
+    lock_id: str
+    fencing_token: int
+    lease_expires_ms: int
+    keys: List[str]
+    exclusive: bool
 
 @dataclass
 class LockGrant:
@@ -104,12 +123,21 @@ class LockGrant:
     acquired: bool
     lock_id: Optional[str] = None
     fencing_token: Optional[int] = None
+    fencing_tokens: Optional[dict] = None
+    keys: Optional[List[str]] = None
     holders: Optional[int] = None
     max: Optional[int] = None
+    available: Optional[int] = None
 
 @dataclass
 class LockReleaseRequest:
-    """Body of POST /v1/locks/{key}/release and rw end."""
+    """Body of POST /v1/locks/{key}/release."""
+    holder: str
+    fencing_token: int
+
+@dataclass
+class LockReleaseManyRequest:
+    """Body of POST /v1/locks/release-many."""
     lock_id: str
 
 @dataclass

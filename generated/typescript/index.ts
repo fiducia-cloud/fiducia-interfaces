@@ -130,8 +130,33 @@ export type LockAcquireRequest = {
   ttl_ms?: number;
   /** Block (long-poll) until granted; false = try-lock. */
   wait?: boolean;
+  /** Caller-chosen holder identity. */
+  holder?: string;
   /** Max concurrent holders (semaphore). */
   max?: number;
+};
+
+/** Body of POST /v1/locks/acquire-many. Acquires a bounded union of keys atomically. */
+export type LockAcquireManyRequest = {
+  /** Keys to lock as one union. The server sorts/dedupes before acquisition. */
+  keys: string[];
+  /** Caller-chosen holder identity. */
+  holder?: string;
+  /** Lease TTL in milliseconds. */
+  ttl_ms?: number;
+  /** Reserved for long-poll composite waits; false = try-lock. */
+  wait?: boolean;
+};
+
+/** Current holder of a mutex, semaphore slot, or composite lock member. */
+export type LockHolder = {
+  holder: string;
+  lock_id: string;
+  fencing_token: number;
+  lease_expires_ms: number;
+  keys: string[];
+  /** True for composite members that block semaphore sharing. */
+  exclusive: boolean;
 };
 
 /** Response to an acquire / RW-acquire. */
@@ -142,15 +167,29 @@ export type LockGrant = {
   lock_id?: string;
   /** Monotonic token to fence stale holders; set when acquired. */
   fencing_token?: number;
+  /** Per-key fencing tokens for multi-key grants. */
+  fencing_tokens?: Record<string, unknown>;
+  /** Composite keys when this is a multi-key grant. */
+  keys?: string[];
   /** Current holder count (semaphores). */
   holders?: number;
   /** Configured max holders. */
   max?: number;
+  /** Remaining semaphore slots. */
+  available?: number;
 };
 
-/** Body of POST /v1/locks/{key}/release and rw end. */
+/** Body of POST /v1/locks/{key}/release. */
 export type LockReleaseRequest = {
-  /** The lock id returned at acquire. */
+  /** The holder identity used at acquire. */
+  holder: string;
+  /** The token returned at acquire. */
+  fencing_token: number;
+};
+
+/** Body of POST /v1/locks/release-many. */
+export type LockReleaseManyRequest = {
+  /** The composite lock id returned at acquire-many. */
   lock_id: string;
 };
 

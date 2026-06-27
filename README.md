@@ -27,7 +27,7 @@ fiducia-interfaces/
 │   ├── index.json              # list of every schema file (alphabetised)
 │   ├── common.schema.json      # ProposeOutcome, ProposeError, Introspection
 │   ├── kv.schema.json          # KvEntry, KvPutRequest, KvGetResponse
-│   ├── locks.schema.json       # LockAcquire/Grant/Release, RwAcquire
+│   ├── locks.schema.json       # Mutex/semaphore/multi-key lock, release, RW payloads
 │   ├── rate_limits.schema.json # RateLimitCheck/Snapshot/GetResponse
 │   ├── schedules.schema.json   # ScheduleTarget/Upsert/Run/History
 │   ├── elections.schema.json   # Campaign/Hold, Leadership, ElectionGet

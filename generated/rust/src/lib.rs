@@ -206,9 +206,40 @@ pub struct LockAcquireRequest {
     /// Block (long-poll) until granted; false = try-lock.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wait: Option<bool>,
+    /// Caller-chosen holder identity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub holder: Option<String>,
     /// Max concurrent holders (semaphore).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max: Option<i64>,
+}
+
+/// Body of POST /v1/locks/acquire-many. Acquires a bounded union of keys atomically.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LockAcquireManyRequest {
+    /// Keys to lock as one union. The server sorts/dedupes before acquisition.
+    pub keys: Vec<String>,
+    /// Caller-chosen holder identity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub holder: Option<String>,
+    /// Lease TTL in milliseconds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ttl_ms: Option<i64>,
+    /// Reserved for long-poll composite waits; false = try-lock.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wait: Option<bool>,
+}
+
+/// Current holder of a mutex, semaphore slot, or composite lock member.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LockHolder {
+    pub holder: String,
+    pub lock_id: String,
+    pub fencing_token: i64,
+    pub lease_expires_ms: i64,
+    pub keys: Vec<String>,
+    /// True for composite members that block semaphore sharing.
+    pub exclusive: bool,
 }
 
 /// Response to an acquire / RW-acquire.
@@ -222,18 +253,36 @@ pub struct LockGrant {
     /// Monotonic token to fence stale holders; set when acquired.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fencing_token: Option<i64>,
+    /// Per-key fencing tokens for multi-key grants.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fencing_tokens: Option<serde_json::Value>,
+    /// Composite keys when this is a multi-key grant.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub keys: Option<Vec<String>>,
     /// Current holder count (semaphores).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub holders: Option<i64>,
     /// Configured max holders.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub max: Option<i64>,
+    /// Remaining semaphore slots.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub available: Option<i64>,
 }
 
-/// Body of POST /v1/locks/{key}/release and rw end.
+/// Body of POST /v1/locks/{key}/release.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LockReleaseRequest {
-    /// The lock id returned at acquire.
+    /// The holder identity used at acquire.
+    pub holder: String,
+    /// The token returned at acquire.
+    pub fencing_token: i64,
+}
+
+/// Body of POST /v1/locks/release-many.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LockReleaseManyRequest {
+    /// The composite lock id returned at acquire-many.
     pub lock_id: String,
 }
 

@@ -132,8 +132,33 @@ type LockAcquireRequest struct {
 	TtlMs *int64 `json:"ttl_ms,omitempty"`
 	// Block (long-poll) until granted; false = try-lock.
 	Wait *bool `json:"wait,omitempty"`
+	// Caller-chosen holder identity.
+	Holder *string `json:"holder,omitempty"`
 	// Max concurrent holders (semaphore).
 	Max *int64 `json:"max,omitempty"`
+}
+
+// LockAcquireManyRequest: Body of POST /v1/locks/acquire-many. Acquires a bounded union of keys atomically.
+type LockAcquireManyRequest struct {
+	// Keys to lock as one union. The server sorts/dedupes before acquisition.
+	Keys []string `json:"keys"`
+	// Caller-chosen holder identity.
+	Holder *string `json:"holder,omitempty"`
+	// Lease TTL in milliseconds.
+	TtlMs *int64 `json:"ttl_ms,omitempty"`
+	// Reserved for long-poll composite waits; false = try-lock.
+	Wait *bool `json:"wait,omitempty"`
+}
+
+// LockHolder: Current holder of a mutex, semaphore slot, or composite lock member.
+type LockHolder struct {
+	Holder string `json:"holder"`
+	LockId string `json:"lock_id"`
+	FencingToken int64 `json:"fencing_token"`
+	LeaseExpiresMs int64 `json:"lease_expires_ms"`
+	Keys []string `json:"keys"`
+	// True for composite members that block semaphore sharing.
+	Exclusive bool `json:"exclusive"`
 }
 
 // LockGrant: Response to an acquire / RW-acquire.
@@ -144,15 +169,29 @@ type LockGrant struct {
 	LockId *string `json:"lock_id,omitempty"`
 	// Monotonic token to fence stale holders; set when acquired.
 	FencingToken *int64 `json:"fencing_token,omitempty"`
+	// Per-key fencing tokens for multi-key grants.
+	FencingTokens *map[string]any `json:"fencing_tokens,omitempty"`
+	// Composite keys when this is a multi-key grant.
+	Keys *[]string `json:"keys,omitempty"`
 	// Current holder count (semaphores).
 	Holders *int64 `json:"holders,omitempty"`
 	// Configured max holders.
 	Max *int64 `json:"max,omitempty"`
+	// Remaining semaphore slots.
+	Available *int64 `json:"available,omitempty"`
 }
 
-// LockReleaseRequest: Body of POST /v1/locks/{key}/release and rw end.
+// LockReleaseRequest: Body of POST /v1/locks/{key}/release.
 type LockReleaseRequest struct {
-	// The lock id returned at acquire.
+	// The holder identity used at acquire.
+	Holder string `json:"holder"`
+	// The token returned at acquire.
+	FencingToken int64 `json:"fencing_token"`
+}
+
+// LockReleaseManyRequest: Body of POST /v1/locks/release-many.
+type LockReleaseManyRequest struct {
+	// The composite lock id returned at acquire-many.
 	LockId string `json:"lock_id"`
 }
 

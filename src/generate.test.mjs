@@ -20,7 +20,7 @@ test("helpers", () => {
 test("loadTypes parses the real schemas without error", () => {
   const types = loadTypes();
   const names = types.map((t) => t.name);
-  for (const expected of ["ProposeOutcome", "KvEntry", "LockGrant", "RateLimitCheckRequest", "ScheduleUpsertRequest", "Leadership", "ServiceInstance"]) {
+  for (const expected of ["ProposeOutcome", "KvEntry", "LockGrant", "LockAcquireManyRequest", "LockReleaseManyRequest", "RateLimitCheckRequest", "ScheduleUpsertRequest", "Leadership", "ServiceInstance"]) {
     assert.ok(names.includes(expected), `missing ${expected}`);
   }
   const outcome = types.find((t) => t.name === "ProposeOutcome");
@@ -35,6 +35,7 @@ test("string enums are collected and typed", () => {
 test("rust output: struct, optional fields, and a typed enum", () => {
   const rust = build()["rust/src/lib.rs"];
   assert.match(rust, /pub struct ProposeOutcome \{/);
+  assert.match(rust, /pub struct LockHolder \{/);
   assert.match(rust, /pub struct RateLimitSnapshot \{/);
   assert.match(rust, /pub struct ScheduleRun \{/);
   assert.match(rust, /pub enum ProposeErrorReason \{/);
@@ -45,6 +46,7 @@ test("rust output: struct, optional fields, and a typed enum", () => {
 test("typescript output: union for enum, optional marker", () => {
   const ts = build()["typescript/index.ts"];
   assert.match(ts, /reason: "not_leader" \| "unavailable";/);
+  assert.match(ts, /fencing_tokens\?: Record<string, unknown>;/);
   assert.match(ts, /algorithm: "token_bucket" \| "sliding_window";/);
   assert.match(ts, /delivery\?: "at_least_once" \| "exactly_once";/);
   assert.match(ts, /ttl_ms\?: number;/);

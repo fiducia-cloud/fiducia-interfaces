@@ -2,6 +2,14 @@
 
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProposeErrorReason {
+    #[serde(rename = "not_leader")]
+    NotLeader,
+    #[serde(rename = "unavailable")]
+    Unavailable,
+}
+
 /// Result of a committed write (lock/kv/election/discovery mutation).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProposeOutcome {
@@ -17,7 +25,7 @@ pub struct ProposeOutcome {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProposeError {
     /// Failure class.
-    pub reason: String,
+    pub reason: ProposeErrorReason,
     /// Target shard.
     pub shard: i64,
     /// Current leader to retry against, when known (not_leader).

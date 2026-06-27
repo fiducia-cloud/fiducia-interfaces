@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fiducia.cloud/schemas/discovery.schema.json",
+  "title": "FiduciaDiscovery",
+  "description": "Service discovery payloads.",
+  "type": "object",
+  "$defs": {
+    "ServiceRegisterRequest": {
+      "type": "object",
+      "title": "ServiceRegisterRequest",
+      "description": "Body of PUT /v1/services/{service}/instances/{id}.",
+      "additionalProperties": false,
+      "required": ["address", "ttl_ms"],
+      "properties": {
+        "address": { "type": "string", "description": "Reachable address of this instance." },
+        "ttl_ms": { "type": "integer", "minimum": 1, "description": "Lease TTL; renew via heartbeat before it expires." }
+      }
+    },
+    "ServiceInstance": {
+      "type": "object",
+      "title": "ServiceInstance",
+      "description": "A live registered instance.",
+      "additionalProperties": false,
+      "required": ["instance_id", "address", "lease_expires_ms"],
+      "properties": {
+        "instance_id": { "type": "string", "description": "Instance id." },
+        "address": { "type": "string", "description": "Reachable address." },
+        "lease_expires_ms": { "type": "integer", "minimum": 0, "description": "When the lease expires (ms since epoch)." }
+      }
+    },
+    "ServiceListResponse": {
+      "type": "object",
+      "title": "ServiceListResponse",
+      "description": "Response of GET /v1/services/{service}.",
+      "additionalProperties": false,
+      "required": ["service", "instances"],
+      "properties": {
+        "service": { "type": "string", "description": "Service name." },
+        "instances": { "type": "array", "items": { "$ref": "#/$defs/ServiceInstance" }, "description": "Live instances." }
+      }
+    }
+  }
+}

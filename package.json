@@ -1,0 +1,20 @@
+{
+  "name": "@fiducia/interfaces",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "JSON Schema (typed-IO) + canonical SQL source of truth for fiducia.cloud. Generated language adapters live under generated/<lang>.",
+  "scripts": {
+    "generate": "node src/generate.mjs",
+    "check": "node src/generate.mjs --check",
+    "test": "node src/generate.mjs --check"
+  },
+  "exports": {
+    "./schema": "./schema/index.json",
+    "./sql": "./sql/schema.sql",
+    "./typescript": "./generated/typescript/index.ts",
+    "./rust": "./generated/rust/src/lib.rs",
+    "./python": "./generated/python/fiducia_interfaces.py",
+    "./go": "./generated/go/interfaces.go"
+  }
+}

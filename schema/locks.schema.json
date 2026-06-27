@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fiducia.cloud/schemas/locks.schema.json",
+  "title": "FiduciaLocks",
+  "description": "Lock, semaphore, and reader-writer payloads.",
+  "type": "object",
+  "$defs": {
+    "LockAcquireRequest": {
+      "type": "object",
+      "title": "LockAcquireRequest",
+      "description": "Body of POST /v1/locks/{key}/acquire. max=1 is a mutex; max>1 a semaphore.",
+      "additionalProperties": false,
+      "properties": {
+        "ttl_ms": { "type": "integer", "minimum": 1, "description": "Lease TTL in milliseconds." },
+        "wait": { "type": "boolean", "description": "Block (long-poll) until granted; false = try-lock." },
+        "max": { "type": "integer", "minimum": 1, "description": "Max concurrent holders (semaphore)." }
+      }
+    },
+    "LockGrant": {
+      "type": "object",
+      "title": "LockGrant",
+      "description": "Response to an acquire / RW-acquire.",
+      "additionalProperties": false,
+      "required": ["acquired"],
+      "properties": {
+        "acquired": { "type": "boolean", "description": "Whether the lock was granted." },
+        "lock_id": { "type": "string", "description": "Opaque id to present on release; set when acquired." },
+        "fencing_token": { "type": "integer", "minimum": 0, "description": "Monotonic token to fence stale holders; set when acquired." },
+        "holders": { "type": "integer", "minimum": 0, "description": "Current holder count (semaphores)." },
+        "max": { "type": "integer", "minimum": 1, "description": "Configured max holders." }
+      }
+    },
+    "LockReleaseRequest": {
+      "type": "object",
+      "title": "LockReleaseRequest",
+      "description": "Body of POST /v1/locks/{key}/release and rw end.",
+      "additionalProperties": false,
+      "required": ["lock_id"],
+      "properties": {
+        "lock_id": { "type": "string", "description": "The lock id returned at acquire." }
+      }
+    },
+    "RwAcquireRequest": {
+      "type": "object",
+      "title": "RwAcquireRequest",
+      "description": "Body of POST /v1/rw/{key}/read|write.",
+      "additionalProperties": false,
+      "properties": {
+        "ttl_ms": { "type": "integer", "minimum": 1, "description": "Lease TTL in milliseconds." },
+        "wait": { "type": "boolean", "description": "Block until granted; false = try." }
+      }
+    }
+  }
+}

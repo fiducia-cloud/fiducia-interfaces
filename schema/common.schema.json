@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fiducia.cloud/schemas/common.schema.json",
+  "title": "FiduciaCommon",
+  "description": "Shared envelopes returned across the fiducia coordination API. Field names are snake_case to match the wire format exactly.",
+  "type": "object",
+  "$defs": {
+    "ProposeOutcome": {
+      "type": "object",
+      "title": "ProposeOutcome",
+      "description": "Result of a committed write (lock/kv/election/discovery mutation).",
+      "additionalProperties": false,
+      "required": ["shard", "log_index", "revision"],
+      "properties": {
+        "shard": { "type": "integer", "minimum": 0, "description": "Shard whose Raft group committed the command." },
+        "log_index": { "type": "integer", "minimum": 0, "description": "Index assigned in that shard's log." },
+        "revision": { "type": "integer", "minimum": 0, "description": "State-machine revision produced by applying the command." }
+      }
+    },
+    "ProposeError": {
+      "type": "object",
+      "title": "ProposeError",
+      "description": "Why a write could not be committed.",
+      "additionalProperties": false,
+      "required": ["reason", "shard"],
+      "properties": {
+        "reason": { "type": "string", "enum": ["not_leader", "unavailable"], "description": "Failure class." },
+        "shard": { "type": "integer", "minimum": 0, "description": "Target shard." },
+        "leader": { "type": "string", "description": "Current leader to retry against, when known (not_leader)." }
+      }
+    },
+    "Introspection": {
+      "type": "object",
+      "title": "Introspection",
+      "description": "Result of validating an API key (fiducia-auth). The edge/LB caches this.",
+      "additionalProperties": false,
+      "required": ["valid", "scopes"],
+      "properties": {
+        "valid": { "type": "boolean", "description": "Whether the key is valid and active." },
+        "org_id": { "type": "string", "description": "Owning org id when valid." },
+        "key_id": { "type": "string", "description": "Key id when valid." },
+        "scopes": { "type": "array", "items": { "type": "string" }, "description": "Granted scopes." }
+      }
+    }
+  }
+}

@@ -40,6 +40,8 @@ type ServiceRegisterRequest struct {
 	Address string `json:"address"`
 	// Lease TTL; renew via heartbeat before it expires.
 	TtlMs int64 `json:"ttl_ms"`
+	// Optional instance metadata such as region, cloud provider, version, or role.
+	Metadata *map[string]string `json:"metadata,omitempty"`
 }
 
 // ServiceInstance: A live registered instance.
@@ -50,6 +52,8 @@ type ServiceInstance struct {
 	Address string `json:"address"`
 	// When the lease expires (ms since epoch).
 	LeaseExpiresMs int64 `json:"lease_expires_ms"`
+	// Instance metadata from registration.
+	Metadata map[string]string `json:"metadata"`
 }
 
 // ServiceListResponse: Response of GET /v1/services/{service}.
@@ -66,6 +70,8 @@ type CampaignRequest struct {
 	Candidate string `json:"candidate"`
 	// Leadership lease TTL in milliseconds.
 	TtlMs int64 `json:"ttl_ms"`
+	// Optional metadata published with the leadership grant, such as address, region, version, or role.
+	Metadata *map[string]string `json:"metadata,omitempty"`
 }
 
 // HoldRequest: Body of renew/resign — must present the held fencing token.
@@ -84,6 +90,8 @@ type Leadership struct {
 	FencingToken int64 `json:"fencing_token"`
 	// Lease expiry (ms since epoch).
 	LeaseExpiresMs int64 `json:"lease_expires_ms"`
+	// Leader metadata from the winning campaign.
+	Metadata map[string]string `json:"metadata"`
 }
 
 // ElectionGetResponse: Response of GET /v1/elections/{name}.
@@ -170,7 +178,7 @@ type LockGrant struct {
 	// Monotonic token to fence stale holders; set when acquired.
 	FencingToken *int64 `json:"fencing_token,omitempty"`
 	// Per-key fencing tokens for multi-key grants.
-	FencingTokens *map[string]any `json:"fencing_tokens,omitempty"`
+	FencingTokens *map[string]int64 `json:"fencing_tokens,omitempty"`
 	// Composite keys when this is a multi-key grant.
 	Keys *[]string `json:"keys,omitempty"`
 	// Current holder count (semaphores).

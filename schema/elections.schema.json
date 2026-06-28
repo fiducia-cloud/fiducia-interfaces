@@ -13,7 +13,12 @@
       "required": ["candidate", "ttl_ms"],
       "properties": {
         "candidate": { "type": "string", "description": "Identifier of the campaigning instance." },
-        "ttl_ms": { "type": "integer", "minimum": 1, "description": "Leadership lease TTL in milliseconds." }
+        "ttl_ms": { "type": "integer", "minimum": 1, "description": "Leadership lease TTL in milliseconds." },
+        "metadata": {
+          "type": "object",
+          "description": "Optional metadata published with the leadership grant, such as address, region, version, or role.",
+          "additionalProperties": { "type": "string" }
+        }
       }
     },
     "HoldRequest": {
@@ -32,11 +37,16 @@
       "title": "Leadership",
       "description": "Who currently holds a named election.",
       "additionalProperties": false,
-      "required": ["leader", "fencing_token", "lease_expires_ms"],
+      "required": ["leader", "fencing_token", "lease_expires_ms", "metadata"],
       "properties": {
         "leader": { "type": "string", "description": "Current leader id." },
         "fencing_token": { "type": "integer", "minimum": 0, "description": "Monotonic token for this leadership term." },
-        "lease_expires_ms": { "type": "integer", "minimum": 0, "description": "Lease expiry (ms since epoch)." }
+        "lease_expires_ms": { "type": "integer", "minimum": 0, "description": "Lease expiry (ms since epoch)." },
+        "metadata": {
+          "type": "object",
+          "description": "Leader metadata from the winning campaign.",
+          "additionalProperties": { "type": "string" }
+        }
       }
     },
     "ElectionGetResponse": {

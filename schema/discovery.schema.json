@@ -13,7 +13,12 @@
       "required": ["address", "ttl_ms"],
       "properties": {
         "address": { "type": "string", "description": "Reachable address of this instance." },
-        "ttl_ms": { "type": "integer", "minimum": 1, "description": "Lease TTL; renew via heartbeat before it expires." }
+        "ttl_ms": { "type": "integer", "minimum": 1, "description": "Lease TTL; renew via heartbeat before it expires." },
+        "metadata": {
+          "type": "object",
+          "description": "Optional instance metadata such as region, cloud provider, version, or role.",
+          "additionalProperties": { "type": "string" }
+        }
       }
     },
     "ServiceInstance": {
@@ -21,11 +26,16 @@
       "title": "ServiceInstance",
       "description": "A live registered instance.",
       "additionalProperties": false,
-      "required": ["instance_id", "address", "lease_expires_ms"],
+      "required": ["instance_id", "address", "lease_expires_ms", "metadata"],
       "properties": {
         "instance_id": { "type": "string", "description": "Instance id." },
         "address": { "type": "string", "description": "Reachable address." },
-        "lease_expires_ms": { "type": "integer", "minimum": 0, "description": "When the lease expires (ms since epoch)." }
+        "lease_expires_ms": { "type": "integer", "minimum": 0, "description": "When the lease expires (ms since epoch)." },
+        "metadata": {
+          "type": "object",
+          "description": "Instance metadata from registration.",
+          "additionalProperties": { "type": "string" }
+        }
       }
     },
     "ServiceListResponse": {

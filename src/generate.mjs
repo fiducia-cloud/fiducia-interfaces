@@ -44,6 +44,11 @@ const FIELD_RE = /^[a-z][a-z0-9_]*$/;
 
 const refName = (s) => (s && s.$ref ? s.$ref.split("/").pop() : null);
 const isStringEnum = (s) => s && s.type === "string" && Array.isArray(s.enum) && s.enum.length > 0;
+const mapValueSchema = (s) => (
+  s && s.type === "object" && s.additionalProperties && typeof s.additionalProperties === "object"
+    ? s.additionalProperties
+    : null
+);
 const enumTypeName = (typeName, fieldName) => `${typeName}${pascal(fieldName)}`;
 
 // --- load + validate ----------------------------------------------------------
@@ -87,7 +92,7 @@ function loadTypes() {
   const known = new Set(types.map((t) => t.name));
   for (const t of types) {
     for (const p of t.props) {
-      for (const s of [p.schema, p.schema && p.schema.items]) {
+      for (const s of [p.schema, p.schema && p.schema.items, p.schema && p.schema.additionalProperties]) {
         const r = refName(s);
         if (r && !known.has(r)) fail(`${t.source}:${t.name}.${p.name}: $ref to unknown type "${r}"`);
       }
@@ -111,6 +116,7 @@ function collectEnums(types) {
 
 function rustType(s) {
   const r = refName(s); if (r) return r;
+  const mapValue = mapValueSchema(s); if (mapValue) return `std::collections::BTreeMap<String, ${rustType(mapValue)}>`;
   switch (s.type) {
     case "string": return "String";
     case "integer": return "i64";
@@ -122,6 +128,7 @@ function rustType(s) {
 }
 function tsType(s) {
   const r = refName(s); if (r) return r;
+  const mapValue = mapValueSchema(s); if (mapValue) return `Record<string, ${tsType(mapValue)}>`;
   switch (s.type) {
     case "string": return "string";
     case "integer": case "number": return "number";
@@ -132,6 +139,7 @@ function tsType(s) {
 }
 function pyType(s) {
   const r = refName(s); if (r) return r;
+  const mapValue = mapValueSchema(s); if (mapValue) return `Dict[str, ${pyType(mapValue)}]`;
   switch (s.type) {
     case "string": return "str";
     case "integer": return "int";
@@ -143,6 +151,7 @@ function pyType(s) {
 }
 function goType(s) {
   const r = refName(s); if (r) return r;
+  const mapValue = mapValueSchema(s); if (mapValue) return `map[string]${goType(mapValue)}`;
   switch (s.type) {
     case "string": return "string";
     case "integer": return "int64";
@@ -210,7 +219,8 @@ function emitTs(types) {
 
 function emitPython(types) {
   const usesLiteral = types.some((t) => t.props.some((p) => isStringEnum(p.schema)));
-  const typing = `from typing import List, Optional${usesLiteral ? ", Literal" : ""}`;
+  const usesDict = types.some((t) => t.props.some((p) => mapValueSchema(p.schema)));
+  const typing = `from typing import List, Optional${usesDict ? ", Dict" : ""}${usesLiteral ? ", Literal" : ""}`;
   const out = [`# ${BANNER}`, "from __future__ import annotations", "from dataclasses import dataclass", typing, ""];
   for (const t of types) {
     out.push("@dataclass", `class ${t.name}:`);
@@ -249,7 +259,7 @@ const EMITTERS = {
   typescript: emitTs,
   python: emitPython,
   go: emitGo,
-  // TODO(client langs): dart, ruby, java, csharp, php, elixir — one render fn each.
+  // Add more client languages here with one renderer per generated package.
 };
 
 // --- run ---------------------------------------------------------------------

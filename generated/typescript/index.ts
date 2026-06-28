@@ -38,6 +38,8 @@ export type ServiceRegisterRequest = {
   address: string;
   /** Lease TTL; renew via heartbeat before it expires. */
   ttl_ms: number;
+  /** Optional instance metadata such as region, cloud provider, version, or role. */
+  metadata?: Record<string, string>;
 };
 
 /** A live registered instance. */
@@ -48,6 +50,8 @@ export type ServiceInstance = {
   address: string;
   /** When the lease expires (ms since epoch). */
   lease_expires_ms: number;
+  /** Instance metadata from registration. */
+  metadata: Record<string, string>;
 };
 
 /** Response of GET /v1/services/{service}. */
@@ -64,6 +68,8 @@ export type CampaignRequest = {
   candidate: string;
   /** Leadership lease TTL in milliseconds. */
   ttl_ms: number;
+  /** Optional metadata published with the leadership grant, such as address, region, version, or role. */
+  metadata?: Record<string, string>;
 };
 
 /** Body of renew/resign — must present the held fencing token. */
@@ -82,6 +88,8 @@ export type Leadership = {
   fencing_token: number;
   /** Lease expiry (ms since epoch). */
   lease_expires_ms: number;
+  /** Leader metadata from the winning campaign. */
+  metadata: Record<string, string>;
 };
 
 /** Response of GET /v1/elections/{name}. */
@@ -168,7 +176,7 @@ export type LockGrant = {
   /** Monotonic token to fence stale holders; set when acquired. */
   fencing_token?: number;
   /** Per-key fencing tokens for multi-key grants. */
-  fencing_tokens?: Record<string, unknown>;
+  fencing_tokens?: Record<string, number>;
   /** Composite keys when this is a multi-key grant. */
   keys?: string[];
   /** Current holder count (semaphores). */

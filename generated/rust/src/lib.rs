@@ -97,6 +97,9 @@ pub struct ServiceRegisterRequest {
     pub address: String,
     /// Lease TTL; renew via heartbeat before it expires.
     pub ttl_ms: i64,
+    /// Optional instance metadata such as region, cloud provider, version, or role.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<std::collections::BTreeMap<String, String>>,
 }
 
 /// A live registered instance.
@@ -108,6 +111,8 @@ pub struct ServiceInstance {
     pub address: String,
     /// When the lease expires (ms since epoch).
     pub lease_expires_ms: i64,
+    /// Instance metadata from registration.
+    pub metadata: std::collections::BTreeMap<String, String>,
 }
 
 /// Response of GET /v1/services/{service}.
@@ -126,6 +131,9 @@ pub struct CampaignRequest {
     pub candidate: String,
     /// Leadership lease TTL in milliseconds.
     pub ttl_ms: i64,
+    /// Optional metadata published with the leadership grant, such as address, region, version, or role.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<std::collections::BTreeMap<String, String>>,
 }
 
 /// Body of renew/resign — must present the held fencing token.
@@ -146,6 +154,8 @@ pub struct Leadership {
     pub fencing_token: i64,
     /// Lease expiry (ms since epoch).
     pub lease_expires_ms: i64,
+    /// Leader metadata from the winning campaign.
+    pub metadata: std::collections::BTreeMap<String, String>,
 }
 
 /// Response of GET /v1/elections/{name}.
@@ -255,7 +265,7 @@ pub struct LockGrant {
     pub fencing_token: Option<i64>,
     /// Per-key fencing tokens for multi-key grants.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub fencing_tokens: Option<serde_json::Value>,
+    pub fencing_tokens: Option<std::collections::BTreeMap<String, i64>>,
     /// Composite keys when this is a multi-key grant.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub keys: Option<Vec<String>>,

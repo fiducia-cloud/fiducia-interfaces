@@ -259,7 +259,7 @@ const EMITTERS = {
   typescript: emitTs,
   python: emitPython,
   go: emitGo,
-  // Add more client languages here with one renderer per generated package.
+  // Future client emitters can add dart, ruby, java, csharp, php, or elixir here.
 };
 
 // --- run ---------------------------------------------------------------------

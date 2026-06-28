@@ -13,13 +13,26 @@
       "required": ["candidate", "ttl_ms"],
       "properties": {
         "candidate": { "type": "string", "description": "Identifier of the campaigning instance." },
-        "ttl_ms": { "type": "integer", "minimum": 1, "description": "Leadership lease TTL in milliseconds." }
+        "ttl_ms": { "type": "integer", "minimum": 1, "description": "Leadership lease TTL in milliseconds." },
+        "metadata": { "type": "object", "description": "Candidate facts (address, region, version, ...) published with the leadership so observers can discover the leader's endpoint." }
+      }
+    },
+    "RenewRequest": {
+      "type": "object",
+      "title": "RenewRequest",
+      "description": "Body of POST /v1/elections/{name}/renew — must present the held fencing token.",
+      "additionalProperties": false,
+      "required": ["candidate", "fencing_token"],
+      "properties": {
+        "candidate": { "type": "string", "description": "The current holder." },
+        "fencing_token": { "type": "integer", "minimum": 0, "description": "Token from the grant." },
+        "ttl_ms": { "type": "integer", "minimum": 1, "description": "Optional new lease TTL; when omitted the original campaign TTL is reused." }
       }
     },
     "HoldRequest": {
       "type": "object",
       "title": "HoldRequest",
-      "description": "Body of renew/resign — must present the held fencing token.",
+      "description": "Body of resign — must present the held fencing token.",
       "additionalProperties": false,
       "required": ["candidate", "fencing_token"],
       "properties": {
@@ -32,11 +45,13 @@
       "title": "Leadership",
       "description": "Who currently holds a named election.",
       "additionalProperties": false,
-      "required": ["leader", "fencing_token", "lease_expires_ms"],
+      "required": ["leader", "fencing_token", "lease_expires_ms", "ttl_ms", "metadata"],
       "properties": {
         "leader": { "type": "string", "description": "Current leader id." },
         "fencing_token": { "type": "integer", "minimum": 0, "description": "Monotonic token for this leadership term." },
-        "lease_expires_ms": { "type": "integer", "minimum": 0, "description": "Lease expiry (ms since epoch)." }
+        "lease_expires_ms": { "type": "integer", "minimum": 0, "description": "Lease expiry (ms since epoch)." },
+        "ttl_ms": { "type": "integer", "minimum": 0, "description": "Campaign TTL retained so a renew without an explicit TTL reuses it." },
+        "metadata": { "type": "object", "description": "Candidate facts published by the leader (address, region, version, ...)." }
       }
     },
     "ElectionGetResponse": {

@@ -11,6 +11,16 @@ pub enum ProposeErrorReason {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ChangeEventScope {
+    #[serde(rename = "kv")]
+    Kv,
+    #[serde(rename = "election")]
+    Election,
+    #[serde(rename = "service")]
+    Service,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RateLimitCheckRequestAlgorithm {
     #[serde(rename = "token_bucket")]
     TokenBucket,
@@ -75,6 +85,22 @@ pub struct ProposeError {
     pub leader: Option<String>,
 }
 
+/// One server-sent event emitted on a watch stream (KV, election, or service).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChangeEvent {
+    /// Which primitive changed.
+    pub scope: ChangeEventScope,
+    /// Domain verb: kv put/delete; election elected/renewed/resigned; service register/heartbeat/deregister.
+    pub kind: String,
+    /// The watched name: kv key, election name, or service name.
+    pub key: String,
+    /// State-machine revision that produced the change.
+    pub revision: i64,
+    /// Optional payload (the new Leadership or ServiceInstance) so watchers can act without a follow-up read.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub detail: Option<serde_json::Value>,
+}
+
 /// Result of validating an API key (fiducia-auth). The edge/LB caches this.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Introspection {
@@ -97,6 +123,17 @@ pub struct ServiceRegisterRequest {
     pub address: String,
     /// Lease TTL; renew via heartbeat before it expires.
     pub ttl_ms: i64,
+    /// Free-form instance facts (zone, capacity, version, ...).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<serde_json::Value>,
+}
+
+/// Body of POST /v1/services/{service}/instances/{id}/heartbeat.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServiceHeartbeatRequest {
+    /// Optional new lease TTL; when omitted a default is applied.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ttl_ms: Option<i64>,
 }
 
 /// A live registered instance.
@@ -108,15 +145,35 @@ pub struct ServiceInstance {
     pub address: String,
     /// When the lease expires (ms since epoch).
     pub lease_expires_ms: i64,
+    /// Free-form instance facts supplied at registration.
+    pub metadata: serde_json::Value,
 }
 
-/// Response of GET /v1/services/{service}.
+/// Response of GET /v1/services/{service} — the live instances of one service.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServiceListResponse {
     /// Service name.
     pub service: String,
     /// Live instances.
     pub instances: Vec<ServiceInstance>,
+}
+
+/// One service in a discovery listing.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServiceSummary {
+    /// Service name.
+    pub service: String,
+    /// Number of live instances.
+    pub instances: i64,
+}
+
+/// Response of GET /v1/services — every service with live instances, merged across shards.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServicesListResponse {
+    /// Number of services listed.
+    pub count: i64,
+    /// Services with live instances.
+    pub services: Vec<ServiceSummary>,
 }
 
 /// Body of POST /v1/elections/{name}/campaign.
@@ -126,9 +183,24 @@ pub struct CampaignRequest {
     pub candidate: String,
     /// Leadership lease TTL in milliseconds.
     pub ttl_ms: i64,
+    /// Candidate facts (address, region, version, ...) published with the leadership so observers can discover the leader's endpoint.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<serde_json::Value>,
 }
 
-/// Body of renew/resign — must present the held fencing token.
+/// Body of POST /v1/elections/{name}/renew — must present the held fencing token.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RenewRequest {
+    /// The current holder.
+    pub candidate: String,
+    /// Token from the grant.
+    pub fencing_token: i64,
+    /// Optional new lease TTL; when omitted the original campaign TTL is reused.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ttl_ms: Option<i64>,
+}
+
+/// Body of resign — must present the held fencing token.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HoldRequest {
     /// The current holder.
@@ -146,6 +218,10 @@ pub struct Leadership {
     pub fencing_token: i64,
     /// Lease expiry (ms since epoch).
     pub lease_expires_ms: i64,
+    /// Campaign TTL retained so a renew without an explicit TTL reuses it.
+    pub ttl_ms: i64,
+    /// Candidate facts published by the leader (address, region, version, ...).
+    pub metadata: serde_json::Value,
 }
 
 /// Response of GET /v1/elections/{name}.
@@ -195,6 +271,31 @@ pub struct KvGetResponse {
     /// The value when found.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub entry: Option<KvEntry>,
+}
+
+/// One row of a prefix listing: a key with its entry fields flattened in.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KvListItem {
+    /// The key.
+    pub key: String,
+    /// The stored value.
+    pub value: String,
+    /// Revision at which the key was last written.
+    pub mod_revision: i64,
+    /// Absolute expiry (ms since epoch) if a TTL was set.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expires_at_ms: Option<i64>,
+}
+
+/// Response of GET /v1/kv?prefix=... — live keys under a prefix, merged across shards and sorted by key.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KvListResponse {
+    /// The requested prefix (empty lists the whole keyspace).
+    pub prefix: String,
+    /// Number of keys returned.
+    pub count: i64,
+    /// Matching live entries.
+    pub keys: Vec<KvListItem>,
 }
 
 /// Body of POST /v1/locks/{key}/acquire. max=1 is a mutex; max>1 a semaphore.

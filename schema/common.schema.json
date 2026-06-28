@@ -29,6 +29,20 @@
         "leader": { "type": "string", "description": "Current leader to retry against, when known (not_leader)." }
       }
     },
+    "ChangeEvent": {
+      "type": "object",
+      "title": "ChangeEvent",
+      "description": "One server-sent event emitted on a watch stream (KV, election, or service).",
+      "additionalProperties": false,
+      "required": ["scope", "kind", "key", "revision"],
+      "properties": {
+        "scope": { "type": "string", "enum": ["kv", "election", "service"], "description": "Which primitive changed." },
+        "kind": { "type": "string", "description": "Domain verb: kv put/delete; election elected/renewed/resigned; service register/heartbeat/deregister." },
+        "key": { "type": "string", "description": "The watched name: kv key, election name, or service name." },
+        "revision": { "type": "integer", "minimum": 0, "description": "State-machine revision that produced the change." },
+        "detail": { "type": "object", "description": "Optional payload (the new Leadership or ServiceInstance) so watchers can act without a follow-up read." }
+      }
+    },
     "Introspection": {
       "type": "object",
       "title": "Introspection",

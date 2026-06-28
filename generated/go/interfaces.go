@@ -22,6 +22,20 @@ type ProposeError struct {
 	Leader *string `json:"leader,omitempty"`
 }
 
+// ChangeEvent: One server-sent event emitted on a watch stream (KV, election, or service).
+type ChangeEvent struct {
+	// Which primitive changed. (one of: kv, election, service)
+	Scope string `json:"scope"`
+	// Domain verb: kv put/delete; election elected/renewed/resigned; service register/heartbeat/deregister.
+	Kind string `json:"kind"`
+	// The watched name: kv key, election name, or service name.
+	Key string `json:"key"`
+	// State-machine revision that produced the change.
+	Revision int64 `json:"revision"`
+	// Optional payload (the new Leadership or ServiceInstance) so watchers can act without a follow-up read.
+	Detail *map[string]any `json:"detail,omitempty"`
+}
+
 // Introspection: Result of validating an API key (fiducia-auth). The edge/LB caches this.
 type Introspection struct {
 	// Whether the key is valid and active.
@@ -40,6 +54,14 @@ type ServiceRegisterRequest struct {
 	Address string `json:"address"`
 	// Lease TTL; renew via heartbeat before it expires.
 	TtlMs int64 `json:"ttl_ms"`
+	// Free-form instance facts (zone, capacity, version, ...).
+	Metadata *map[string]any `json:"metadata,omitempty"`
+}
+
+// ServiceHeartbeatRequest: Body of POST /v1/services/{service}/instances/{id}/heartbeat.
+type ServiceHeartbeatRequest struct {
+	// Optional new lease TTL; when omitted a default is applied.
+	TtlMs *int64 `json:"ttl_ms,omitempty"`
 }
 
 // ServiceInstance: A live registered instance.
@@ -50,14 +72,32 @@ type ServiceInstance struct {
 	Address string `json:"address"`
 	// When the lease expires (ms since epoch).
 	LeaseExpiresMs int64 `json:"lease_expires_ms"`
+	// Free-form instance facts supplied at registration.
+	Metadata map[string]any `json:"metadata"`
 }
 
-// ServiceListResponse: Response of GET /v1/services/{service}.
+// ServiceListResponse: Response of GET /v1/services/{service} — the live instances of one service.
 type ServiceListResponse struct {
 	// Service name.
 	Service string `json:"service"`
 	// Live instances.
 	Instances []ServiceInstance `json:"instances"`
+}
+
+// ServiceSummary: One service in a discovery listing.
+type ServiceSummary struct {
+	// Service name.
+	Service string `json:"service"`
+	// Number of live instances.
+	Instances int64 `json:"instances"`
+}
+
+// ServicesListResponse: Response of GET /v1/services — every service with live instances, merged across shards.
+type ServicesListResponse struct {
+	// Number of services listed.
+	Count int64 `json:"count"`
+	// Services with live instances.
+	Services []ServiceSummary `json:"services"`
 }
 
 // CampaignRequest: Body of POST /v1/elections/{name}/campaign.
@@ -66,9 +106,21 @@ type CampaignRequest struct {
 	Candidate string `json:"candidate"`
 	// Leadership lease TTL in milliseconds.
 	TtlMs int64 `json:"ttl_ms"`
+	// Candidate facts (address, region, version, ...) published with the leadership so observers can discover the leader's endpoint.
+	Metadata *map[string]any `json:"metadata,omitempty"`
 }
 
-// HoldRequest: Body of renew/resign — must present the held fencing token.
+// RenewRequest: Body of POST /v1/elections/{name}/renew — must present the held fencing token.
+type RenewRequest struct {
+	// The current holder.
+	Candidate string `json:"candidate"`
+	// Token from the grant.
+	FencingToken int64 `json:"fencing_token"`
+	// Optional new lease TTL; when omitted the original campaign TTL is reused.
+	TtlMs *int64 `json:"ttl_ms,omitempty"`
+}
+
+// HoldRequest: Body of resign — must present the held fencing token.
 type HoldRequest struct {
 	// The current holder.
 	Candidate string `json:"candidate"`
@@ -84,6 +136,10 @@ type Leadership struct {
 	FencingToken int64 `json:"fencing_token"`
 	// Lease expiry (ms since epoch).
 	LeaseExpiresMs int64 `json:"lease_expires_ms"`
+	// Campaign TTL retained so a renew without an explicit TTL reuses it.
+	TtlMs int64 `json:"ttl_ms"`
+	// Candidate facts published by the leader (address, region, version, ...).
+	Metadata map[string]any `json:"metadata"`
 }
 
 // ElectionGetResponse: Response of GET /v1/elections/{name}.
@@ -124,6 +180,28 @@ type KvGetResponse struct {
 	Found bool `json:"found"`
 	// The value when found.
 	Entry *KvEntry `json:"entry,omitempty"`
+}
+
+// KvListItem: One row of a prefix listing: a key with its entry fields flattened in.
+type KvListItem struct {
+	// The key.
+	Key string `json:"key"`
+	// The stored value.
+	Value string `json:"value"`
+	// Revision at which the key was last written.
+	ModRevision int64 `json:"mod_revision"`
+	// Absolute expiry (ms since epoch) if a TTL was set.
+	ExpiresAtMs *int64 `json:"expires_at_ms,omitempty"`
+}
+
+// KvListResponse: Response of GET /v1/kv?prefix=... — live keys under a prefix, merged across shards and sorted by key.
+type KvListResponse struct {
+	// The requested prefix (empty lists the whole keyspace).
+	Prefix string `json:"prefix"`
+	// Number of keys returned.
+	Count int64 `json:"count"`
+	// Matching live entries.
+	Keys []KvListItem `json:"keys"`
 }
 
 // LockAcquireRequest: Body of POST /v1/locks/{key}/acquire. max=1 is a mutex; max>1 a semaphore.

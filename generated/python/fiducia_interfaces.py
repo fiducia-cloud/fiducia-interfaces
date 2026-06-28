@@ -18,6 +18,15 @@ class ProposeError:
     leader: Optional[str] = None
 
 @dataclass
+class ChangeEvent:
+    """One server-sent event emitted on a watch stream (KV, election, or service)."""
+    scope: Literal["kv", "election", "service"]
+    kind: str
+    key: str
+    revision: int
+    detail: Optional[dict] = None
+
+@dataclass
 class Introspection:
     """Result of validating an API key (fiducia-auth). The edge/LB caches this."""
     valid: bool
@@ -30,6 +39,12 @@ class ServiceRegisterRequest:
     """Body of PUT /v1/services/{service}/instances/{id}."""
     address: str
     ttl_ms: int
+    metadata: Optional[dict] = None
+
+@dataclass
+class ServiceHeartbeatRequest:
+    """Body of POST /v1/services/{service}/instances/{id}/heartbeat."""
+    ttl_ms: Optional[int] = None
 
 @dataclass
 class ServiceInstance:
@@ -37,22 +52,43 @@ class ServiceInstance:
     instance_id: str
     address: str
     lease_expires_ms: int
+    metadata: dict
 
 @dataclass
 class ServiceListResponse:
-    """Response of GET /v1/services/{service}."""
+    """Response of GET /v1/services/{service} — the live instances of one service."""
     service: str
     instances: List[ServiceInstance]
+
+@dataclass
+class ServiceSummary:
+    """One service in a discovery listing."""
+    service: str
+    instances: int
+
+@dataclass
+class ServicesListResponse:
+    """Response of GET /v1/services — every service with live instances, merged across shards."""
+    count: int
+    services: List[ServiceSummary]
 
 @dataclass
 class CampaignRequest:
     """Body of POST /v1/elections/{name}/campaign."""
     candidate: str
     ttl_ms: int
+    metadata: Optional[dict] = None
+
+@dataclass
+class RenewRequest:
+    """Body of POST /v1/elections/{name}/renew — must present the held fencing token."""
+    candidate: str
+    fencing_token: int
+    ttl_ms: Optional[int] = None
 
 @dataclass
 class HoldRequest:
-    """Body of renew/resign — must present the held fencing token."""
+    """Body of resign — must present the held fencing token."""
     candidate: str
     fencing_token: int
 
@@ -62,6 +98,8 @@ class Leadership:
     leader: str
     fencing_token: int
     lease_expires_ms: int
+    ttl_ms: int
+    metadata: dict
 
 @dataclass
 class ElectionGetResponse:
@@ -90,6 +128,21 @@ class KvGetResponse:
     key: str
     found: bool
     entry: Optional[KvEntry] = None
+
+@dataclass
+class KvListItem:
+    """One row of a prefix listing: a key with its entry fields flattened in."""
+    key: str
+    value: str
+    mod_revision: int
+    expires_at_ms: Optional[int] = None
+
+@dataclass
+class KvListResponse:
+    """Response of GET /v1/kv?prefix=... — live keys under a prefix, merged across shards and sorted by key."""
+    prefix: str
+    count: int
+    keys: List[KvListItem]
 
 @dataclass
 class LockAcquireRequest:

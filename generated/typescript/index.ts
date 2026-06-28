@@ -102,6 +102,62 @@ export type ElectionGetResponse = {
   leadership?: Leadership;
 };
 
+/** Body of POST /v1/idempotency/claim. First claim for a key wins until the TTL expires. */
+export type IdempotencyClaimRequest = {
+  /** Caller-chosen idempotency key, such as stripe-webhook/event_123. */
+  key: string;
+  /** Caller instance that is claiming the key. Defaults to anonymous. */
+  owner?: string;
+  /** Deduplication window in milliseconds. */
+  ttl_ms?: number;
+  /** Human-friendly TTL such as 60s, 15m, 24h, or 7d. */
+  ttl?: string;
+  /** Optional string metadata attached to the claim. */
+  metadata?: Record<string, string>;
+};
+
+/** Body of POST /v1/idempotency/complete. Must present the owner and fencing token returned by claim. */
+export type IdempotencyCompleteRequest = {
+  /** Idempotency key to complete. */
+  key: string;
+  /** Owner that claimed the key. */
+  owner: string;
+  /** Token returned by the winning claim. */
+  fencing_token: number;
+  /** Optional small JSON result duplicate callers can replay. */
+  result?: Record<string, unknown>;
+};
+
+/** Active idempotency record retained until the TTL window expires. */
+export type IdempotencyRecord = {
+  /** Idempotency key. */
+  key: string;
+  /** Owner of the first claim. */
+  owner: string;
+  /** Monotonic token guarding completion. */
+  fencing_token: number;
+  /** Whether the key is still in progress or completed. */
+  status: "claimed" | "completed";
+  /** First claim time in ms since epoch. */
+  first_seen_ms: number;
+  /** When this dedupe record expires. */
+  lease_expires_ms: number;
+  /** Claim metadata. */
+  metadata: Record<string, string>;
+  /** Optional completion result. */
+  result?: Record<string, unknown>;
+};
+
+/** Response of GET /v1/idempotency?key=... */
+export type IdempotencyGetResponse = {
+  /** Idempotency key. */
+  key: string;
+  /** Whether an active record exists. */
+  found: boolean;
+  /** Active record when found. */
+  record?: IdempotencyRecord;
+};
+
 /** A versioned KV value. */
 export type KvEntry = {
   /** The stored value. */

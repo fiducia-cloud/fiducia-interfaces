@@ -75,6 +75,42 @@ class ElectionGetResponse:
     leadership: Optional[Leadership] = None
 
 @dataclass
+class IdempotencyClaimRequest:
+    """Body of POST /v1/idempotency/claim. First claim for a key wins until the TTL expires."""
+    key: str
+    owner: Optional[str] = None
+    ttl_ms: Optional[int] = None
+    ttl: Optional[str] = None
+    metadata: Optional[Dict[str, str]] = None
+
+@dataclass
+class IdempotencyCompleteRequest:
+    """Body of POST /v1/idempotency/complete. Must present the owner and fencing token returned by claim."""
+    key: str
+    owner: str
+    fencing_token: int
+    result: Optional[dict] = None
+
+@dataclass
+class IdempotencyRecord:
+    """Active idempotency record retained until the TTL window expires."""
+    key: str
+    owner: str
+    fencing_token: int
+    status: Literal["claimed", "completed"]
+    first_seen_ms: int
+    lease_expires_ms: int
+    metadata: Dict[str, str]
+    result: Optional[dict] = None
+
+@dataclass
+class IdempotencyGetResponse:
+    """Response of GET /v1/idempotency?key=..."""
+    key: str
+    found: bool
+    record: Optional[IdempotencyRecord] = None
+
+@dataclass
 class KvEntry:
     """A versioned KV value."""
     value: str

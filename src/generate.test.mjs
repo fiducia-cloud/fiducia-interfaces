@@ -20,16 +20,34 @@ test("helpers", () => {
 test("loadTypes parses the real schemas without error", () => {
   const types = loadTypes();
   const names = types.map((t) => t.name);
-  for (const expected of ["ProposeOutcome", "KvEntry", "LockGrant", "LockAcquireManyRequest", "LockReleaseManyRequest", "RateLimitCheckRequest", "ScheduleUpsertRequest", "Leadership", "ServiceInstance"]) {
+  for (const expected of ["ProposeOutcome", "KvEntry", "LockGrant", "LockAcquireManyRequest", "LockReleaseManyRequest", "RateLimitCheckRequest", "ScheduleUpsertRequest", "Leadership", "ServiceInstance", "IdempotencyClaimRequest", "IdempotencyCompleteRequest", "IdempotencyRecord"]) {
     assert.ok(names.includes(expected), `missing ${expected}`);
   }
   const outcome = types.find((t) => t.name === "ProposeOutcome");
   assert.deepEqual(outcome.props.map((p) => p.name).sort(), ["log_index", "revision", "shard"]);
 });
 
+test("idempotency schema exposes claim, complete, record, and lookup payloads", () => {
+  const types = loadTypes().filter((t) => t.name.startsWith("Idempotency"));
+
+  assert.deepEqual(types.map((t) => t.name), [
+    "IdempotencyClaimRequest",
+    "IdempotencyCompleteRequest",
+    "IdempotencyRecord",
+    "IdempotencyGetResponse",
+  ]);
+  assert.deepEqual(
+    types.find((t) => t.name === "IdempotencyCompleteRequest").props
+      .filter((p) => p.required)
+      .map((p) => p.name),
+    ["key", "owner", "fencing_token"],
+  );
+});
+
 test("string enums are collected and typed", () => {
   const enums = collectEnums(loadTypes());
   assert.deepEqual(enums.get("ProposeErrorReason"), ["not_leader", "unavailable"]);
+  assert.deepEqual(enums.get("IdempotencyRecordStatus"), ["claimed", "completed"]);
 });
 
 test("rust output: struct, optional fields, and a typed enum", () => {
@@ -53,6 +71,24 @@ test("typescript output: union for enum, optional marker", () => {
   assert.match(ts, /algorithm: "token_bucket" \| "sliding_window";/);
   assert.match(ts, /delivery\?: "at_least_once" \| "exactly_once";/);
   assert.match(ts, /ttl_ms\?: number;/);
+});
+
+test("idempotency output is generated for every supported language", () => {
+  const output = build();
+
+  assert.match(output["rust/src/lib.rs"], /pub struct IdempotencyCompleteRequest \{/);
+  assert.match(output["typescript/index.ts"], /export type IdempotencyGetResponse = \{/);
+  assert.match(output["python/fiducia_interfaces.py"], /class IdempotencyRecord:/);
+  assert.match(output["go/interfaces.go"], /type IdempotencyClaimRequest struct \{/);
+});
+
+test("idempotency completion result remains optional JSON in generated clients", () => {
+  const output = build();
+
+  assert.match(output["rust/src/lib.rs"], /pub result: Option<serde_json::Value>,/);
+  assert.match(output["typescript/index.ts"], /result\?: Record<string, unknown>;/);
+  assert.match(output["python/fiducia_interfaces.py"], /result: Optional\[dict\] = None/);
+  assert.match(output["go/interfaces.go"], /Result \*map\[string\]any `json:"result,omitempty"`/);
 });
 
 test("python output: Literal + Optional ordering compiles", () => {

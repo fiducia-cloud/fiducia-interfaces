@@ -40,6 +40,31 @@
         "found": { "type": "boolean", "description": "Whether the key exists." },
         "entry": { "$ref": "#/$defs/KvEntry", "description": "The value when found." }
       }
+    },
+    "KvListItem": {
+      "type": "object",
+      "title": "KvListItem",
+      "description": "One row of a prefix listing: a key with its entry fields flattened in.",
+      "additionalProperties": false,
+      "required": ["key", "value", "mod_revision"],
+      "properties": {
+        "key": { "type": "string", "description": "The key." },
+        "value": { "type": "string", "description": "The stored value." },
+        "mod_revision": { "type": "integer", "minimum": 0, "description": "Revision at which the key was last written." },
+        "expires_at_ms": { "type": "integer", "minimum": 0, "description": "Absolute expiry (ms since epoch) if a TTL was set." }
+      }
+    },
+    "KvListResponse": {
+      "type": "object",
+      "title": "KvListResponse",
+      "description": "Response of GET /v1/kv?prefix=... — live keys under a prefix, merged across shards and sorted by key.",
+      "additionalProperties": false,
+      "required": ["prefix", "count", "keys"],
+      "properties": {
+        "prefix": { "type": "string", "description": "The requested prefix (empty lists the whole keyspace)." },
+        "count": { "type": "integer", "minimum": 0, "description": "Number of keys returned." },
+        "keys": { "type": "array", "items": { "$ref": "#/$defs/KvListItem" }, "description": "Matching live entries." }
+      }
     }
   }
 }

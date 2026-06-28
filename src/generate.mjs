@@ -249,7 +249,7 @@ const EMITTERS = {
   typescript: emitTs,
   python: emitPython,
   go: emitGo,
-  // TODO(client langs): dart, ruby, java, csharp, php, elixir — one render fn each.
+  // Future client emitters can add dart, ruby, java, csharp, php, or elixir here.
 };
 
 // --- run ---------------------------------------------------------------------

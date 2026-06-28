@@ -13,7 +13,42 @@
       "properties": {
         "ttl_ms": { "type": "integer", "minimum": 1, "description": "Lease TTL in milliseconds." },
         "wait": { "type": "boolean", "description": "Block (long-poll) until granted; false = try-lock." },
+        "holder": { "type": "string", "description": "Caller-chosen holder identity." },
         "max": { "type": "integer", "minimum": 1, "description": "Max concurrent holders (semaphore)." }
+      }
+    },
+    "LockAcquireManyRequest": {
+      "type": "object",
+      "title": "LockAcquireManyRequest",
+      "description": "Body of POST /v1/locks/acquire-many. Acquires a bounded union of keys atomically.",
+      "additionalProperties": false,
+      "required": ["keys"],
+      "properties": {
+        "keys": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
+          "items": { "type": "string" },
+          "description": "Keys to lock as one union. The server sorts/dedupes before acquisition."
+        },
+        "holder": { "type": "string", "description": "Caller-chosen holder identity." },
+        "ttl_ms": { "type": "integer", "minimum": 1, "description": "Lease TTL in milliseconds." },
+        "wait": { "type": "boolean", "description": "Reserved for long-poll composite waits; false = try-lock." }
+      }
+    },
+    "LockHolder": {
+      "type": "object",
+      "title": "LockHolder",
+      "description": "Current holder of a mutex, semaphore slot, or composite lock member.",
+      "additionalProperties": false,
+      "required": ["holder", "lock_id", "fencing_token", "lease_expires_ms", "keys", "exclusive"],
+      "properties": {
+        "holder": { "type": "string" },
+        "lock_id": { "type": "string" },
+        "fencing_token": { "type": "integer", "minimum": 0 },
+        "lease_expires_ms": { "type": "integer", "minimum": 0 },
+        "keys": { "type": "array", "items": { "type": "string" } },
+        "exclusive": { "type": "boolean", "description": "True for composite members that block semaphore sharing." }
       }
     },
     "LockGrant": {
@@ -26,18 +61,36 @@
         "acquired": { "type": "boolean", "description": "Whether the lock was granted." },
         "lock_id": { "type": "string", "description": "Opaque id to present on release; set when acquired." },
         "fencing_token": { "type": "integer", "minimum": 0, "description": "Monotonic token to fence stale holders; set when acquired." },
+        "fencing_tokens": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 },
+          "description": "Per-key fencing tokens for multi-key grants."
+        },
+        "keys": { "type": "array", "items": { "type": "string" }, "description": "Composite keys when this is a multi-key grant." },
         "holders": { "type": "integer", "minimum": 0, "description": "Current holder count (semaphores)." },
-        "max": { "type": "integer", "minimum": 1, "description": "Configured max holders." }
+        "max": { "type": "integer", "minimum": 1, "description": "Configured max holders." },
+        "available": { "type": "integer", "minimum": 0, "description": "Remaining semaphore slots." }
       }
     },
     "LockReleaseRequest": {
       "type": "object",
       "title": "LockReleaseRequest",
-      "description": "Body of POST /v1/locks/{key}/release and rw end.",
+      "description": "Body of POST /v1/locks/{key}/release.",
+      "additionalProperties": false,
+      "required": ["holder", "fencing_token"],
+      "properties": {
+        "holder": { "type": "string", "description": "The holder identity used at acquire." },
+        "fencing_token": { "type": "integer", "minimum": 0, "description": "The token returned at acquire." }
+      }
+    },
+    "LockReleaseManyRequest": {
+      "type": "object",
+      "title": "LockReleaseManyRequest",
+      "description": "Body of POST /v1/locks/release-many.",
       "additionalProperties": false,
       "required": ["lock_id"],
       "properties": {
-        "lock_id": { "type": "string", "description": "The lock id returned at acquire." }
+        "lock_id": { "type": "string", "description": "The composite lock id returned at acquire-many." }
       }
     },
     "RwAcquireRequest": {

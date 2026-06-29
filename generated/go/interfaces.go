@@ -54,8 +54,8 @@ type ServiceRegisterRequest struct {
 	Address string `json:"address"`
 	// Lease TTL; renew via heartbeat before it expires.
 	TtlMs int64 `json:"ttl_ms"`
-	// Free-form instance facts (zone, capacity, version, ...).
-	Metadata *map[string]any `json:"metadata,omitempty"`
+	// Optional instance metadata such as region, cloud provider, version, or role.
+	Metadata *map[string]string `json:"metadata,omitempty"`
 }
 
 // ServiceHeartbeatRequest: Body of POST /v1/services/{service}/instances/{id}/heartbeat.
@@ -72,8 +72,8 @@ type ServiceInstance struct {
 	Address string `json:"address"`
 	// When the lease expires (ms since epoch).
 	LeaseExpiresMs int64 `json:"lease_expires_ms"`
-	// Free-form instance facts supplied at registration.
-	Metadata map[string]any `json:"metadata"`
+	// Instance metadata from registration.
+	Metadata map[string]string `json:"metadata"`
 }
 
 // ServiceListResponse: Response of GET /v1/services/{service} — the live instances of one service.
@@ -106,8 +106,8 @@ type CampaignRequest struct {
 	Candidate string `json:"candidate"`
 	// Leadership lease TTL in milliseconds.
 	TtlMs int64 `json:"ttl_ms"`
-	// Candidate facts (address, region, version, ...) published with the leadership so observers can discover the leader's endpoint.
-	Metadata *map[string]any `json:"metadata,omitempty"`
+	// Optional metadata published with the leadership grant, such as address, region, version, or role.
+	Metadata *map[string]string `json:"metadata,omitempty"`
 }
 
 // RenewRequest: Body of POST /v1/elections/{name}/renew — must present the held fencing token.
@@ -138,8 +138,8 @@ type Leadership struct {
 	LeaseExpiresMs int64 `json:"lease_expires_ms"`
 	// Campaign TTL retained so a renew without an explicit TTL reuses it.
 	TtlMs int64 `json:"ttl_ms"`
-	// Candidate facts published by the leader (address, region, version, ...).
-	Metadata map[string]any `json:"metadata"`
+	// Leader metadata from the winning campaign.
+	Metadata map[string]string `json:"metadata"`
 }
 
 // ElectionGetResponse: Response of GET /v1/elections/{name}.
@@ -150,6 +150,62 @@ type ElectionGetResponse struct {
 	Held bool `json:"held"`
 	// Holder details when held.
 	Leadership *Leadership `json:"leadership,omitempty"`
+}
+
+// IdempotencyClaimRequest: Body of POST /v1/idempotency/claim. First claim for a key wins until the TTL expires.
+type IdempotencyClaimRequest struct {
+	// Caller-chosen idempotency key, such as stripe-webhook/event_123.
+	Key string `json:"key"`
+	// Caller instance that is claiming the key. Defaults to anonymous.
+	Owner *string `json:"owner,omitempty"`
+	// Deduplication window in milliseconds.
+	TtlMs *int64 `json:"ttl_ms,omitempty"`
+	// Human-friendly TTL such as 60s, 15m, 24h, or 7d.
+	Ttl *string `json:"ttl,omitempty"`
+	// Optional string metadata attached to the claim.
+	Metadata *map[string]string `json:"metadata,omitempty"`
+}
+
+// IdempotencyCompleteRequest: Body of POST /v1/idempotency/complete. Must present the owner and fencing token returned by claim.
+type IdempotencyCompleteRequest struct {
+	// Idempotency key to complete.
+	Key string `json:"key"`
+	// Owner that claimed the key.
+	Owner string `json:"owner"`
+	// Token returned by the winning claim.
+	FencingToken int64 `json:"fencing_token"`
+	// Optional small JSON result duplicate callers can replay.
+	Result *map[string]any `json:"result,omitempty"`
+}
+
+// IdempotencyRecord: Active idempotency record retained until the TTL window expires.
+type IdempotencyRecord struct {
+	// Idempotency key.
+	Key string `json:"key"`
+	// Owner of the first claim.
+	Owner string `json:"owner"`
+	// Monotonic token guarding completion.
+	FencingToken int64 `json:"fencing_token"`
+	// Whether the key is still in progress or completed. (one of: claimed, completed)
+	Status string `json:"status"`
+	// First claim time in ms since epoch.
+	FirstSeenMs int64 `json:"first_seen_ms"`
+	// When this dedupe record expires.
+	LeaseExpiresMs int64 `json:"lease_expires_ms"`
+	// Claim metadata.
+	Metadata map[string]string `json:"metadata"`
+	// Optional completion result.
+	Result *map[string]any `json:"result,omitempty"`
+}
+
+// IdempotencyGetResponse: Response of GET /v1/idempotency?key=...
+type IdempotencyGetResponse struct {
+	// Idempotency key.
+	Key string `json:"key"`
+	// Whether an active record exists.
+	Found bool `json:"found"`
+	// Active record when found.
+	Record *IdempotencyRecord `json:"record,omitempty"`
 }
 
 // KvEntry: A versioned KV value.
@@ -248,7 +304,7 @@ type LockGrant struct {
 	// Monotonic token to fence stale holders; set when acquired.
 	FencingToken *int64 `json:"fencing_token,omitempty"`
 	// Per-key fencing tokens for multi-key grants.
-	FencingTokens *map[string]any `json:"fencing_tokens,omitempty"`
+	FencingTokens *map[string]int64 `json:"fencing_tokens,omitempty"`
 	// Composite keys when this is a multi-key grant.
 	Keys *[]string `json:"keys,omitempty"`
 	// Current holder count (semaphores).

@@ -21,6 +21,14 @@ pub enum ChangeEventScope {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum IdempotencyRecordStatus {
+    #[serde(rename = "claimed")]
+    Claimed,
+    #[serde(rename = "completed")]
+    Completed,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RateLimitCheckRequestAlgorithm {
     #[serde(rename = "token_bucket")]
     TokenBucket,
@@ -123,9 +131,9 @@ pub struct ServiceRegisterRequest {
     pub address: String,
     /// Lease TTL; renew via heartbeat before it expires.
     pub ttl_ms: i64,
-    /// Free-form instance facts (zone, capacity, version, ...).
+    /// Optional instance metadata such as region, cloud provider, version, or role.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub metadata: Option<serde_json::Value>,
+    pub metadata: Option<std::collections::BTreeMap<String, String>>,
 }
 
 /// Body of POST /v1/services/{service}/instances/{id}/heartbeat.
@@ -145,8 +153,8 @@ pub struct ServiceInstance {
     pub address: String,
     /// When the lease expires (ms since epoch).
     pub lease_expires_ms: i64,
-    /// Free-form instance facts supplied at registration.
-    pub metadata: serde_json::Value,
+    /// Instance metadata from registration.
+    pub metadata: std::collections::BTreeMap<String, String>,
 }
 
 /// Response of GET /v1/services/{service} — the live instances of one service.
@@ -183,9 +191,9 @@ pub struct CampaignRequest {
     pub candidate: String,
     /// Leadership lease TTL in milliseconds.
     pub ttl_ms: i64,
-    /// Candidate facts (address, region, version, ...) published with the leadership so observers can discover the leader's endpoint.
+    /// Optional metadata published with the leadership grant, such as address, region, version, or role.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub metadata: Option<serde_json::Value>,
+    pub metadata: Option<std::collections::BTreeMap<String, String>>,
 }
 
 /// Body of POST /v1/elections/{name}/renew — must present the held fencing token.
@@ -220,8 +228,8 @@ pub struct Leadership {
     pub lease_expires_ms: i64,
     /// Campaign TTL retained so a renew without an explicit TTL reuses it.
     pub ttl_ms: i64,
-    /// Candidate facts published by the leader (address, region, version, ...).
-    pub metadata: serde_json::Value,
+    /// Leader metadata from the winning campaign.
+    pub metadata: std::collections::BTreeMap<String, String>,
 }
 
 /// Response of GET /v1/elections/{name}.
@@ -234,6 +242,73 @@ pub struct ElectionGetResponse {
     /// Holder details when held.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub leadership: Option<Leadership>,
+}
+
+/// Body of POST /v1/idempotency/claim. First claim for a key wins until the TTL expires.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IdempotencyClaimRequest {
+    /// Caller-chosen idempotency key, such as stripe-webhook/event_123.
+    pub key: String,
+    /// Caller instance that is claiming the key. Defaults to anonymous.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner: Option<String>,
+    /// Deduplication window in milliseconds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ttl_ms: Option<i64>,
+    /// Human-friendly TTL such as 60s, 15m, 24h, or 7d.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ttl: Option<String>,
+    /// Optional string metadata attached to the claim.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<std::collections::BTreeMap<String, String>>,
+}
+
+/// Body of POST /v1/idempotency/complete. Must present the owner and fencing token returned by claim.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IdempotencyCompleteRequest {
+    /// Idempotency key to complete.
+    pub key: String,
+    /// Owner that claimed the key.
+    pub owner: String,
+    /// Token returned by the winning claim.
+    pub fencing_token: i64,
+    /// Optional small JSON result duplicate callers can replay.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub result: Option<serde_json::Value>,
+}
+
+/// Active idempotency record retained until the TTL window expires.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IdempotencyRecord {
+    /// Idempotency key.
+    pub key: String,
+    /// Owner of the first claim.
+    pub owner: String,
+    /// Monotonic token guarding completion.
+    pub fencing_token: i64,
+    /// Whether the key is still in progress or completed.
+    pub status: IdempotencyRecordStatus,
+    /// First claim time in ms since epoch.
+    pub first_seen_ms: i64,
+    /// When this dedupe record expires.
+    pub lease_expires_ms: i64,
+    /// Claim metadata.
+    pub metadata: std::collections::BTreeMap<String, String>,
+    /// Optional completion result.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub result: Option<serde_json::Value>,
+}
+
+/// Response of GET /v1/idempotency?key=...
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IdempotencyGetResponse {
+    /// Idempotency key.
+    pub key: String,
+    /// Whether an active record exists.
+    pub found: bool,
+    /// Active record when found.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub record: Option<IdempotencyRecord>,
 }
 
 /// A versioned KV value.
@@ -356,7 +431,7 @@ pub struct LockGrant {
     pub fencing_token: Option<i64>,
     /// Per-key fencing tokens for multi-key grants.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub fencing_tokens: Option<serde_json::Value>,
+    pub fencing_tokens: Option<std::collections::BTreeMap<String, i64>>,
     /// Composite keys when this is a multi-key grant.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub keys: Option<Vec<String>>,

@@ -14,7 +14,11 @@
       "properties": {
         "candidate": { "type": "string", "description": "Identifier of the campaigning instance." },
         "ttl_ms": { "type": "integer", "minimum": 1, "description": "Leadership lease TTL in milliseconds." },
-        "metadata": { "type": "object", "description": "Candidate facts (address, region, version, ...) published with the leadership so observers can discover the leader's endpoint." }
+        "metadata": {
+          "type": "object",
+          "description": "Optional metadata published with the leadership grant, such as address, region, version, or role.",
+          "additionalProperties": { "type": "string" }
+        }
       }
     },
     "RenewRequest": {
@@ -51,7 +55,11 @@
         "fencing_token": { "type": "integer", "minimum": 0, "description": "Monotonic token for this leadership term." },
         "lease_expires_ms": { "type": "integer", "minimum": 0, "description": "Lease expiry (ms since epoch)." },
         "ttl_ms": { "type": "integer", "minimum": 0, "description": "Campaign TTL retained so a renew without an explicit TTL reuses it." },
-        "metadata": { "type": "object", "description": "Candidate facts published by the leader (address, region, version, ...)." }
+        "metadata": {
+          "type": "object",
+          "description": "Leader metadata from the winning campaign.",
+          "additionalProperties": { "type": "string" }
+        }
       }
     },
     "ElectionGetResponse": {

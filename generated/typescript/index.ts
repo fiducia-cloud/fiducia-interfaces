@@ -52,8 +52,8 @@ export type ServiceRegisterRequest = {
   address: string;
   /** Lease TTL; renew via heartbeat before it expires. */
   ttl_ms: number;
-  /** Free-form instance facts (zone, capacity, version, ...). */
-  metadata?: Record<string, unknown>;
+  /** Optional instance metadata such as region, cloud provider, version, or role. */
+  metadata?: Record<string, string>;
 };
 
 /** Body of POST /v1/services/{service}/instances/{id}/heartbeat. */
@@ -70,8 +70,8 @@ export type ServiceInstance = {
   address: string;
   /** When the lease expires (ms since epoch). */
   lease_expires_ms: number;
-  /** Free-form instance facts supplied at registration. */
-  metadata: Record<string, unknown>;
+  /** Instance metadata from registration. */
+  metadata: Record<string, string>;
 };
 
 /** Response of GET /v1/services/{service} — the live instances of one service. */
@@ -104,8 +104,8 @@ export type CampaignRequest = {
   candidate: string;
   /** Leadership lease TTL in milliseconds. */
   ttl_ms: number;
-  /** Candidate facts (address, region, version, ...) published with the leadership so observers can discover the leader's endpoint. */
-  metadata?: Record<string, unknown>;
+  /** Optional metadata published with the leadership grant, such as address, region, version, or role. */
+  metadata?: Record<string, string>;
 };
 
 /** Body of POST /v1/elections/{name}/renew — must present the held fencing token. */
@@ -136,8 +136,8 @@ export type Leadership = {
   lease_expires_ms: number;
   /** Campaign TTL retained so a renew without an explicit TTL reuses it. */
   ttl_ms: number;
-  /** Candidate facts published by the leader (address, region, version, ...). */
-  metadata: Record<string, unknown>;
+  /** Leader metadata from the winning campaign. */
+  metadata: Record<string, string>;
 };
 
 /** Response of GET /v1/elections/{name}. */
@@ -148,6 +148,62 @@ export type ElectionGetResponse = {
   held: boolean;
   /** Holder details when held. */
   leadership?: Leadership;
+};
+
+/** Body of POST /v1/idempotency/claim. First claim for a key wins until the TTL expires. */
+export type IdempotencyClaimRequest = {
+  /** Caller-chosen idempotency key, such as stripe-webhook/event_123. */
+  key: string;
+  /** Caller instance that is claiming the key. Defaults to anonymous. */
+  owner?: string;
+  /** Deduplication window in milliseconds. */
+  ttl_ms?: number;
+  /** Human-friendly TTL such as 60s, 15m, 24h, or 7d. */
+  ttl?: string;
+  /** Optional string metadata attached to the claim. */
+  metadata?: Record<string, string>;
+};
+
+/** Body of POST /v1/idempotency/complete. Must present the owner and fencing token returned by claim. */
+export type IdempotencyCompleteRequest = {
+  /** Idempotency key to complete. */
+  key: string;
+  /** Owner that claimed the key. */
+  owner: string;
+  /** Token returned by the winning claim. */
+  fencing_token: number;
+  /** Optional small JSON result duplicate callers can replay. */
+  result?: Record<string, unknown>;
+};
+
+/** Active idempotency record retained until the TTL window expires. */
+export type IdempotencyRecord = {
+  /** Idempotency key. */
+  key: string;
+  /** Owner of the first claim. */
+  owner: string;
+  /** Monotonic token guarding completion. */
+  fencing_token: number;
+  /** Whether the key is still in progress or completed. */
+  status: "claimed" | "completed";
+  /** First claim time in ms since epoch. */
+  first_seen_ms: number;
+  /** When this dedupe record expires. */
+  lease_expires_ms: number;
+  /** Claim metadata. */
+  metadata: Record<string, string>;
+  /** Optional completion result. */
+  result?: Record<string, unknown>;
+};
+
+/** Response of GET /v1/idempotency?key=... */
+export type IdempotencyGetResponse = {
+  /** Idempotency key. */
+  key: string;
+  /** Whether an active record exists. */
+  found: boolean;
+  /** Active record when found. */
+  record?: IdempotencyRecord;
 };
 
 /** A versioned KV value. */
@@ -246,7 +302,7 @@ export type LockGrant = {
   /** Monotonic token to fence stale holders; set when acquired. */
   fencing_token?: number;
   /** Per-key fencing tokens for multi-key grants. */
-  fencing_tokens?: Record<string, unknown>;
+  fencing_tokens?: Record<string, number>;
   /** Composite keys when this is a multi-key grant. */
   keys?: string[];
   /** Current holder count (semaphores). */

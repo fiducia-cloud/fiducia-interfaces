@@ -41,15 +41,11 @@
         "instance_id": { "type": "string", "description": "Instance id." },
         "address": { "type": "string", "description": "Reachable address." },
         "lease_expires_ms": { "type": "integer", "minimum": 0, "description": "When the lease expires (ms since epoch)." },
-<<<<<<< HEAD
-        "metadata": { "type": "object", "description": "Free-form instance facts supplied at registration." }
-=======
         "metadata": {
           "type": "object",
           "description": "Instance metadata from registration.",
           "additionalProperties": { "type": "string" }
         }
->>>>>>> origin/main
       }
     },
     "ServiceListResponse": {

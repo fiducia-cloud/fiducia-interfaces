@@ -7,3 +7,6 @@ Cargo.lock
 *.log
 .DS_Store
 .env
+
+# Scratch / git worktrees (tmp/worktrees/*)
+tmp/

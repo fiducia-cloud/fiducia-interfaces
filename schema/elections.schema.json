@@ -49,11 +49,7 @@
       "title": "Leadership",
       "description": "Who currently holds a named election.",
       "additionalProperties": false,
-<<<<<<< HEAD
       "required": ["leader", "fencing_token", "lease_expires_ms", "ttl_ms", "metadata"],
-=======
-      "required": ["leader", "fencing_token", "lease_expires_ms", "metadata"],
->>>>>>> origin/main
       "properties": {
         "leader": { "type": "string", "description": "Current leader id." },
         "fencing_token": { "type": "integer", "minimum": 0, "description": "Monotonic token for this leadership term." },

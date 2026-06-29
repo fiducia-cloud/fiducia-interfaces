@@ -1,4 +1,5 @@
 use fiducia_interfaces::{LockAcquireManyRequest, LockGrant, LockReleaseManyRequest};
+use std::collections::BTreeMap;
 
 #[test]
 fn generated_lock_payloads_round_trip_multi_key_grants() {
@@ -13,10 +14,10 @@ fn generated_lock_payloads_round_trip_multi_key_grants() {
         acquired: true,
         lock_id: Some("lock-1".to_string()),
         fencing_token: None,
-        fencing_tokens: Some(serde_json::json!({
-            "orders/42": 41,
-            "inventory/sku-7": 42
-        })),
+        fencing_tokens: Some(BTreeMap::from([
+            ("orders/42".to_string(), 41),
+            ("inventory/sku-7".to_string(), 42),
+        ])),
         keys: Some(acquire.keys.clone()),
         holders: Some(1),
         max: Some(1),

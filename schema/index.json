@@ -4,6 +4,7 @@
     "common.schema.json",
     "discovery.schema.json",
     "elections.schema.json",
+    "idempotency.schema.json",
     "kv.schema.json",
     "locks.schema.json",
     "rate_limits.schema.json",

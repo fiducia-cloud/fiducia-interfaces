@@ -14,6 +14,7 @@
       "properties": {
         "candidate": { "type": "string", "description": "Identifier of the campaigning instance." },
         "ttl_ms": { "type": "integer", "minimum": 1, "description": "Leadership lease TTL in milliseconds." },
+<<<<<<< HEAD
         "metadata": { "type": "object", "description": "Candidate facts (address, region, version, ...) published with the leadership so observers can discover the leader's endpoint." }
       }
     },
@@ -27,6 +28,13 @@
         "candidate": { "type": "string", "description": "The current holder." },
         "fencing_token": { "type": "integer", "minimum": 0, "description": "Token from the grant." },
         "ttl_ms": { "type": "integer", "minimum": 1, "description": "Optional new lease TTL; when omitted the original campaign TTL is reused." }
+=======
+        "metadata": {
+          "type": "object",
+          "description": "Optional metadata published with the leadership grant, such as address, region, version, or role.",
+          "additionalProperties": { "type": "string" }
+        }
+>>>>>>> origin/main
       }
     },
     "HoldRequest": {
@@ -45,13 +53,25 @@
       "title": "Leadership",
       "description": "Who currently holds a named election.",
       "additionalProperties": false,
+<<<<<<< HEAD
       "required": ["leader", "fencing_token", "lease_expires_ms", "ttl_ms", "metadata"],
+=======
+      "required": ["leader", "fencing_token", "lease_expires_ms", "metadata"],
+>>>>>>> origin/main
       "properties": {
         "leader": { "type": "string", "description": "Current leader id." },
         "fencing_token": { "type": "integer", "minimum": 0, "description": "Monotonic token for this leadership term." },
         "lease_expires_ms": { "type": "integer", "minimum": 0, "description": "Lease expiry (ms since epoch)." },
+<<<<<<< HEAD
         "ttl_ms": { "type": "integer", "minimum": 0, "description": "Campaign TTL retained so a renew without an explicit TTL reuses it." },
         "metadata": { "type": "object", "description": "Candidate facts published by the leader (address, region, version, ...)." }
+=======
+        "metadata": {
+          "type": "object",
+          "description": "Leader metadata from the winning campaign.",
+          "additionalProperties": { "type": "string" }
+        }
+>>>>>>> origin/main
       }
     },
     "ElectionGetResponse": {

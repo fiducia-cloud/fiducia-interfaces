@@ -20,6 +20,20 @@ export type ProposeError = {
   leader?: string;
 };
 
+/** One server-sent event emitted on a watch stream (KV, election, or service). */
+export type ChangeEvent = {
+  /** Which primitive changed. */
+  scope: "kv" | "election" | "service";
+  /** Domain verb: kv put/delete; election elected/renewed/resigned; service register/heartbeat/deregister. */
+  kind: string;
+  /** The watched name: kv key, election name, or service name. */
+  key: string;
+  /** State-machine revision that produced the change. */
+  revision: number;
+  /** Optional payload (the new Leadership or ServiceInstance) so watchers can act without a follow-up read. */
+  detail?: Record<string, unknown>;
+};
+
 /** Result of validating an API key (fiducia-auth). The edge/LB caches this. */
 export type Introspection = {
   /** Whether the key is valid and active. */
@@ -38,6 +52,19 @@ export type ServiceRegisterRequest = {
   address: string;
   /** Lease TTL; renew via heartbeat before it expires. */
   ttl_ms: number;
+<<<<<<< HEAD
+  /** Free-form instance facts (zone, capacity, version, ...). */
+  metadata?: Record<string, unknown>;
+};
+
+/** Body of POST /v1/services/{service}/instances/{id}/heartbeat. */
+export type ServiceHeartbeatRequest = {
+  /** Optional new lease TTL; when omitted a default is applied. */
+  ttl_ms?: number;
+=======
+  /** Optional instance metadata such as region, cloud provider, version, or role. */
+  metadata?: Record<string, string>;
+>>>>>>> origin/main
 };
 
 /** A live registered instance. */
@@ -48,14 +75,37 @@ export type ServiceInstance = {
   address: string;
   /** When the lease expires (ms since epoch). */
   lease_expires_ms: number;
+<<<<<<< HEAD
+  /** Free-form instance facts supplied at registration. */
+  metadata: Record<string, unknown>;
+=======
+  /** Instance metadata from registration. */
+  metadata: Record<string, string>;
+>>>>>>> origin/main
 };
 
-/** Response of GET /v1/services/{service}. */
+/** Response of GET /v1/services/{service} — the live instances of one service. */
 export type ServiceListResponse = {
   /** Service name. */
   service: string;
   /** Live instances. */
   instances: ServiceInstance[];
+};
+
+/** One service in a discovery listing. */
+export type ServiceSummary = {
+  /** Service name. */
+  service: string;
+  /** Number of live instances. */
+  instances: number;
+};
+
+/** Response of GET /v1/services — every service with live instances, merged across shards. */
+export type ServicesListResponse = {
+  /** Number of services listed. */
+  count: number;
+  /** Services with live instances. */
+  services: ServiceSummary[];
 };
 
 /** Body of POST /v1/elections/{name}/campaign. */
@@ -64,9 +114,26 @@ export type CampaignRequest = {
   candidate: string;
   /** Leadership lease TTL in milliseconds. */
   ttl_ms: number;
+<<<<<<< HEAD
+  /** Candidate facts (address, region, version, ...) published with the leadership so observers can discover the leader's endpoint. */
+  metadata?: Record<string, unknown>;
+=======
+  /** Optional metadata published with the leadership grant, such as address, region, version, or role. */
+  metadata?: Record<string, string>;
+>>>>>>> origin/main
 };
 
-/** Body of renew/resign — must present the held fencing token. */
+/** Body of POST /v1/elections/{name}/renew — must present the held fencing token. */
+export type RenewRequest = {
+  /** The current holder. */
+  candidate: string;
+  /** Token from the grant. */
+  fencing_token: number;
+  /** Optional new lease TTL; when omitted the original campaign TTL is reused. */
+  ttl_ms?: number;
+};
+
+/** Body of resign — must present the held fencing token. */
 export type HoldRequest = {
   /** The current holder. */
   candidate: string;
@@ -82,6 +149,15 @@ export type Leadership = {
   fencing_token: number;
   /** Lease expiry (ms since epoch). */
   lease_expires_ms: number;
+<<<<<<< HEAD
+  /** Campaign TTL retained so a renew without an explicit TTL reuses it. */
+  ttl_ms: number;
+  /** Candidate facts published by the leader (address, region, version, ...). */
+  metadata: Record<string, unknown>;
+=======
+  /** Leader metadata from the winning campaign. */
+  metadata: Record<string, string>;
+>>>>>>> origin/main
 };
 
 /** Response of GET /v1/elections/{name}. */
@@ -92,6 +168,62 @@ export type ElectionGetResponse = {
   held: boolean;
   /** Holder details when held. */
   leadership?: Leadership;
+};
+
+/** Body of POST /v1/idempotency/claim. First claim for a key wins until the TTL expires. */
+export type IdempotencyClaimRequest = {
+  /** Caller-chosen idempotency key, such as stripe-webhook/event_123. */
+  key: string;
+  /** Caller instance that is claiming the key. Defaults to anonymous. */
+  owner?: string;
+  /** Deduplication window in milliseconds. */
+  ttl_ms?: number;
+  /** Human-friendly TTL such as 60s, 15m, 24h, or 7d. */
+  ttl?: string;
+  /** Optional string metadata attached to the claim. */
+  metadata?: Record<string, string>;
+};
+
+/** Body of POST /v1/idempotency/complete. Must present the owner and fencing token returned by claim. */
+export type IdempotencyCompleteRequest = {
+  /** Idempotency key to complete. */
+  key: string;
+  /** Owner that claimed the key. */
+  owner: string;
+  /** Token returned by the winning claim. */
+  fencing_token: number;
+  /** Optional small JSON result duplicate callers can replay. */
+  result?: Record<string, unknown>;
+};
+
+/** Active idempotency record retained until the TTL window expires. */
+export type IdempotencyRecord = {
+  /** Idempotency key. */
+  key: string;
+  /** Owner of the first claim. */
+  owner: string;
+  /** Monotonic token guarding completion. */
+  fencing_token: number;
+  /** Whether the key is still in progress or completed. */
+  status: "claimed" | "completed";
+  /** First claim time in ms since epoch. */
+  first_seen_ms: number;
+  /** When this dedupe record expires. */
+  lease_expires_ms: number;
+  /** Claim metadata. */
+  metadata: Record<string, string>;
+  /** Optional completion result. */
+  result?: Record<string, unknown>;
+};
+
+/** Response of GET /v1/idempotency?key=... */
+export type IdempotencyGetResponse = {
+  /** Idempotency key. */
+  key: string;
+  /** Whether an active record exists. */
+  found: boolean;
+  /** Active record when found. */
+  record?: IdempotencyRecord;
 };
 
 /** A versioned KV value. */
@@ -122,6 +254,28 @@ export type KvGetResponse = {
   found: boolean;
   /** The value when found. */
   entry?: KvEntry;
+};
+
+/** One row of a prefix listing: a key with its entry fields flattened in. */
+export type KvListItem = {
+  /** The key. */
+  key: string;
+  /** The stored value. */
+  value: string;
+  /** Revision at which the key was last written. */
+  mod_revision: number;
+  /** Absolute expiry (ms since epoch) if a TTL was set. */
+  expires_at_ms?: number;
+};
+
+/** Response of GET /v1/kv?prefix=... — live keys under a prefix, merged across shards and sorted by key. */
+export type KvListResponse = {
+  /** The requested prefix (empty lists the whole keyspace). */
+  prefix: string;
+  /** Number of keys returned. */
+  count: number;
+  /** Matching live entries. */
+  keys: KvListItem[];
 };
 
 /** Body of POST /v1/locks/{key}/acquire. max=1 is a mutex; max>1 a semaphore. */
@@ -168,7 +322,7 @@ export type LockGrant = {
   /** Monotonic token to fence stale holders; set when acquired. */
   fencing_token?: number;
   /** Per-key fencing tokens for multi-key grants. */
-  fencing_tokens?: Record<string, unknown>;
+  fencing_tokens?: Record<string, number>;
   /** Composite keys when this is a multi-key grant. */
   keys?: string[];
   /** Current holder count (semaphores). */

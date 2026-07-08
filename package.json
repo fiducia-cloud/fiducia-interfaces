@@ -14,6 +14,8 @@
     "./sql/customer": "./sql/customer.sql",
     "./sql/admin": "./sql/admin.sql",
     "./typescript": "./generated/typescript/index.ts",
+    "./db/customer": "./generated/typescript/db/customer.ts",
+    "./db/admin": "./generated/typescript/db/admin.ts",
     "./rust": "./generated/rust/src/lib.rs",
     "./python": "./generated/python/fiducia_interfaces.py",
     "./go": "./generated/go/interfaces.go"

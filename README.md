@@ -7,9 +7,14 @@ sources of truth:
    API payloads (KV, locks/semaphores/RW, rate limiting, scheduling, elections,
    discovery, common envelopes). The generator emits idiomatic types per
    language.
-2. **SQL** (`sql/schema.sql`) — the canonical Postgres schema for the
-   control/business plane (orgs, projects, users, API keys, mTLS identities,
-   RBAC, audit), in the same desired-state-contract style as the `pg-defs` lib.
+2. **SQL** (`sql/customer.sql` + `sql/admin.sql`) — canonical Postgres schemas,
+   split **by plane**: the customer plane (orgs, projects, users, API keys, mTLS
+   identities, preferences, trusted sessions, audit) and the admin plane
+   (operators, infra-operation audit, admin audit). The admin and customer apps
+   run on **separate Postgres instances** — a security boundary — so their
+   schemas are separate too. Every optimistically-editable table carries the
+   local-first sync contract (`updated_at` + monotonic `version`, advanced by the
+   `bump_row_version` trigger).
 
 Same spirit as `remote/libs/interfaces` (JSON Schema → types) and
 `remote/libs/pg-defs` (canonical SQL).
@@ -32,7 +37,8 @@ fiducia-interfaces/
 │   ├── schedules.schema.json   # ScheduleTarget/Upsert/Run/History
 │   ├── elections.schema.json   # Campaign/Hold, Leadership, ElectionGet
 │   └── discovery.schema.json   # ServiceRegister/Instance/List
-├── sql/schema.sql              # canonical Postgres schema (auth/RBAC/audit)
+├── sql/customer.sql            # customer-plane Postgres schema (own DB instance)
+├── sql/admin.sql               # admin-plane Postgres schema (separate DB instance)
 ├── src/generate.mjs            # JSON Schema → per-language types
 └── generated/                  # check-in artifacts — never hand-edit
     ├── rust/{Cargo.toml,src/lib.rs}
@@ -80,5 +86,7 @@ import type { LockGrant } from "@fiducia/interfaces/typescript";
 ## Consumers
 
 Servers (`fiducia-node`/`auth`/...) and every client in `fiducia-clients`
-validate their request/response shapes against these types; `fiducia-auth` +
-dashboards use `sql/schema.sql` for the business DB.
+validate their request/response shapes against these types. The customer portal
+(`fiducia-backend.rs`) uses `sql/customer.sql` and the admin dashboard
+(`fiducia-admin.rs`) uses `sql/admin.sql`, each against its own isolated Postgres
+instance.

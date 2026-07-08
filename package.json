@@ -11,7 +11,8 @@
   },
   "exports": {
     "./schema": "./schema/index.json",
-    "./sql": "./sql/schema.sql",
+    "./sql/customer": "./sql/customer.sql",
+    "./sql/admin": "./sql/admin.sql",
     "./typescript": "./generated/typescript/index.ts",
     "./rust": "./generated/rust/src/lib.rs",
     "./python": "./generated/python/fiducia_interfaces.py",

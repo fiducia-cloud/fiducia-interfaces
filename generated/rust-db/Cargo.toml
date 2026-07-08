@@ -1,0 +1,12 @@
+[package]
+name = "fiducia-interfaces-db"
+version = "0.1.0"
+edition = "2021"
+description = "Generated sqlx::FromRow row types for the fiducia.cloud Postgres planes (see fiducia-interfaces)."
+
+[dependencies]
+sqlx = { version = "0.8", default-features = false, features = ["postgres", "uuid", "chrono", "json", "macros"] }
+uuid = { version = "1", features = ["serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

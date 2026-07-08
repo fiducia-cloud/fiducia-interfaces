@@ -5,15 +5,17 @@
   "type": "module",
   "description": "JSON Schema (typed-IO) + canonical SQL source of truth for fiducia.cloud. Generated language adapters live under generated/<lang>.",
   "scripts": {
-    "generate": "node src/generate.mjs",
-    "check": "node src/generate.mjs --check",
-    "test": "node --test src/*.test.mjs && node src/generate.mjs --check && cargo test --manifest-path generated/rust/Cargo.toml && tsc --noEmit --target es2020 --module esnext --lib es2020,dom src/typescript-usage.test.ts"
+    "generate": "node src/generate.mjs && node src/generate-db.mjs",
+    "check": "node src/generate.mjs --check && node src/generate-db.mjs --check",
+    "test": "node --test src/*.test.mjs && node src/generate.mjs --check && node src/generate-db.mjs --check && cargo test --manifest-path generated/rust/Cargo.toml && cargo check --manifest-path generated/rust-db/Cargo.toml && tsc --noEmit --target es2020 --module esnext --lib es2020,dom src/typescript-usage.test.ts"
   },
   "exports": {
     "./schema": "./schema/index.json",
     "./sql/customer": "./sql/customer.sql",
     "./sql/admin": "./sql/admin.sql",
     "./typescript": "./generated/typescript/index.ts",
+    "./db/customer": "./generated/typescript/db/customer.ts",
+    "./db/admin": "./generated/typescript/db/admin.ts",
     "./rust": "./generated/rust/src/lib.rs",
     "./python": "./generated/python/fiducia_interfaces.py",
     "./go": "./generated/go/interfaces.go"

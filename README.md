@@ -37,7 +37,8 @@ fiducia-interfaces/
 │   ├── schedules.schema.json   # ScheduleTarget/Upsert/Run/History
 │   ├── elections.schema.json   # Campaign/Hold, Leadership, ElectionGet
 │   └── discovery.schema.json   # ServiceRegister/Instance/List
-├── sql/schema.sql              # canonical Postgres schema (auth/RBAC/audit)
+├── sql/customer.sql            # customer-plane Postgres schema (own DB instance)
+├── sql/admin.sql               # admin-plane Postgres schema (separate DB instance)
 ├── src/generate.mjs            # JSON Schema → per-language types
 └── generated/                  # check-in artifacts — never hand-edit
     ├── rust/{Cargo.toml,src/lib.rs}

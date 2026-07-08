@@ -11,7 +11,6 @@ pub enum ProposeErrorReason {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-<<<<<<< HEAD
 pub enum ChangeEventScope {
     #[serde(rename = "kv")]
     Kv,
@@ -19,13 +18,14 @@ pub enum ChangeEventScope {
     Election,
     #[serde(rename = "service")]
     Service,
-=======
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum IdempotencyRecordStatus {
     #[serde(rename = "claimed")]
     Claimed,
     #[serde(rename = "completed")]
     Completed,
->>>>>>> origin/main
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -131,10 +131,9 @@ pub struct ServiceRegisterRequest {
     pub address: String,
     /// Lease TTL; renew via heartbeat before it expires.
     pub ttl_ms: i64,
-<<<<<<< HEAD
-    /// Free-form instance facts (zone, capacity, version, ...).
+    /// Optional instance metadata such as region, cloud provider, version, or role.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub metadata: Option<serde_json::Value>,
+    pub metadata: Option<std::collections::BTreeMap<String, String>>,
 }
 
 /// Body of POST /v1/services/{service}/instances/{id}/heartbeat.
@@ -143,11 +142,6 @@ pub struct ServiceHeartbeatRequest {
     /// Optional new lease TTL; when omitted a default is applied.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ttl_ms: Option<i64>,
-=======
-    /// Optional instance metadata such as region, cloud provider, version, or role.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub metadata: Option<std::collections::BTreeMap<String, String>>,
->>>>>>> origin/main
 }
 
 /// A live registered instance.
@@ -159,13 +153,8 @@ pub struct ServiceInstance {
     pub address: String,
     /// When the lease expires (ms since epoch).
     pub lease_expires_ms: i64,
-<<<<<<< HEAD
-    /// Free-form instance facts supplied at registration.
-    pub metadata: serde_json::Value,
-=======
     /// Instance metadata from registration.
     pub metadata: std::collections::BTreeMap<String, String>,
->>>>>>> origin/main
 }
 
 /// Response of GET /v1/services/{service} — the live instances of one service.
@@ -202,15 +191,9 @@ pub struct CampaignRequest {
     pub candidate: String,
     /// Leadership lease TTL in milliseconds.
     pub ttl_ms: i64,
-<<<<<<< HEAD
-    /// Candidate facts (address, region, version, ...) published with the leadership so observers can discover the leader's endpoint.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub metadata: Option<serde_json::Value>,
-=======
     /// Optional metadata published with the leadership grant, such as address, region, version, or role.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metadata: Option<std::collections::BTreeMap<String, String>>,
->>>>>>> origin/main
 }
 
 /// Body of POST /v1/elections/{name}/renew — must present the held fencing token.
@@ -243,15 +226,10 @@ pub struct Leadership {
     pub fencing_token: i64,
     /// Lease expiry (ms since epoch).
     pub lease_expires_ms: i64,
-<<<<<<< HEAD
     /// Campaign TTL retained so a renew without an explicit TTL reuses it.
     pub ttl_ms: i64,
-    /// Candidate facts published by the leader (address, region, version, ...).
-    pub metadata: serde_json::Value,
-=======
     /// Leader metadata from the winning campaign.
     pub metadata: std::collections::BTreeMap<String, String>,
->>>>>>> origin/main
 }
 
 /// Response of GET /v1/elections/{name}.

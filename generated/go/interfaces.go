@@ -54,19 +54,14 @@ type ServiceRegisterRequest struct {
 	Address string `json:"address"`
 	// Lease TTL; renew via heartbeat before it expires.
 	TtlMs int64 `json:"ttl_ms"`
-<<<<<<< HEAD
-	// Free-form instance facts (zone, capacity, version, ...).
-	Metadata *map[string]any `json:"metadata,omitempty"`
+	// Optional instance metadata such as region, cloud provider, version, or role.
+	Metadata *map[string]string `json:"metadata,omitempty"`
 }
 
 // ServiceHeartbeatRequest: Body of POST /v1/services/{service}/instances/{id}/heartbeat.
 type ServiceHeartbeatRequest struct {
 	// Optional new lease TTL; when omitted a default is applied.
 	TtlMs *int64 `json:"ttl_ms,omitempty"`
-=======
-	// Optional instance metadata such as region, cloud provider, version, or role.
-	Metadata *map[string]string `json:"metadata,omitempty"`
->>>>>>> origin/main
 }
 
 // ServiceInstance: A live registered instance.
@@ -77,13 +72,8 @@ type ServiceInstance struct {
 	Address string `json:"address"`
 	// When the lease expires (ms since epoch).
 	LeaseExpiresMs int64 `json:"lease_expires_ms"`
-<<<<<<< HEAD
-	// Free-form instance facts supplied at registration.
-	Metadata map[string]any `json:"metadata"`
-=======
 	// Instance metadata from registration.
 	Metadata map[string]string `json:"metadata"`
->>>>>>> origin/main
 }
 
 // ServiceListResponse: Response of GET /v1/services/{service} — the live instances of one service.
@@ -116,13 +106,8 @@ type CampaignRequest struct {
 	Candidate string `json:"candidate"`
 	// Leadership lease TTL in milliseconds.
 	TtlMs int64 `json:"ttl_ms"`
-<<<<<<< HEAD
-	// Candidate facts (address, region, version, ...) published with the leadership so observers can discover the leader's endpoint.
-	Metadata *map[string]any `json:"metadata,omitempty"`
-=======
 	// Optional metadata published with the leadership grant, such as address, region, version, or role.
 	Metadata *map[string]string `json:"metadata,omitempty"`
->>>>>>> origin/main
 }
 
 // RenewRequest: Body of POST /v1/elections/{name}/renew — must present the held fencing token.
@@ -151,15 +136,10 @@ type Leadership struct {
 	FencingToken int64 `json:"fencing_token"`
 	// Lease expiry (ms since epoch).
 	LeaseExpiresMs int64 `json:"lease_expires_ms"`
-<<<<<<< HEAD
 	// Campaign TTL retained so a renew without an explicit TTL reuses it.
 	TtlMs int64 `json:"ttl_ms"`
-	// Candidate facts published by the leader (address, region, version, ...).
-	Metadata map[string]any `json:"metadata"`
-=======
 	// Leader metadata from the winning campaign.
 	Metadata map[string]string `json:"metadata"`
->>>>>>> origin/main
 }
 
 // ElectionGetResponse: Response of GET /v1/elections/{name}.

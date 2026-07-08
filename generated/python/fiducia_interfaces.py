@@ -39,16 +39,12 @@ class ServiceRegisterRequest:
     """Body of PUT /v1/services/{service}/instances/{id}."""
     address: str
     ttl_ms: int
-<<<<<<< HEAD
-    metadata: Optional[dict] = None
+    metadata: Optional[Dict[str, str]] = None
 
 @dataclass
 class ServiceHeartbeatRequest:
     """Body of POST /v1/services/{service}/instances/{id}/heartbeat."""
     ttl_ms: Optional[int] = None
-=======
-    metadata: Optional[Dict[str, str]] = None
->>>>>>> origin/main
 
 @dataclass
 class ServiceInstance:
@@ -56,11 +52,7 @@ class ServiceInstance:
     instance_id: str
     address: str
     lease_expires_ms: int
-<<<<<<< HEAD
-    metadata: dict
-=======
     metadata: Dict[str, str]
->>>>>>> origin/main
 
 @dataclass
 class ServiceListResponse:
@@ -85,8 +77,7 @@ class CampaignRequest:
     """Body of POST /v1/elections/{name}/campaign."""
     candidate: str
     ttl_ms: int
-<<<<<<< HEAD
-    metadata: Optional[dict] = None
+    metadata: Optional[Dict[str, str]] = None
 
 @dataclass
 class RenewRequest:
@@ -94,9 +85,6 @@ class RenewRequest:
     candidate: str
     fencing_token: int
     ttl_ms: Optional[int] = None
-=======
-    metadata: Optional[Dict[str, str]] = None
->>>>>>> origin/main
 
 @dataclass
 class HoldRequest:
@@ -110,12 +98,8 @@ class Leadership:
     leader: str
     fencing_token: int
     lease_expires_ms: int
-<<<<<<< HEAD
     ttl_ms: int
-    metadata: dict
-=======
     metadata: Dict[str, str]
->>>>>>> origin/main
 
 @dataclass
 class ElectionGetResponse:

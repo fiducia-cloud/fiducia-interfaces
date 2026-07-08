@@ -52,19 +52,14 @@ export type ServiceRegisterRequest = {
   address: string;
   /** Lease TTL; renew via heartbeat before it expires. */
   ttl_ms: number;
-<<<<<<< HEAD
-  /** Free-form instance facts (zone, capacity, version, ...). */
-  metadata?: Record<string, unknown>;
+  /** Optional instance metadata such as region, cloud provider, version, or role. */
+  metadata?: Record<string, string>;
 };
 
 /** Body of POST /v1/services/{service}/instances/{id}/heartbeat. */
 export type ServiceHeartbeatRequest = {
   /** Optional new lease TTL; when omitted a default is applied. */
   ttl_ms?: number;
-=======
-  /** Optional instance metadata such as region, cloud provider, version, or role. */
-  metadata?: Record<string, string>;
->>>>>>> origin/main
 };
 
 /** A live registered instance. */
@@ -75,13 +70,8 @@ export type ServiceInstance = {
   address: string;
   /** When the lease expires (ms since epoch). */
   lease_expires_ms: number;
-<<<<<<< HEAD
-  /** Free-form instance facts supplied at registration. */
-  metadata: Record<string, unknown>;
-=======
   /** Instance metadata from registration. */
   metadata: Record<string, string>;
->>>>>>> origin/main
 };
 
 /** Response of GET /v1/services/{service} — the live instances of one service. */
@@ -114,13 +104,8 @@ export type CampaignRequest = {
   candidate: string;
   /** Leadership lease TTL in milliseconds. */
   ttl_ms: number;
-<<<<<<< HEAD
-  /** Candidate facts (address, region, version, ...) published with the leadership so observers can discover the leader's endpoint. */
-  metadata?: Record<string, unknown>;
-=======
   /** Optional metadata published with the leadership grant, such as address, region, version, or role. */
   metadata?: Record<string, string>;
->>>>>>> origin/main
 };
 
 /** Body of POST /v1/elections/{name}/renew — must present the held fencing token. */
@@ -149,15 +134,10 @@ export type Leadership = {
   fencing_token: number;
   /** Lease expiry (ms since epoch). */
   lease_expires_ms: number;
-<<<<<<< HEAD
   /** Campaign TTL retained so a renew without an explicit TTL reuses it. */
   ttl_ms: number;
-  /** Candidate facts published by the leader (address, region, version, ...). */
-  metadata: Record<string, unknown>;
-=======
   /** Leader metadata from the winning campaign. */
   metadata: Record<string, string>;
->>>>>>> origin/main
 };
 
 /** Response of GET /v1/elections/{name}. */

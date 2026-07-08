@@ -5,6 +5,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -17,3 +20,8 @@ jobs:
       - run: node --test src/*.test.mjs
       # fail if the checked-in generated/ files are stale vs the schemas
       - run: node src/generate.mjs --check
+      # same staleness gate for the SQL-derived DB adapters
+      - run: node src/generate-db.mjs --check
+      # the generated Rust DB crate must still compile
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo check --manifest-path generated/rust-db/Cargo.toml

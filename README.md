@@ -86,5 +86,7 @@ import type { LockGrant } from "@fiducia/interfaces/typescript";
 ## Consumers
 
 Servers (`fiducia-node`/`auth`/...) and every client in `fiducia-clients`
-validate their request/response shapes against these types; `fiducia-auth` +
-dashboards use `sql/schema.sql` for the business DB.
+validate their request/response shapes against these types. The customer portal
+(`fiducia-backend.rs`) uses `sql/customer.sql` and the admin dashboard
+(`fiducia-admin.rs`) uses `sql/admin.sql`, each against its own isolated Postgres
+instance.

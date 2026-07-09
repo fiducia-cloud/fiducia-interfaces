@@ -299,6 +299,7 @@ function emitGo(types) {
 
 const EMITTERS = {
   rust: emitRust,
+  "rust-wasm": emitRustWasm,
   typescript: emitTs,
   python: emitPython,
   go: emitGo,

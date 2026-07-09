@@ -80,6 +80,14 @@ test("rust-wasm output: same types plus the tsify/wasm-bindgen boundary", () => 
   assert.match(cargo, /tsify = /);
 });
 
+test("rust and rust-wasm never diverge in data shape (same structs + fields)", () => {
+  const out = build();
+  const pubLines = (s) => s.split("\n").map((l) => l.trim()).filter((l) => l.startsWith("pub "));
+  // Same `pub struct`, `pub enum`, and `pub field: Type` lines in both crates —
+  // only attributes/derives differ. Guarantees the wasm build stays in lockstep.
+  assert.deepEqual(pubLines(out["rust-wasm/src/lib.rs"]), pubLines(out["rust/src/lib.rs"]));
+});
+
 test("rust-wasm pins map/Value fields to the same TS the typescript emitter uses", () => {
   const out = build();
   const wasm = out["rust-wasm/src/lib.rs"];

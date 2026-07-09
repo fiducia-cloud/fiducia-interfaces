@@ -87,11 +87,14 @@ test("rust-wasm pins map/Value fields to the same TS the typescript emitter uses
   // maps must be Record, not tsify's default `Map`.
   assert.match(wasm, /#\[tsify\(type = "Record<string, unknown>"\)\]\n\s*pub result: Option<serde_json::Value>,/);
   assert.match(wasm, /#\[tsify\(type = "Record<string, string>"\)\]\n\s*pub metadata: Option<std::collections::BTreeMap<String, String>>,/);
-  // Every serde_json::Value / BTreeMap field carries a tsify override.
-  const valueFields = wasm.split("\n").filter((l) => /serde_json::Value|BTreeMap/.test(l) && l.includes("pub "));
-  for (const line of valueFields) {
-    assert.ok(line.includes("Option<") || line.includes(":"), "sanity");
-  }
+  // Every serde_json::Value / BTreeMap field must be immediately preceded by a
+  // tsify override — none may reach the .d.ts with tsify's broken default.
+  const lines = wasm.split("\n");
+  lines.forEach((line, i) => {
+    if (/pub .*(serde_json::Value|BTreeMap)/.test(line)) {
+      assert.match(lines[i - 1] || "", /#\[tsify\(type = /, `unguarded field: ${line.trim()}`);
+    }
+  });
 });
 
 test("typescript output: union for enum, optional marker", () => {

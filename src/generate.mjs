@@ -199,13 +199,17 @@ function renderRustBody(types, { wasm }) {
       // tsify's default TS for `serde_json::Value` is a bare (undefined) `Value`,
       // and for maps it emits `Map<..>` (wrong for JSON). Pin those fields to the
       // exact type the `typescript` emitter uses so the two TS surfaces agree.
-      if (wasm && /serde_json::Value|BTreeMap/.test(ty)) {
-        out.push(`    #[tsify(type = "${tsFieldType(p).replace(/"/g, '\\"')}")]`);
-      }
+      // Emitted adjacent to the field so it survives the optional serde attrs.
+      const tsifyOverride = wasm && /serde_json::Value|BTreeMap/.test(ty)
+        ? `    #[tsify(type = "${tsFieldType(p).replace(/"/g, '\\"')}")]`
+        : null;
       if (p.required) {
+        if (tsifyOverride) out.push(tsifyOverride);
         out.push(`    pub ${ident}: ${ty},`);
       } else {
-        out.push(`    #[serde(default, skip_serializing_if = "Option::is_none")]`, `    pub ${ident}: Option<${ty}>,`);
+        out.push(`    #[serde(default, skip_serializing_if = "Option::is_none")]`);
+        if (tsifyOverride) out.push(tsifyOverride);
+        out.push(`    pub ${ident}: Option<${ty}>,`);
       }
     }
     out.push("}", "");

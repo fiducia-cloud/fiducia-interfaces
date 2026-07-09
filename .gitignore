@@ -1,6 +1,8 @@
 node_modules/
 target/
 Cargo.lock
+# wasm-pack output for generated/rust-wasm
+pkg/
 __pycache__/
 *.py[cod]
 .env

@@ -118,6 +118,7 @@ pub struct ChangeEvent {
     /// State-machine revision that produced the change.
     pub revision: i64,
     /// Optional payload (the new Leadership or ServiceInstance) so watchers can act without a follow-up read.
+    #[tsify(type = "Record<string, unknown>")]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub detail: Option<serde_json::Value>,
 }
@@ -147,6 +148,7 @@ pub struct ServiceRegisterRequest {
     /// Lease TTL; renew via heartbeat before it expires.
     pub ttl_ms: i64,
     /// Optional instance metadata such as region, cloud provider, version, or role.
+    #[tsify(type = "Record<string, string>")]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metadata: Option<std::collections::BTreeMap<String, String>>,
 }
@@ -171,6 +173,7 @@ pub struct ServiceInstance {
     /// When the lease expires (ms since epoch).
     pub lease_expires_ms: i64,
     /// Instance metadata from registration.
+    #[tsify(type = "Record<string, string>")]
     pub metadata: std::collections::BTreeMap<String, String>,
 }
 
@@ -213,6 +216,7 @@ pub struct CampaignRequest {
     /// Leadership lease TTL in milliseconds.
     pub ttl_ms: i64,
     /// Optional metadata published with the leadership grant, such as address, region, version, or role.
+    #[tsify(type = "Record<string, string>")]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metadata: Option<std::collections::BTreeMap<String, String>>,
 }
@@ -253,6 +257,7 @@ pub struct Leadership {
     /// Campaign TTL retained so a renew without an explicit TTL reuses it.
     pub ttl_ms: i64,
     /// Leader metadata from the winning campaign.
+    #[tsify(type = "Record<string, string>")]
     pub metadata: std::collections::BTreeMap<String, String>,
 }
 
@@ -285,6 +290,7 @@ pub struct IdempotencyClaimRequest {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ttl: Option<String>,
     /// Optional string metadata attached to the claim.
+    #[tsify(type = "Record<string, string>")]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub metadata: Option<std::collections::BTreeMap<String, String>>,
 }
@@ -300,6 +306,7 @@ pub struct IdempotencyCompleteRequest {
     /// Token returned by the winning claim.
     pub fencing_token: i64,
     /// Optional small JSON result duplicate callers can replay.
+    #[tsify(type = "Record<string, unknown>")]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub result: Option<serde_json::Value>,
 }
@@ -321,8 +328,10 @@ pub struct IdempotencyRecord {
     /// When this dedupe record expires.
     pub lease_expires_ms: i64,
     /// Claim metadata.
+    #[tsify(type = "Record<string, string>")]
     pub metadata: std::collections::BTreeMap<String, String>,
     /// Optional completion result.
+    #[tsify(type = "Record<string, unknown>")]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub result: Option<serde_json::Value>,
 }
@@ -468,6 +477,7 @@ pub struct LockGrant {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fencing_token: Option<i64>,
     /// Per-key fencing tokens for multi-key grants.
+    #[tsify(type = "Record<string, number>")]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fencing_tokens: Option<std::collections::BTreeMap<String, i64>>,
     /// Composite keys when this is a multi-key grant.

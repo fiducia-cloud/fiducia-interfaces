@@ -200,7 +200,7 @@ function renderRustBody(types, { wasm }) {
       // and for maps it emits `Map<..>` (wrong for JSON). Pin those fields to the
       // exact type the `typescript` emitter uses so the two TS surfaces agree.
       if (wasm && /serde_json::Value|BTreeMap/.test(ty)) {
-        out.push(`    #[tsify(type = "${tsFieldType(p)}")]`);
+        out.push(`    #[tsify(type = "${tsFieldType(p).replace(/"/g, '\\"')}")]`);
       }
       if (p.required) {
         out.push(`    pub ${ident}: ${ty},`);

@@ -196,6 +196,12 @@ function renderRustBody(types, { wasm }) {
       const kw = RUST_KEYWORDS.has(p.name);
       const ident = kw ? `r#${p.name}` : p.name;
       if (kw) out.push(`    #[serde(rename = "${p.name}")]`);
+      // tsify's default TS for `serde_json::Value` is a bare (undefined) `Value`,
+      // and for maps it emits `Map<..>` (wrong for JSON). Pin those fields to the
+      // exact type the `typescript` emitter uses so the two TS surfaces agree.
+      if (wasm && /serde_json::Value|BTreeMap/.test(ty)) {
+        out.push(`    #[tsify(type = "${tsFieldType(p)}")]`);
+      }
       if (p.required) {
         out.push(`    pub ${ident}: ${ty},`);
       } else {

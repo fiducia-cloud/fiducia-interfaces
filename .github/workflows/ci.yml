@@ -25,3 +25,19 @@ jobs:
       # the generated Rust DB crate must still compile
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo check --manifest-path generated/rust-db/Cargo.toml
+
+  # The generated Rust->WebAssembly crate must compile to wasm32 and produce a
+  # valid wasm-bindgen package (this is what surfaces tsify type-mapping bugs).
+  wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      # compile gate
+      - run: cargo build --manifest-path generated/rust-wasm/Cargo.toml --target wasm32-unknown-unknown
+      # full bindgen: emits pkg/ with the .wasm + .d.ts, validating the JS boundary
+      - run: wasm-pack build generated/rust-wasm --target web

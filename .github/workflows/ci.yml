@@ -8,9 +8,15 @@ on:
 permissions:
   contents: read
 
+# Cancel superseded runs on the same ref (a new push obsoletes the previous one).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,4 +30,43 @@ jobs:
       - run: node src/generate-db.mjs --check
       # the generated Rust DB crate must still compile
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: generated/rust-db
       - run: cargo check --manifest-path generated/rust-db/Cargo.toml
+
+  # The generated Rust->WebAssembly crate must compile to wasm32 and produce a
+  # valid wasm-bindgen package (this is what surfaces tsify type-mapping bugs).
+  wasm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: generated/rust-wasm
+      # Pinned, checksummed prebuilt binary — no `curl | sh`, guaranteed on PATH.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
+      # compile gate
+      - name: Compile to wasm32
+        run: cargo build --manifest-path generated/rust-wasm/Cargo.toml --target wasm32-unknown-unknown
+      # full bindgen: emits pkg/ with the .wasm + .d.ts, validating the JS boundary
+      # (--dev skips wasm-opt, avoiding an extra binaryen download)
+      - name: wasm-bindgen package
+        run: wasm-pack build generated/rust-wasm --target web --dev
+      # Regression guard: the generated .d.ts must not contain an undefined `Value`,
+      # a `bigint` (i64 leak), or a `Map<>` (should be `Record`).
+      - name: Assert generated .d.ts is clean
+        run: |
+          dts=$(ls generated/rust-wasm/pkg/*.d.ts | grep -v _bg)
+          echo "checking $dts"
+          if grep -nE ':[[:space:]]*(bigint|Map<)|:[[:space:]]*Value([;[]|$)' "$dts"; then
+            echo "::error::generated .d.ts has an undefined Value, a bigint, or a Map<> — tsify type-mapping regression"
+            exit 1
+          fi
+          echo "clean"

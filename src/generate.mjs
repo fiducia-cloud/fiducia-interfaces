@@ -251,6 +251,12 @@ tsify = { version = "0.4", features = ["js"] }
   return { "rust-wasm/src/lib.rs": renderRustBody(types, { wasm: true }), "rust-wasm/Cargo.toml": cargo };
 }
 
+// The canonical TypeScript type for a field — shared by the `typescript` emitter
+// and the `rust-wasm` tsify overrides so both TS surfaces stay identical.
+function tsFieldType(p) {
+  return isStringEnum(p.schema) ? p.schema.enum.map((v) => `"${v}"`).join(" | ") : tsType(p.schema);
+}
+
 function emitTs(types) {
   const out = [`// ${BANNER}`, ""];
   for (const t of types) {
@@ -258,7 +264,7 @@ function emitTs(types) {
     out.push(`export type ${t.name} = {`);
     for (const p of t.props) {
       if (p.description) out.push(`  /** ${cBlock(p.description)} */`);
-      const ty = isStringEnum(p.schema) ? p.schema.enum.map((v) => `"${v}"`).join(" | ") : tsType(p.schema);
+      const ty = tsFieldType(p);
       out.push(`  ${p.name}${p.required ? "" : "?"}: ${ty};`);
     }
     out.push("};", "");

@@ -42,6 +42,7 @@ fiducia-interfaces/
 ├── src/generate.mjs            # JSON Schema → per-language types
 └── generated/                  # check-in artifacts — never hand-edit
     ├── rust/{Cargo.toml,src/lib.rs}
+    ├── rust-wasm/{Cargo.toml,src/lib.rs}   # Rust compiled to WebAssembly (tsify boundary)
     ├── typescript/index.ts
     ├── python/fiducia_interfaces.py
     └── go/interfaces.go

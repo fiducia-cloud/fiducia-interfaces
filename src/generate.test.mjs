@@ -63,6 +63,23 @@ test("rust output: struct, optional fields, and a typed enum", () => {
   assert.match(rust, /pub fencing_tokens: Option<std::collections::BTreeMap<String, i64>>,/);
 });
 
+test("rust-wasm output: same types plus the tsify/wasm-bindgen boundary", () => {
+  const out = build();
+  const wasm = out["rust-wasm/src/lib.rs"];
+  assert.match(wasm, /use tsify::Tsify;/);
+  assert.match(wasm, /use wasm_bindgen::prelude::\*;/);
+  assert.match(wasm, /#\[derive\(Debug, Clone, Serialize, Deserialize, Tsify\)\]/);
+  assert.match(wasm, /#\[tsify\(into_wasm_abi, from_wasm_abi\)\]/);
+  assert.match(wasm, /pub struct ProposeOutcome \{/);
+  assert.match(wasm, /pub enum ProposeErrorReason \{/);
+  // Type bodies must not drift from the plain rust crate.
+  assert.match(wasm, /pub metadata: Option<std::collections::BTreeMap<String, String>>,/);
+  const cargo = out["rust-wasm/Cargo.toml"];
+  assert.match(cargo, /crate-type = \["cdylib", "rlib"\]/);
+  assert.match(cargo, /wasm-bindgen = /);
+  assert.match(cargo, /tsify = /);
+});
+
 test("typescript output: union for enum, optional marker", () => {
   const ts = build()["typescript/index.ts"];
   assert.match(ts, /reason: "not_leader" \| "unavailable";/);

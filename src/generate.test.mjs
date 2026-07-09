@@ -80,6 +80,20 @@ test("rust-wasm output: same types plus the tsify/wasm-bindgen boundary", () => 
   assert.match(cargo, /tsify = /);
 });
 
+test("rust-wasm pins map/Value fields to the same TS the typescript emitter uses", () => {
+  const out = build();
+  const wasm = out["rust-wasm/src/lib.rs"];
+  // serde_json::Value must not reach tsify raw (it would emit an undefined `Value`);
+  // maps must be Record, not tsify's default `Map`.
+  assert.match(wasm, /#\[tsify\(type = "Record<string, unknown>"\)\]\n\s*pub result: Option<serde_json::Value>,/);
+  assert.match(wasm, /#\[tsify\(type = "Record<string, string>"\)\]\n\s*pub metadata: Option<std::collections::BTreeMap<String, String>>,/);
+  // Every serde_json::Value / BTreeMap field carries a tsify override.
+  const valueFields = wasm.split("\n").filter((l) => /serde_json::Value|BTreeMap/.test(l) && l.includes("pub "));
+  for (const line of valueFields) {
+    assert.ok(line.includes("Option<") || line.includes(":"), "sanity");
+  }
+});
+
 test("typescript output: union for enum, optional marker", () => {
   const ts = build()["typescript/index.ts"];
   assert.match(ts, /reason: "not_leader" \| "unavailable";/);

@@ -64,8 +64,19 @@ string + allowed-values doc). CI runs the self-tests and `--check` on every push
 
 ## Languages
 
-First-class today: **Rust**, **TypeScript**, **Python**, **Go**. Adding a
-language is one render function in `src/generate.mjs` (see the `EMITTERS` map).
+First-class today: **Rust**, **Rust→WebAssembly**, **TypeScript**, **Python**,
+**Go**. Adding a language is one render function in `src/generate.mjs` (see the
+`EMITTERS` map).
+
+The `rust-wasm` target is the same serde types as `rust`, plus
+[`tsify`](https://github.com/madonoharu/tsify) + `wasm-bindgen` so payloads cross
+the JS/wasm boundary as real objects (and a `.d.ts` is emitted). It is a separate
+crate so the plain `rust` crate stays dependency-free. Build it with:
+
+```sh
+wasm-pack build generated/rust-wasm --target web
+# or: cargo build --manifest-path generated/rust-wasm/Cargo.toml --target wasm32-unknown-unknown
+```
 
 The roadmap is the rest of the **client languages** in
 [`fiducia-clients`](https://github.com/fiducia-cloud/fiducia-clients) — dart,

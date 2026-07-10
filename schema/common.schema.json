@@ -53,7 +53,8 @@
         "valid": { "type": "boolean", "description": "Whether the key is valid and active." },
         "org_id": { "type": "string", "description": "Owning org id when valid." },
         "key_id": { "type": "string", "description": "Key id when valid." },
-        "scopes": { "type": "array", "items": { "type": "string" }, "description": "Granted scopes." }
+        "scopes": { "type": "array", "items": { "type": "string" }, "description": "Granted scopes." },
+        "require_idempotency": { "type": "boolean", "description": "When true, the edge/LB rejects mutating calls made with this key that omit an Idempotency-Key header. Absent means not required (default)." }
       }
     }
   }

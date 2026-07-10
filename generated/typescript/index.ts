@@ -44,6 +44,8 @@ export type Introspection = {
   key_id?: string;
   /** Granted scopes. */
   scopes: string[];
+  /** When true, the edge/LB rejects mutating calls made with this key that omit an Idempotency-Key header. Absent means not required (default). */
+  require_idempotency?: boolean;
 };
 
 /** Body of PUT /v1/services/{service}/instances/{id}. */

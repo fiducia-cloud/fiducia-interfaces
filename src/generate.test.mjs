@@ -63,15 +63,13 @@ test("rust output: struct, optional fields, and a typed enum", () => {
   assert.match(rust, /pub fencing_tokens: Option<std::collections::BTreeMap<String, i64>>,/);
 });
 
-test("rust-wasm output: declaration-only Tsify (no wasm ABI baked in)", () => {
+test("rust-wasm output: same types plus the tsify/wasm-bindgen boundary", () => {
   const out = build();
   const wasm = out["rust-wasm/src/lib.rs"];
   assert.match(wasm, /use tsify::Tsify;/);
+  assert.match(wasm, /use wasm_bindgen::prelude::\*;/);
   assert.match(wasm, /#\[derive\(Debug, Clone, Serialize, Deserialize, Tsify\)\]/);
-  // Declaration-only: no into/from_wasm_abi (would bake in a map=Map runtime ABI
-  // that contradicts the Record<..> the .d.ts declares) and no wasm_bindgen use.
-  assert.doesNotMatch(wasm, /into_wasm_abi|from_wasm_abi/);
-  assert.doesNotMatch(wasm, /use wasm_bindgen::prelude/);
+  assert.match(wasm, /#\[tsify\(into_wasm_abi, from_wasm_abi\)\]/);
   assert.match(wasm, /pub struct ProposeOutcome \{/);
   assert.match(wasm, /pub enum ProposeErrorReason \{/);
   // Type bodies must not drift from the plain rust crate.

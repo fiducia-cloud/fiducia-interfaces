@@ -122,9 +122,6 @@ pub struct Introspection {
     pub key_id: Option<String>,
     /// Granted scopes.
     pub scopes: Vec<String>,
-    /// When true, the edge/LB rejects mutating calls made with this key that omit an Idempotency-Key header. Absent means not required (default).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub require_idempotency: Option<bool>,
 }
 
 /// Body of PUT /v1/services/{service}/instances/{id}.

@@ -33,7 +33,6 @@ class Introspection:
     scopes: List[str]
     org_id: Optional[str] = None
     key_id: Optional[str] = None
-    require_idempotency: Optional[bool] = None
 
 @dataclass
 class ServiceRegisterRequest:

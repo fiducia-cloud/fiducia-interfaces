@@ -86,3 +86,56 @@ create index if not exists admin_audit_log_actor_created_idx
   on admin_audit_log (actor_operator_id, created_at desc);
 create index if not exists admin_audit_log_action_created_idx
   on admin_audit_log (action, created_at desc);
+
+-- ============================================================================
+-- SUPABASE REALTIME + ROW-LEVEL SECURITY (local-first sync, defense-in-depth)
+-- ----------------------------------------------------------------------------
+-- Idempotent, and a NO-OP on a non-Supabase Postgres (guards on the
+-- supabase_realtime publication / auth.uid()). The admin frontend syncs over the
+-- backend WS (/admin/ws), so these are belt-and-suspenders for any Supabase
+-- realtime consumer. Same rule as the customer plane: the admin backend
+-- (fiducia-admin.rs) MUST connect as a BYPASSRLS/owner/service role — these
+-- policies constrain only the `authenticated` realtime consumer.
+-- ============================================================================
+
+-- (1) Full old row on delete, so DELETE CDC carries `version`.
+alter table operators        replica identity full;
+alter table infra_operations replica identity full;
+
+-- (2) Register synced tables with Supabase's realtime publication (if present).
+do $$
+declare t text;
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    foreach t in array array['operators','infra_operations'] loop
+      if not exists (
+        select 1 from pg_publication_tables
+        where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t
+      ) then
+        execute format('alter publication supabase_realtime add table public.%I', t);
+      end if;
+    end loop;
+  end if;
+end $$;
+
+-- (3) RLS — Supabase only. An operator sees their own row; any active operator
+-- (staff) may read the control-plane operations feed.
+do $$
+begin
+  if to_regprocedure('auth.uid()') is null then
+    return;
+  end if;
+
+  execute 'alter table operators enable row level security';
+  execute 'drop policy if exists operators_self_read on operators';
+  execute $p$
+    create policy operators_self_read on operators for select to authenticated
+      using (supabase_user_id = auth.uid())$p$;
+
+  execute 'alter table infra_operations enable row level security';
+  execute 'drop policy if exists infra_operations_staff_read on infra_operations';
+  execute $p$
+    create policy infra_operations_staff_read on infra_operations for select to authenticated using (
+      exists (select 1 from operators o
+              where o.supabase_user_id = auth.uid() and o.disabled = false))$p$;
+end $$;

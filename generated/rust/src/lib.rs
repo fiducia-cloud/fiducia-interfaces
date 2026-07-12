@@ -127,6 +127,39 @@ pub struct Introspection {
     pub require_idempotency: Option<bool>,
 }
 
+/// Body of POST /v1/counters/add. Atomically adds delta (which may be negative), creating the counter at 0 first.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CounterAddRequest {
+    /// Slash-safe counter key, such as rollout/v2.4.1/failures.
+    pub key: String,
+    /// Signed amount to add; negative decrements.
+    pub delta: i64,
+    /// When set, the add applies only if the counter's current mod_revision matches (compare-and-set).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prev_revision: Option<i64>,
+}
+
+/// Body of POST /v1/counters/set. Writes an absolute value, such as resetting to 0.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CounterSetRequest {
+    /// Slash-safe counter key.
+    pub key: String,
+    /// Absolute value to store.
+    pub value: i64,
+    /// When set, the set applies only if the current mod_revision matches (compare-and-set).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prev_revision: Option<i64>,
+}
+
+/// The current state of a counter, returned by GET /v1/counters. An absent counter reads as not found and should be treated as 0.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CounterEntry {
+    /// Current signed value.
+    pub value: i64,
+    /// Monotonic revision stamped on the last mutation; pass it as prev_revision to compare-and-set.
+    pub mod_revision: i64,
+}
+
 /// Body of PUT /v1/services/{service}/instances/{id}.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServiceRegisterRequest {

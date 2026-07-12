@@ -50,6 +50,34 @@ type Introspection struct {
 	RequireIdempotency *bool `json:"require_idempotency,omitempty"`
 }
 
+// CounterAddRequest: Body of POST /v1/counters/add. Atomically adds delta (which may be negative), creating the counter at 0 first.
+type CounterAddRequest struct {
+	// Slash-safe counter key, such as rollout/v2.4.1/failures.
+	Key string `json:"key"`
+	// Signed amount to add; negative decrements.
+	Delta int64 `json:"delta"`
+	// When set, the add applies only if the counter's current mod_revision matches (compare-and-set).
+	PrevRevision *int64 `json:"prev_revision,omitempty"`
+}
+
+// CounterSetRequest: Body of POST /v1/counters/set. Writes an absolute value, such as resetting to 0.
+type CounterSetRequest struct {
+	// Slash-safe counter key.
+	Key string `json:"key"`
+	// Absolute value to store.
+	Value int64 `json:"value"`
+	// When set, the set applies only if the current mod_revision matches (compare-and-set).
+	PrevRevision *int64 `json:"prev_revision,omitempty"`
+}
+
+// CounterEntry: The current state of a counter, returned by GET /v1/counters. An absent counter reads as not found and should be treated as 0.
+type CounterEntry struct {
+	// Current signed value.
+	Value int64 `json:"value"`
+	// Monotonic revision stamped on the last mutation; pass it as prev_revision to compare-and-set.
+	ModRevision int64 `json:"mod_revision"`
+}
+
 // ServiceRegisterRequest: Body of PUT /v1/services/{service}/instances/{id}.
 type ServiceRegisterRequest struct {
 	// Reachable address of this instance.

@@ -127,6 +127,84 @@ export type BudgetState = {
   generation: number;
 };
 
+/** One agent's contest of a claim. */
+export type ClaimContest = {
+  /** Contesting agent id. */
+  agent: string;
+  /** Why the claim is contested. */
+  reason: string;
+};
+
+/** Body of POST /v1/claims/assert. Re-asserting bumps the version and resets support/contests. */
+export type ClaimAssertRequest = {
+  /** Claim id. */
+  name: string;
+  /** The entity the claim is about, such as customer:219. */
+  subject: string;
+  /** The asserted relation, such as eligible_for_refund. */
+  predicate: string;
+  /** The asserted value (any JSON). */
+  value?: Record<string, unknown>;
+  /** Author confidence in [0,1]. */
+  confidence?: number;
+  /** Asserting agent id. */
+  author: string;
+  /** Evidence references. */
+  evidence?: string[];
+  /** Expiry of the claim's validity. */
+  valid_until_ms?: number;
+};
+
+/** Body of POST /v1/claims/contest. */
+export type ClaimContestRequest = {
+  /** Claim id. */
+  name: string;
+  /** Contesting agent. */
+  agent: string;
+  /** Contest reason. */
+  reason?: string;
+};
+
+/** Body of POST /v1/claims/resolve. An authorized process accepts or rejects the claim (terminal). */
+export type ClaimResolveRequest = {
+  /** Claim id. */
+  name: string;
+  /** Whether the claim is accepted (true) or rejected (false). */
+  accepted: boolean;
+};
+
+/** Current claim state returned by GET /v1/claims. */
+export type ClaimState = {
+  /** Claim id. */
+  name: string;
+  /** Claim subject. */
+  subject: string;
+  /** Claim predicate. */
+  predicate: string;
+  /** The asserted value (any JSON). */
+  value?: Record<string, unknown>;
+  /** Author confidence. */
+  confidence: number;
+  /** Asserting agent. */
+  author: string;
+  /** Lifecycle state; only an authorized resolution reaches accepted/rejected. */
+  status: "asserted" | "contested" | "accepted" | "rejected" | "superseded";
+  /** Agents that support the claim. */
+  supporters: string[];
+  /** Contests against the claim. */
+  contests: ClaimContest[];
+  /** Evidence references. */
+  evidence: string[];
+  /** Validity expiry. */
+  valid_until_ms?: number;
+  /** Successor claim id when superseded. */
+  superseded_by?: string;
+  /** Bumped each time the asserted value changes. */
+  version: number;
+  /** Monotonic state version. */
+  generation: number;
+};
+
 /** Result of a committed write (lock/kv/election/discovery mutation). */
 export type ProposeOutcome = {
   /** Shard whose Raft group committed the command. */

@@ -3,6 +3,7 @@
   "schemas": [
     "barriers.schema.json",
     "budgets.schema.json",
+    "claims.schema.json",
     "common.schema.json",
     "counters.schema.json",
     "decisions.schema.json",

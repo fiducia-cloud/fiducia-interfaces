@@ -129,6 +129,84 @@ type BudgetState struct {
 	Generation int64 `json:"generation"`
 }
 
+// ClaimContest: One agent's contest of a claim.
+type ClaimContest struct {
+	// Contesting agent id.
+	Agent string `json:"agent"`
+	// Why the claim is contested.
+	Reason string `json:"reason"`
+}
+
+// ClaimAssertRequest: Body of POST /v1/claims/assert. Re-asserting bumps the version and resets support/contests.
+type ClaimAssertRequest struct {
+	// Claim id.
+	Name string `json:"name"`
+	// The entity the claim is about, such as customer:219.
+	Subject string `json:"subject"`
+	// The asserted relation, such as eligible_for_refund.
+	Predicate string `json:"predicate"`
+	// The asserted value (any JSON).
+	Value *map[string]any `json:"value,omitempty"`
+	// Author confidence in [0,1].
+	Confidence *float64 `json:"confidence,omitempty"`
+	// Asserting agent id.
+	Author string `json:"author"`
+	// Evidence references.
+	Evidence *[]string `json:"evidence,omitempty"`
+	// Expiry of the claim's validity.
+	ValidUntilMs *int64 `json:"valid_until_ms,omitempty"`
+}
+
+// ClaimContestRequest: Body of POST /v1/claims/contest.
+type ClaimContestRequest struct {
+	// Claim id.
+	Name string `json:"name"`
+	// Contesting agent.
+	Agent string `json:"agent"`
+	// Contest reason.
+	Reason *string `json:"reason,omitempty"`
+}
+
+// ClaimResolveRequest: Body of POST /v1/claims/resolve. An authorized process accepts or rejects the claim (terminal).
+type ClaimResolveRequest struct {
+	// Claim id.
+	Name string `json:"name"`
+	// Whether the claim is accepted (true) or rejected (false).
+	Accepted bool `json:"accepted"`
+}
+
+// ClaimState: Current claim state returned by GET /v1/claims.
+type ClaimState struct {
+	// Claim id.
+	Name string `json:"name"`
+	// Claim subject.
+	Subject string `json:"subject"`
+	// Claim predicate.
+	Predicate string `json:"predicate"`
+	// The asserted value (any JSON).
+	Value *map[string]any `json:"value,omitempty"`
+	// Author confidence.
+	Confidence float64 `json:"confidence"`
+	// Asserting agent.
+	Author string `json:"author"`
+	// Lifecycle state; only an authorized resolution reaches accepted/rejected. (one of: asserted, contested, accepted, rejected, superseded)
+	Status string `json:"status"`
+	// Agents that support the claim.
+	Supporters []string `json:"supporters"`
+	// Contests against the claim.
+	Contests []ClaimContest `json:"contests"`
+	// Evidence references.
+	Evidence []string `json:"evidence"`
+	// Validity expiry.
+	ValidUntilMs *int64 `json:"valid_until_ms,omitempty"`
+	// Successor claim id when superseded.
+	SupersededBy *string `json:"superseded_by,omitempty"`
+	// Bumped each time the asserted value changes.
+	Version int64 `json:"version"`
+	// Monotonic state version.
+	Generation int64 `json:"generation"`
+}
+
 // ProposeOutcome: Result of a committed write (lock/kv/election/discovery mutation).
 type ProposeOutcome struct {
 	// Shard whose Raft group committed the command.

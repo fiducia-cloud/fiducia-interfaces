@@ -47,6 +47,21 @@ pub enum BudgetReservationStatus {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
 #[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub enum ClaimStateStatus {
+    #[serde(rename = "asserted")]
+    Asserted,
+    #[serde(rename = "contested")]
+    Contested,
+    #[serde(rename = "accepted")]
+    Accepted,
+    #[serde(rename = "rejected")]
+    Rejected,
+    #[serde(rename = "superseded")]
+    Superseded,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
 pub enum ProposeErrorReason {
     #[serde(rename = "not_leader")]
     NotLeader,
@@ -343,6 +358,104 @@ pub struct BudgetState {
     pub available: BudgetAmount,
     /// Every reservation against this budget.
     pub reservations: Vec<BudgetReservation>,
+    /// Monotonic state version.
+    pub generation: i64,
+}
+
+/// One agent's contest of a claim.
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub struct ClaimContest {
+    /// Contesting agent id.
+    pub agent: String,
+    /// Why the claim is contested.
+    pub reason: String,
+}
+
+/// Body of POST /v1/claims/assert. Re-asserting bumps the version and resets support/contests.
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub struct ClaimAssertRequest {
+    /// Claim id.
+    pub name: String,
+    /// The entity the claim is about, such as customer:219.
+    pub subject: String,
+    /// The asserted relation, such as eligible_for_refund.
+    pub predicate: String,
+    /// The asserted value (any JSON).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[tsify(type = "Record<string, unknown>")]
+    pub value: Option<serde_json::Value>,
+    /// Author confidence in [0,1].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<f64>,
+    /// Asserting agent id.
+    pub author: String,
+    /// Evidence references.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evidence: Option<Vec<String>>,
+    /// Expiry of the claim's validity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub valid_until_ms: Option<i64>,
+}
+
+/// Body of POST /v1/claims/contest.
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub struct ClaimContestRequest {
+    /// Claim id.
+    pub name: String,
+    /// Contesting agent.
+    pub agent: String,
+    /// Contest reason.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
+/// Body of POST /v1/claims/resolve. An authorized process accepts or rejects the claim (terminal).
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub struct ClaimResolveRequest {
+    /// Claim id.
+    pub name: String,
+    /// Whether the claim is accepted (true) or rejected (false).
+    pub accepted: bool,
+}
+
+/// Current claim state returned by GET /v1/claims.
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub struct ClaimState {
+    /// Claim id.
+    pub name: String,
+    /// Claim subject.
+    pub subject: String,
+    /// Claim predicate.
+    pub predicate: String,
+    /// The asserted value (any JSON).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[tsify(type = "Record<string, unknown>")]
+    pub value: Option<serde_json::Value>,
+    /// Author confidence.
+    pub confidence: f64,
+    /// Asserting agent.
+    pub author: String,
+    /// Lifecycle state; only an authorized resolution reaches accepted/rejected.
+    pub status: ClaimStateStatus,
+    /// Agents that support the claim.
+    pub supporters: Vec<String>,
+    /// Contests against the claim.
+    pub contests: Vec<ClaimContest>,
+    /// Evidence references.
+    pub evidence: Vec<String>,
+    /// Validity expiry.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub valid_until_ms: Option<i64>,
+    /// Successor claim id when superseded.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub superseded_by: Option<String>,
+    /// Bumped each time the asserted value changes.
+    pub version: i64,
     /// Monotonic state version.
     pub generation: i64,
 }

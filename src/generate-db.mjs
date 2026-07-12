@@ -79,6 +79,7 @@ function baseType(sqlType) {
   if (t.startsWith("smallint") || t.startsWith("int2")) return "i16";
   if (t.startsWith("jsonb") || t.startsWith("json")) return "json";
   if (t.startsWith("inet")) return "inet";
+  if (t.startsWith("vector")) return "vector";
   return "json"; // unknown -> opaque JSON value
 }
 
@@ -94,6 +95,7 @@ const RUST = {
   i16: "i16",
   json: "serde_json::Value",
   inet: "String",
+  vector: "pgvector::Vector",
 };
 const TS = {
   uuid: "string",
@@ -105,6 +107,7 @@ const TS = {
   i16: "number",
   json: "unknown",
   inet: "string",
+  vector: "number[]",
 };
 
 // --- emit ----------------------------------------------------------------------
@@ -153,6 +156,7 @@ uuid = { version = "1", features = ["serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+pgvector = { version = "0.4", features = ["sqlx", "serde"] }
 `;
 
 export function build() {

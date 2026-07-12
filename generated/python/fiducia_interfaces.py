@@ -95,6 +95,55 @@ class BudgetState:
     generation: int
 
 @dataclass
+class ClaimContest:
+    """One agent's contest of a claim."""
+    agent: str
+    reason: str
+
+@dataclass
+class ClaimAssertRequest:
+    """Body of POST /v1/claims/assert. Re-asserting bumps the version and resets support/contests."""
+    name: str
+    subject: str
+    predicate: str
+    author: str
+    value: Optional[dict] = None
+    confidence: Optional[float] = None
+    evidence: Optional[List[str]] = None
+    valid_until_ms: Optional[int] = None
+
+@dataclass
+class ClaimContestRequest:
+    """Body of POST /v1/claims/contest."""
+    name: str
+    agent: str
+    reason: Optional[str] = None
+
+@dataclass
+class ClaimResolveRequest:
+    """Body of POST /v1/claims/resolve. An authorized process accepts or rejects the claim (terminal)."""
+    name: str
+    accepted: bool
+
+@dataclass
+class ClaimState:
+    """Current claim state returned by GET /v1/claims."""
+    name: str
+    subject: str
+    predicate: str
+    confidence: float
+    author: str
+    status: Literal["asserted", "contested", "accepted", "rejected", "superseded"]
+    supporters: List[str]
+    contests: List[ClaimContest]
+    evidence: List[str]
+    version: int
+    generation: int
+    value: Optional[dict] = None
+    valid_until_ms: Optional[int] = None
+    superseded_by: Optional[str] = None
+
+@dataclass
 class ProposeOutcome:
     """Result of a committed write (lock/kv/election/discovery mutation)."""
     shard: int

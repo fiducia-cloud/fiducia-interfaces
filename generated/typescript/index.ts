@@ -192,6 +192,62 @@ export type ServicesListResponse = {
   services: ServiceSummary[];
 };
 
+/** Body of POST /v1/effects/prepare. Idempotent: a repeat prepare returns the existing effect. required_approvals of 0 is pre-approved. */
+export type EffectPrepareRequest = {
+  /** Effect id, such as invoice-882/payment. */
+  name: string;
+  /** Kind of side effect, such as send_payment or deploy. */
+  effect_type: string;
+  /** Effect parameters. */
+  payload?: Record<string, unknown>;
+  /** Risk label, such as low/medium/high/critical. Defaults to medium. */
+  risk?: string;
+  /** Binds the effect to the external operation so the executor stays effectively-once. */
+  idempotency_key: string;
+  /** Distinct principals required before commit. Defaults to 0. */
+  required_approvals?: number;
+};
+
+/** Body of POST /v1/effects/approve. Duplicate approvals by the same principal count once. */
+export type EffectApproveRequest = {
+  /** Effect id. */
+  name: string;
+  /** Approving principal id. */
+  principal: string;
+};
+
+/** Body of POST /v1/effects/commit. Commits an approved effect exactly once; a repeat commit replays the recorded result. */
+export type EffectCommitRequest = {
+  /** Effect id. */
+  name: string;
+  /** Durable result to record for replay. */
+  result?: Record<string, unknown>;
+};
+
+/** Current effect state returned by GET /v1/effects. */
+export type EffectState = {
+  /** Effect id. */
+  name: string;
+  /** Kind of side effect. */
+  effect_type: string;
+  /** Effect parameters. */
+  payload?: Record<string, unknown>;
+  /** Risk label. */
+  risk: string;
+  /** External-operation binding. */
+  idempotency_key: string;
+  /** Lifecycle state. */
+  status: "prepared" | "approved" | "committed" | "aborted";
+  /** Approvals required before commit. */
+  required_approvals: number;
+  /** Distinct principals that have approved. */
+  approvals: string[];
+  /** Result recorded on commit. */
+  result?: Record<string, unknown>;
+  /** Monotonic state version. */
+  generation: number;
+};
+
 /** Body of POST /v1/elections/{name}/campaign. */
 export type CampaignRequest = {
   /** Identifier of the campaigning instance. */

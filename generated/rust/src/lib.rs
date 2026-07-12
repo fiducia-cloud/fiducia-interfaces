@@ -49,6 +49,18 @@ pub enum ChangeEventScope {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EffectStateStatus {
+    #[serde(rename = "prepared")]
+    Prepared,
+    #[serde(rename = "approved")]
+    Approved,
+    #[serde(rename = "committed")]
+    Committed,
+    #[serde(rename = "aborted")]
+    Aborted,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum IdempotencyRecordStatus {
     #[serde(rename = "claimed")]
     Claimed,
@@ -338,6 +350,72 @@ pub struct ServicesListResponse {
     pub count: i64,
     /// Services with live instances.
     pub services: Vec<ServiceSummary>,
+}
+
+/// Body of POST /v1/effects/prepare. Idempotent: a repeat prepare returns the existing effect. required_approvals of 0 is pre-approved.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EffectPrepareRequest {
+    /// Effect id, such as invoice-882/payment.
+    pub name: String,
+    /// Kind of side effect, such as send_payment or deploy.
+    pub effect_type: String,
+    /// Effect parameters.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub payload: Option<serde_json::Value>,
+    /// Risk label, such as low/medium/high/critical. Defaults to medium.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub risk: Option<String>,
+    /// Binds the effect to the external operation so the executor stays effectively-once.
+    pub idempotency_key: String,
+    /// Distinct principals required before commit. Defaults to 0.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub required_approvals: Option<i64>,
+}
+
+/// Body of POST /v1/effects/approve. Duplicate approvals by the same principal count once.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EffectApproveRequest {
+    /// Effect id.
+    pub name: String,
+    /// Approving principal id.
+    pub principal: String,
+}
+
+/// Body of POST /v1/effects/commit. Commits an approved effect exactly once; a repeat commit replays the recorded result.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EffectCommitRequest {
+    /// Effect id.
+    pub name: String,
+    /// Durable result to record for replay.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub result: Option<serde_json::Value>,
+}
+
+/// Current effect state returned by GET /v1/effects.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EffectState {
+    /// Effect id.
+    pub name: String,
+    /// Kind of side effect.
+    pub effect_type: String,
+    /// Effect parameters.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub payload: Option<serde_json::Value>,
+    /// Risk label.
+    pub risk: String,
+    /// External-operation binding.
+    pub idempotency_key: String,
+    /// Lifecycle state.
+    pub status: EffectStateStatus,
+    /// Approvals required before commit.
+    pub required_approvals: i64,
+    /// Distinct principals that have approved.
+    pub approvals: Vec<String>,
+    /// Result recorded on commit.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub result: Option<serde_json::Value>,
+    /// Monotonic state version.
+    pub generation: i64,
 }
 
 /// Body of POST /v1/elections/{name}/campaign.

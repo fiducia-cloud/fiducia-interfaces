@@ -2,10 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
-use wasm_bindgen::prelude::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub enum ProposeErrorReason {
     #[serde(rename = "not_leader")]
     NotLeader,
@@ -14,7 +12,6 @@ pub enum ProposeErrorReason {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub enum ChangeEventScope {
     #[serde(rename = "kv")]
     Kv,
@@ -25,7 +22,6 @@ pub enum ChangeEventScope {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub enum IdempotencyRecordStatus {
     #[serde(rename = "claimed")]
     Claimed,
@@ -34,7 +30,6 @@ pub enum IdempotencyRecordStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub enum RateLimitCheckRequestAlgorithm {
     #[serde(rename = "token_bucket")]
     TokenBucket,
@@ -43,7 +38,6 @@ pub enum RateLimitCheckRequestAlgorithm {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub enum RateLimitSnapshotAlgorithm {
     #[serde(rename = "token_bucket")]
     TokenBucket,
@@ -52,7 +46,6 @@ pub enum RateLimitSnapshotAlgorithm {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub enum ScheduleTargetKind {
     #[serde(rename = "webhook")]
     Webhook,
@@ -63,7 +56,6 @@ pub enum ScheduleTargetKind {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub enum ScheduleUpsertRequestDelivery {
     #[serde(rename = "at_least_once")]
     AtLeastOnce,
@@ -72,7 +64,6 @@ pub enum ScheduleUpsertRequestDelivery {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub enum ScheduleDelivery {
     #[serde(rename = "at_least_once")]
     AtLeastOnce,
@@ -82,7 +73,6 @@ pub enum ScheduleDelivery {
 
 /// Result of a committed write (lock/kv/election/discovery mutation).
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct ProposeOutcome {
     /// Shard whose Raft group committed the command.
     pub shard: i64,
@@ -94,7 +84,6 @@ pub struct ProposeOutcome {
 
 /// Why a write could not be committed.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct ProposeError {
     /// Failure class.
     pub reason: ProposeErrorReason,
@@ -107,7 +96,6 @@ pub struct ProposeError {
 
 /// One server-sent event emitted on a watch stream (KV, election, or service).
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct ChangeEvent {
     /// Which primitive changed.
     pub scope: ChangeEventScope,
@@ -125,7 +113,6 @@ pub struct ChangeEvent {
 
 /// Result of validating an API key (fiducia-auth). The edge/LB caches this.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct Introspection {
     /// Whether the key is valid and active.
     pub valid: bool,
@@ -137,11 +124,13 @@ pub struct Introspection {
     pub key_id: Option<String>,
     /// Granted scopes.
     pub scopes: Vec<String>,
+    /// When true, the edge/LB rejects mutating calls made with this key that omit an Idempotency-Key header. Absent means not required (default).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub require_idempotency: Option<bool>,
 }
 
 /// Body of PUT /v1/services/{service}/instances/{id}.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct ServiceRegisterRequest {
     /// Reachable address of this instance.
     pub address: String,
@@ -155,7 +144,6 @@ pub struct ServiceRegisterRequest {
 
 /// Body of POST /v1/services/{service}/instances/{id}/heartbeat.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct ServiceHeartbeatRequest {
     /// Optional new lease TTL; when omitted a default is applied.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -164,7 +152,6 @@ pub struct ServiceHeartbeatRequest {
 
 /// A live registered instance.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct ServiceInstance {
     /// Instance id.
     pub instance_id: String,
@@ -179,7 +166,6 @@ pub struct ServiceInstance {
 
 /// Response of GET /v1/services/{service} — the live instances of one service.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct ServiceListResponse {
     /// Service name.
     pub service: String,
@@ -189,7 +175,6 @@ pub struct ServiceListResponse {
 
 /// One service in a discovery listing.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct ServiceSummary {
     /// Service name.
     pub service: String,
@@ -199,7 +184,6 @@ pub struct ServiceSummary {
 
 /// Response of GET /v1/services — every service with live instances, merged across shards.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct ServicesListResponse {
     /// Number of services listed.
     pub count: i64,
@@ -209,7 +193,6 @@ pub struct ServicesListResponse {
 
 /// Body of POST /v1/elections/{name}/campaign.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct CampaignRequest {
     /// Identifier of the campaigning instance.
     pub candidate: String,
@@ -223,7 +206,6 @@ pub struct CampaignRequest {
 
 /// Body of POST /v1/elections/{name}/renew — must present the held fencing token.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct RenewRequest {
     /// The current holder.
     pub candidate: String,
@@ -236,7 +218,6 @@ pub struct RenewRequest {
 
 /// Body of resign — must present the held fencing token.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct HoldRequest {
     /// The current holder.
     pub candidate: String,
@@ -246,7 +227,6 @@ pub struct HoldRequest {
 
 /// Who currently holds a named election.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct Leadership {
     /// Current leader id.
     pub leader: String,
@@ -263,7 +243,6 @@ pub struct Leadership {
 
 /// Response of GET /v1/elections/{name}.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct ElectionGetResponse {
     /// Election name.
     pub name: String,
@@ -276,7 +255,6 @@ pub struct ElectionGetResponse {
 
 /// Body of POST /v1/idempotency/claim. First claim for a key wins until the TTL expires.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct IdempotencyClaimRequest {
     /// Caller-chosen idempotency key, such as stripe-webhook/event_123.
     pub key: String,
@@ -297,7 +275,6 @@ pub struct IdempotencyClaimRequest {
 
 /// Body of POST /v1/idempotency/complete. Must present the owner and fencing token returned by claim.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct IdempotencyCompleteRequest {
     /// Idempotency key to complete.
     pub key: String,
@@ -313,7 +290,6 @@ pub struct IdempotencyCompleteRequest {
 
 /// Active idempotency record retained until the TTL window expires.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct IdempotencyRecord {
     /// Idempotency key.
     pub key: String,
@@ -338,7 +314,6 @@ pub struct IdempotencyRecord {
 
 /// Response of GET /v1/idempotency?key=...
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct IdempotencyGetResponse {
     /// Idempotency key.
     pub key: String,
@@ -351,7 +326,6 @@ pub struct IdempotencyGetResponse {
 
 /// A versioned KV value.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct KvEntry {
     /// The stored value.
     pub value: String,
@@ -364,7 +338,6 @@ pub struct KvEntry {
 
 /// Body of PUT /v1/kv/{key}.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct KvPutRequest {
     /// Value to store.
     pub value: String,
@@ -378,7 +351,6 @@ pub struct KvPutRequest {
 
 /// Response of GET /v1/kv/{key}.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct KvGetResponse {
     /// The requested key.
     pub key: String,
@@ -391,7 +363,6 @@ pub struct KvGetResponse {
 
 /// One row of a prefix listing: a key with its entry fields flattened in.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct KvListItem {
     /// The key.
     pub key: String,
@@ -406,7 +377,6 @@ pub struct KvListItem {
 
 /// Response of GET /v1/kv?prefix=... — live keys under a prefix, merged across shards and sorted by key.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct KvListResponse {
     /// The requested prefix (empty lists the whole keyspace).
     pub prefix: String,
@@ -418,7 +388,6 @@ pub struct KvListResponse {
 
 /// Body of POST /v1/locks/{key}/acquire. max=1 is a mutex; max>1 a semaphore.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct LockAcquireRequest {
     /// Lease TTL in milliseconds.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -436,7 +405,6 @@ pub struct LockAcquireRequest {
 
 /// Body of POST /v1/locks/acquire-many. Acquires a bounded union of keys atomically.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct LockAcquireManyRequest {
     /// Keys to lock as one union. The server sorts/dedupes before acquisition.
     pub keys: Vec<String>,
@@ -453,7 +421,6 @@ pub struct LockAcquireManyRequest {
 
 /// Current holder of a mutex, semaphore slot, or composite lock member.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct LockHolder {
     pub holder: String,
     pub lock_id: String,
@@ -466,7 +433,6 @@ pub struct LockHolder {
 
 /// Response to an acquire / RW-acquire.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct LockGrant {
     /// Whether the lock was granted.
     pub acquired: bool,
@@ -496,7 +462,6 @@ pub struct LockGrant {
 
 /// Body of POST /v1/locks/{key}/release.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct LockReleaseRequest {
     /// The holder identity used at acquire.
     pub holder: String,
@@ -506,7 +471,6 @@ pub struct LockReleaseRequest {
 
 /// Body of POST /v1/locks/release-many.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct LockReleaseManyRequest {
     /// The composite lock id returned at acquire-many.
     pub lock_id: String,
@@ -514,7 +478,6 @@ pub struct LockReleaseManyRequest {
 
 /// Body of POST /v1/rw/{key}/read|write.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct RwAcquireRequest {
     /// Lease TTL in milliseconds.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -526,7 +489,6 @@ pub struct RwAcquireRequest {
 
 /// Body of POST /v1/rate-limit/{tenant}/{key}/check.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct RateLimitCheckRequest {
     /// Rate-limiting algorithm to apply for this key.
     pub algorithm: RateLimitCheckRequestAlgorithm,
@@ -544,7 +506,6 @@ pub struct RateLimitCheckRequest {
 
 /// Current distributed limiter state for one tenant/key.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct RateLimitSnapshot {
     /// Limiter key.
     pub key: String,
@@ -562,7 +523,6 @@ pub struct RateLimitSnapshot {
 
 /// Response of GET /v1/rate-limit/{tenant}/{key}.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct RateLimitGetResponse {
     /// Tenant/org whose quota was requested.
     pub tenant: String,
@@ -577,7 +537,6 @@ pub struct RateLimitGetResponse {
 
 /// Where a schedule fires: webhook, queue, or gRPC.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct ScheduleTarget {
     /// Target transport.
     pub kind: ScheduleTargetKind,
@@ -594,7 +553,6 @@ pub struct ScheduleTarget {
 
 /// Body of PUT /v1/cron/schedules/{name}. Exactly one of cron or one_shot_at_ms must be set.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct ScheduleUpsertRequest {
     /// Standard five-field cron expression.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -614,7 +572,6 @@ pub struct ScheduleUpsertRequest {
 
 /// A replicated schedule definition.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct Schedule {
     /// Schedule name.
     pub name: String,
@@ -636,7 +593,6 @@ pub struct Schedule {
 
 /// Durable record of one schedule fire attempt.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct ScheduleRun {
     /// Idempotency id for the scheduled fire.
     pub fire_id: String,
@@ -652,7 +608,6 @@ pub struct ScheduleRun {
 
 /// Body of POST /v1/cron/schedules/{name}/runs.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct ScheduleRecordRunRequest {
     /// Idempotency id for this fire.
     pub fire_id: String,
@@ -663,7 +618,6 @@ pub struct ScheduleRecordRunRequest {
 
 /// Response of GET /v1/cron/schedules/{name}.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct ScheduleGetResponse {
     /// Schedule name.
     pub name: String,
@@ -676,7 +630,6 @@ pub struct ScheduleGetResponse {
 
 /// Response of GET /v1/cron/schedules/{name}/history.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct ScheduleHistoryResponse {
     /// Schedule name.
     pub name: String,

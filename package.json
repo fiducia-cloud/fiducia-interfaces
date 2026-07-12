@@ -13,9 +13,13 @@
     "./schema": "./schema/index.json",
     "./sql/customer": "./sql/customer.sql",
     "./sql/admin": "./sql/admin.sql",
+    "./sql/ai-agent-control-plane": "./sql/ai_agent_control_plane.sql",
+    "./sql/operations-control-plane": "./sql/operations_control_plane.sql",
     "./typescript": "./generated/typescript/index.ts",
     "./db/customer": "./generated/typescript/db/customer.ts",
     "./db/admin": "./generated/typescript/db/admin.ts",
+    "./db/ai-agent-control-plane": "./generated/typescript/db/ai_agent_control_plane.ts",
+    "./db/operations-control-plane": "./generated/typescript/db/operations_control_plane.ts",
     "./rust": "./generated/rust/src/lib.rs",
     "./python": "./generated/python/fiducia_interfaces.py",
     "./go": "./generated/go/interfaces.go"

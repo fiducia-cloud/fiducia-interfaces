@@ -24,6 +24,8 @@ const BANNER =
 const PLANES = [
   { name: "customer", file: "customer.sql" },
   { name: "admin", file: "admin.sql" },
+  { name: "ai_agent_control_plane", file: "ai_agent_control_plane.sql" },
+  { name: "operations_control_plane", file: "operations_control_plane.sql" },
 ];
 
 const RUST_KEYWORDS = new Set([

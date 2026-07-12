@@ -142,6 +142,94 @@ type CounterEntry struct {
 	ModRevision int64 `json:"mod_revision"`
 }
 
+// DecisionPolicy: How a decision resolves. kind selects the rule; min_votes is used by plurality/unanimous, required_weight by threshold.
+type DecisionPolicy struct {
+	// The resolution rule. (one of: plurality, threshold, unanimous)
+	Kind string `json:"kind"`
+	// Votes needed before plurality/unanimity resolves.
+	MinVotes *int64 `json:"min_votes,omitempty"`
+	// Summed weight an option needs to win under threshold.
+	RequiredWeight *int64 `json:"required_weight,omitempty"`
+}
+
+// DecisionTally: Summed weight for one option.
+type DecisionTally struct {
+	// Option name.
+	Option string `json:"option"`
+	// Summed voter weight for this option.
+	Weight int64 `json:"weight"`
+}
+
+// DecisionVote: One voter's vote.
+type DecisionVote struct {
+	// Voting agent id.
+	Voter string `json:"voter"`
+	// Chosen option, or omitted to abstain.
+	Option *string `json:"option,omitempty"`
+	// Voter confidence in [0,1].
+	Confidence float64 `json:"confidence"`
+	// Voter weight (specialists count more).
+	Weight int64 `json:"weight"`
+	// Whether this vote vetoes (aborts the decision).
+	Veto bool `json:"veto"`
+	// Evidence references backing the vote.
+	Evidence []string `json:"evidence"`
+}
+
+// DecisionProposeRequest: Body of POST /v1/decisions/propose. Idempotent: a repeat propose returns the existing decision.
+type DecisionProposeRequest struct {
+	// Decision id.
+	Name string `json:"name"`
+	// The question being decided.
+	Question string `json:"question"`
+	// The allowed typed options.
+	Options []string `json:"options"`
+	Policy DecisionPolicy `json:"policy"`
+	// Resolution deadline in ms since epoch.
+	DeadlineMs *int64 `json:"deadline_ms,omitempty"`
+}
+
+// DecisionVoteRequest: Body of POST /v1/decisions/vote. Re-voting replaces the voter's prior vote.
+type DecisionVoteRequest struct {
+	// Decision id.
+	Name string `json:"name"`
+	// Voting agent id.
+	Voter string `json:"voter"`
+	// Chosen option, or omitted to abstain.
+	Option *string `json:"option,omitempty"`
+	// Confidence in [0,1].
+	Confidence *float64 `json:"confidence,omitempty"`
+	// Voter weight. Defaults to 1.
+	Weight *int64 `json:"weight,omitempty"`
+	// Whether to veto.
+	Veto *bool `json:"veto,omitempty"`
+	// Evidence references.
+	Evidence *[]string `json:"evidence,omitempty"`
+}
+
+// DecisionState: Current decision state returned by GET /v1/decisions, with the outcome derived at read time.
+type DecisionState struct {
+	// Decision id.
+	Name string `json:"name"`
+	// The question.
+	Question string `json:"question"`
+	// Allowed options.
+	Options []string `json:"options"`
+	Policy DecisionPolicy `json:"policy"`
+	// Whether the decision is still open or how it resolved. (one of: open, resolved, vetoed, timed_out)
+	Status string `json:"status"`
+	// Winning option when resolved.
+	Winner *string `json:"winner,omitempty"`
+	// Per-option weight tallies.
+	Tallies []DecisionTally `json:"tallies"`
+	// Every cast vote.
+	Votes []DecisionVote `json:"votes"`
+	// Resolution deadline.
+	DeadlineMs *int64 `json:"deadline_ms,omitempty"`
+	// Monotonic state version.
+	Generation int64 `json:"generation"`
+}
+
 // ServiceRegisterRequest: Body of PUT /v1/services/{service}/instances/{id}.
 type ServiceRegisterRequest struct {
 	// Reachable address of this instance.

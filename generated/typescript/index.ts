@@ -140,6 +140,94 @@ export type CounterEntry = {
   mod_revision: number;
 };
 
+/** How a decision resolves. kind selects the rule; min_votes is used by plurality/unanimous, required_weight by threshold. */
+export type DecisionPolicy = {
+  /** The resolution rule. */
+  kind: "plurality" | "threshold" | "unanimous";
+  /** Votes needed before plurality/unanimity resolves. */
+  min_votes?: number;
+  /** Summed weight an option needs to win under threshold. */
+  required_weight?: number;
+};
+
+/** Summed weight for one option. */
+export type DecisionTally = {
+  /** Option name. */
+  option: string;
+  /** Summed voter weight for this option. */
+  weight: number;
+};
+
+/** One voter's vote. */
+export type DecisionVote = {
+  /** Voting agent id. */
+  voter: string;
+  /** Chosen option, or omitted to abstain. */
+  option?: string;
+  /** Voter confidence in [0,1]. */
+  confidence: number;
+  /** Voter weight (specialists count more). */
+  weight: number;
+  /** Whether this vote vetoes (aborts the decision). */
+  veto: boolean;
+  /** Evidence references backing the vote. */
+  evidence: string[];
+};
+
+/** Body of POST /v1/decisions/propose. Idempotent: a repeat propose returns the existing decision. */
+export type DecisionProposeRequest = {
+  /** Decision id. */
+  name: string;
+  /** The question being decided. */
+  question: string;
+  /** The allowed typed options. */
+  options: string[];
+  policy: DecisionPolicy;
+  /** Resolution deadline in ms since epoch. */
+  deadline_ms?: number;
+};
+
+/** Body of POST /v1/decisions/vote. Re-voting replaces the voter's prior vote. */
+export type DecisionVoteRequest = {
+  /** Decision id. */
+  name: string;
+  /** Voting agent id. */
+  voter: string;
+  /** Chosen option, or omitted to abstain. */
+  option?: string;
+  /** Confidence in [0,1]. */
+  confidence?: number;
+  /** Voter weight. Defaults to 1. */
+  weight?: number;
+  /** Whether to veto. */
+  veto?: boolean;
+  /** Evidence references. */
+  evidence?: string[];
+};
+
+/** Current decision state returned by GET /v1/decisions, with the outcome derived at read time. */
+export type DecisionState = {
+  /** Decision id. */
+  name: string;
+  /** The question. */
+  question: string;
+  /** Allowed options. */
+  options: string[];
+  policy: DecisionPolicy;
+  /** Whether the decision is still open or how it resolved. */
+  status: "open" | "resolved" | "vetoed" | "timed_out";
+  /** Winning option when resolved. */
+  winner?: string;
+  /** Per-option weight tallies. */
+  tallies: DecisionTally[];
+  /** Every cast vote. */
+  votes: DecisionVote[];
+  /** Resolution deadline. */
+  deadline_ms?: number;
+  /** Monotonic state version. */
+  generation: number;
+};
+
 /** Body of PUT /v1/services/{service}/instances/{id}. */
 export type ServiceRegisterRequest = {
   /** Reachable address of this instance. */

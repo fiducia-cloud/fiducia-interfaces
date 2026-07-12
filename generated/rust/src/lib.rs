@@ -49,6 +49,28 @@ pub enum ChangeEventScope {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DecisionPolicyKind {
+    #[serde(rename = "plurality")]
+    Plurality,
+    #[serde(rename = "threshold")]
+    Threshold,
+    #[serde(rename = "unanimous")]
+    Unanimous,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DecisionStateStatus {
+    #[serde(rename = "open")]
+    Open,
+    #[serde(rename = "resolved")]
+    Resolved,
+    #[serde(rename = "vetoed")]
+    Vetoed,
+    #[serde(rename = "timed_out")]
+    TimedOut,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EffectStateStatus {
     #[serde(rename = "prepared")]
     Prepared,
@@ -302,6 +324,111 @@ pub struct CounterEntry {
     pub value: i64,
     /// Monotonic revision stamped on the last mutation; pass it as prev_revision to compare-and-set.
     pub mod_revision: i64,
+}
+
+/// How a decision resolves. kind selects the rule; min_votes is used by plurality/unanimous, required_weight by threshold.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DecisionPolicy {
+    /// The resolution rule.
+    pub kind: DecisionPolicyKind,
+    /// Votes needed before plurality/unanimity resolves.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_votes: Option<i64>,
+    /// Summed weight an option needs to win under threshold.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub required_weight: Option<i64>,
+}
+
+/// Summed weight for one option.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DecisionTally {
+    /// Option name.
+    pub option: String,
+    /// Summed voter weight for this option.
+    pub weight: i64,
+}
+
+/// One voter's vote.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DecisionVote {
+    /// Voting agent id.
+    pub voter: String,
+    /// Chosen option, or omitted to abstain.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub option: Option<String>,
+    /// Voter confidence in [0,1].
+    pub confidence: f64,
+    /// Voter weight (specialists count more).
+    pub weight: i64,
+    /// Whether this vote vetoes (aborts the decision).
+    pub veto: bool,
+    /// Evidence references backing the vote.
+    pub evidence: Vec<String>,
+}
+
+/// Body of POST /v1/decisions/propose. Idempotent: a repeat propose returns the existing decision.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DecisionProposeRequest {
+    /// Decision id.
+    pub name: String,
+    /// The question being decided.
+    pub question: String,
+    /// The allowed typed options.
+    pub options: Vec<String>,
+    pub policy: DecisionPolicy,
+    /// Resolution deadline in ms since epoch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deadline_ms: Option<i64>,
+}
+
+/// Body of POST /v1/decisions/vote. Re-voting replaces the voter's prior vote.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DecisionVoteRequest {
+    /// Decision id.
+    pub name: String,
+    /// Voting agent id.
+    pub voter: String,
+    /// Chosen option, or omitted to abstain.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub option: Option<String>,
+    /// Confidence in [0,1].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<f64>,
+    /// Voter weight. Defaults to 1.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub weight: Option<i64>,
+    /// Whether to veto.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub veto: Option<bool>,
+    /// Evidence references.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evidence: Option<Vec<String>>,
+}
+
+/// Current decision state returned by GET /v1/decisions, with the outcome derived at read time.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DecisionState {
+    /// Decision id.
+    pub name: String,
+    /// The question.
+    pub question: String,
+    /// Allowed options.
+    pub options: Vec<String>,
+    pub policy: DecisionPolicy,
+    /// Whether the decision is still open or how it resolved.
+    pub status: DecisionStateStatus,
+    /// Winning option when resolved.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub winner: Option<String>,
+    /// Per-option weight tallies.
+    pub tallies: Vec<DecisionTally>,
+    /// Every cast vote.
+    pub votes: Vec<DecisionVote>,
+    /// Resolution deadline.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deadline_ms: Option<i64>,
+    /// Monotonic state version.
+    pub generation: i64,
 }
 
 /// Body of PUT /v1/services/{service}/instances/{id}.

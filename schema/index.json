@@ -4,6 +4,7 @@
     "barriers.schema.json",
     "common.schema.json",
     "counters.schema.json",
+    "decisions.schema.json",
     "discovery.schema.json",
     "effects.schema.json",
     "elections.schema.json",

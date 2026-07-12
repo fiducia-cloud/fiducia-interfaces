@@ -99,6 +99,63 @@ class CounterEntry:
     mod_revision: int
 
 @dataclass
+class DecisionPolicy:
+    """How a decision resolves. kind selects the rule; min_votes is used by plurality/unanimous, required_weight by threshold."""
+    kind: Literal["plurality", "threshold", "unanimous"]
+    min_votes: Optional[int] = None
+    required_weight: Optional[int] = None
+
+@dataclass
+class DecisionTally:
+    """Summed weight for one option."""
+    option: str
+    weight: int
+
+@dataclass
+class DecisionVote:
+    """One voter's vote."""
+    voter: str
+    confidence: float
+    weight: int
+    veto: bool
+    evidence: List[str]
+    option: Optional[str] = None
+
+@dataclass
+class DecisionProposeRequest:
+    """Body of POST /v1/decisions/propose. Idempotent: a repeat propose returns the existing decision."""
+    name: str
+    question: str
+    options: List[str]
+    policy: DecisionPolicy
+    deadline_ms: Optional[int] = None
+
+@dataclass
+class DecisionVoteRequest:
+    """Body of POST /v1/decisions/vote. Re-voting replaces the voter's prior vote."""
+    name: str
+    voter: str
+    option: Optional[str] = None
+    confidence: Optional[float] = None
+    weight: Optional[int] = None
+    veto: Optional[bool] = None
+    evidence: Optional[List[str]] = None
+
+@dataclass
+class DecisionState:
+    """Current decision state returned by GET /v1/decisions, with the outcome derived at read time."""
+    name: str
+    question: str
+    options: List[str]
+    policy: DecisionPolicy
+    status: Literal["open", "resolved", "vetoed", "timed_out"]
+    tallies: List[DecisionTally]
+    votes: List[DecisionVote]
+    generation: int
+    winner: Optional[str] = None
+    deadline_ms: Optional[int] = None
+
+@dataclass
 class ServiceRegisterRequest:
     """Body of PUT /v1/services/{service}/instances/{id}."""
     address: str

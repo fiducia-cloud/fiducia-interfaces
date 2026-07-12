@@ -31,6 +31,16 @@ pub enum BarrierStateStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BudgetReservationStatus {
+    #[serde(rename = "held")]
+    Held,
+    #[serde(rename = "committed")]
+    Committed,
+    #[serde(rename = "released")]
+    Released,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ProposeErrorReason {
     #[serde(rename = "not_leader")]
     NotLeader,
@@ -234,6 +244,78 @@ pub struct BarrierState {
     pub arrived_count: i64,
     /// Summed weight of non-veto arrivals.
     pub arrived_weight: i64,
+}
+
+/// A per-axis amount or limit. An omitted axis means unlimited (for a limit) or zero (for a spend).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BudgetAmount {
+    /// US dollars in millionths.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub usd_micros: Option<i64>,
+    /// Model tokens.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tokens: Option<i64>,
+    /// Tool invocations.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_calls: Option<i64>,
+}
+
+/// Body of POST /v1/budgets/set. Creates or re-caps a budget's per-axis ceiling.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BudgetSetRequest {
+    /// Budget scope name, such as org/acme/workflow/42.
+    pub name: String,
+    pub limit: BudgetAmount,
+}
+
+/// Body of POST /v1/budgets/reserve. Rejected if it would exceed any limited axis.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BudgetReserveRequest {
+    /// Budget name.
+    pub name: String,
+    /// Caller-chosen reservation id (idempotent).
+    pub reservation_id: String,
+    /// Worker holding the reservation.
+    pub holder: String,
+    pub amount: BudgetAmount,
+}
+
+/// Body of POST /v1/budgets/commit. Records the actual spend (capped at the reservation) and frees the difference.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BudgetCommitRequest {
+    /// Budget name.
+    pub name: String,
+    /// Reservation to commit.
+    pub reservation_id: String,
+    pub actual: BudgetAmount,
+}
+
+/// One reservation against a budget.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BudgetReservation {
+    /// Reservation id.
+    pub id: String,
+    /// Holding worker.
+    pub holder: String,
+    pub reserved: BudgetAmount,
+    pub spent: BudgetAmount,
+    /// Reservation lifecycle state.
+    pub status: BudgetReservationStatus,
+}
+
+/// Current budget state returned by GET /v1/budgets.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BudgetState {
+    /// Budget name.
+    pub name: String,
+    pub limit: BudgetAmount,
+    pub reserved: BudgetAmount,
+    pub spent: BudgetAmount,
+    pub available: BudgetAmount,
+    /// Every reservation against this budget.
+    pub reservations: Vec<BudgetReservation>,
+    /// Monotonic state version.
+    pub generation: i64,
 }
 
 /// Result of a committed write (lock/kv/election/discovery mutation).

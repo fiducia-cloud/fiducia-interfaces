@@ -66,6 +66,69 @@ type BarrierState struct {
 	ArrivedWeight int64 `json:"arrived_weight"`
 }
 
+// BudgetAmount: A per-axis amount or limit. An omitted axis means unlimited (for a limit) or zero (for a spend).
+type BudgetAmount struct {
+	// US dollars in millionths.
+	UsdMicros *int64 `json:"usd_micros,omitempty"`
+	// Model tokens.
+	Tokens *int64 `json:"tokens,omitempty"`
+	// Tool invocations.
+	ToolCalls *int64 `json:"tool_calls,omitempty"`
+}
+
+// BudgetSetRequest: Body of POST /v1/budgets/set. Creates or re-caps a budget's per-axis ceiling.
+type BudgetSetRequest struct {
+	// Budget scope name, such as org/acme/workflow/42.
+	Name string `json:"name"`
+	Limit BudgetAmount `json:"limit"`
+}
+
+// BudgetReserveRequest: Body of POST /v1/budgets/reserve. Rejected if it would exceed any limited axis.
+type BudgetReserveRequest struct {
+	// Budget name.
+	Name string `json:"name"`
+	// Caller-chosen reservation id (idempotent).
+	ReservationId string `json:"reservation_id"`
+	// Worker holding the reservation.
+	Holder string `json:"holder"`
+	Amount BudgetAmount `json:"amount"`
+}
+
+// BudgetCommitRequest: Body of POST /v1/budgets/commit. Records the actual spend (capped at the reservation) and frees the difference.
+type BudgetCommitRequest struct {
+	// Budget name.
+	Name string `json:"name"`
+	// Reservation to commit.
+	ReservationId string `json:"reservation_id"`
+	Actual BudgetAmount `json:"actual"`
+}
+
+// BudgetReservation: One reservation against a budget.
+type BudgetReservation struct {
+	// Reservation id.
+	Id string `json:"id"`
+	// Holding worker.
+	Holder string `json:"holder"`
+	Reserved BudgetAmount `json:"reserved"`
+	Spent BudgetAmount `json:"spent"`
+	// Reservation lifecycle state. (one of: held, committed, released)
+	Status string `json:"status"`
+}
+
+// BudgetState: Current budget state returned by GET /v1/budgets.
+type BudgetState struct {
+	// Budget name.
+	Name string `json:"name"`
+	Limit BudgetAmount `json:"limit"`
+	Reserved BudgetAmount `json:"reserved"`
+	Spent BudgetAmount `json:"spent"`
+	Available BudgetAmount `json:"available"`
+	// Every reservation against this budget.
+	Reservations []BudgetReservation `json:"reservations"`
+	// Monotonic state version.
+	Generation int64 `json:"generation"`
+}
+
 // ProposeOutcome: Result of a committed write (lock/kv/election/discovery mutation).
 type ProposeOutcome struct {
 	// Shard whose Raft group committed the command.

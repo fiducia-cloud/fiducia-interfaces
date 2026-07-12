@@ -64,6 +64,69 @@ export type BarrierState = {
   arrived_weight: number;
 };
 
+/** A per-axis amount or limit. An omitted axis means unlimited (for a limit) or zero (for a spend). */
+export type BudgetAmount = {
+  /** US dollars in millionths. */
+  usd_micros?: number;
+  /** Model tokens. */
+  tokens?: number;
+  /** Tool invocations. */
+  tool_calls?: number;
+};
+
+/** Body of POST /v1/budgets/set. Creates or re-caps a budget's per-axis ceiling. */
+export type BudgetSetRequest = {
+  /** Budget scope name, such as org/acme/workflow/42. */
+  name: string;
+  limit: BudgetAmount;
+};
+
+/** Body of POST /v1/budgets/reserve. Rejected if it would exceed any limited axis. */
+export type BudgetReserveRequest = {
+  /** Budget name. */
+  name: string;
+  /** Caller-chosen reservation id (idempotent). */
+  reservation_id: string;
+  /** Worker holding the reservation. */
+  holder: string;
+  amount: BudgetAmount;
+};
+
+/** Body of POST /v1/budgets/commit. Records the actual spend (capped at the reservation) and frees the difference. */
+export type BudgetCommitRequest = {
+  /** Budget name. */
+  name: string;
+  /** Reservation to commit. */
+  reservation_id: string;
+  actual: BudgetAmount;
+};
+
+/** One reservation against a budget. */
+export type BudgetReservation = {
+  /** Reservation id. */
+  id: string;
+  /** Holding worker. */
+  holder: string;
+  reserved: BudgetAmount;
+  spent: BudgetAmount;
+  /** Reservation lifecycle state. */
+  status: "held" | "committed" | "released";
+};
+
+/** Current budget state returned by GET /v1/budgets. */
+export type BudgetState = {
+  /** Budget name. */
+  name: string;
+  limit: BudgetAmount;
+  reserved: BudgetAmount;
+  spent: BudgetAmount;
+  available: BudgetAmount;
+  /** Every reservation against this budget. */
+  reservations: BudgetReservation[];
+  /** Monotonic state version. */
+  generation: number;
+};
+
 /** Result of a committed write (lock/kv/election/discovery mutation). */
 export type ProposeOutcome = {
   /** Shard whose Raft group committed the command. */

@@ -165,8 +165,11 @@ function goType(s) {
 // --- emitters: type[] -> { relpath: content } --------------------------------
 
 // Shared Rust body renderer for both the plain `rust` crate and the wasm crate.
-// `wasm` toggles the tsify/wasm-bindgen boundary derives; the type bodies are
-// otherwise identical, so the two crates never drift.
+// `wasm` adds a `#[derive(Tsify)]` and a real wasm-bindgen ABI so downstream
+// functions can accept and return these types directly. `hashmap_as_object`
+// keeps the runtime serde-wasm-bindgen representation aligned with the
+// generated `Record<..>` declarations instead of emitting JavaScript `Map`s.
+// The type bodies are otherwise identical, so the crates never drift.
 function renderRustBody(types, { wasm }) {
   const structDerive = wasm
     ? "#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]"
@@ -180,7 +183,7 @@ function renderRustBody(types, { wasm }) {
   // Enums first.
   for (const [enumName, values] of collectEnums(types)) {
     out.push(enumDerive);
-    if (wasm) out.push("#[tsify(into_wasm_abi, from_wasm_abi)]");
+    if (wasm) out.push("#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]");
     out.push(`pub enum ${enumName} {`);
     for (const v of values) out.push(`    #[serde(rename = "${v}")]`, `    ${pascal(v)},`);
     out.push("}", "");
@@ -188,7 +191,7 @@ function renderRustBody(types, { wasm }) {
   for (const t of types) {
     if (t.description) out.push(`/// ${cLine(t.description)}`);
     out.push(structDerive);
-    if (wasm) out.push("#[tsify(into_wasm_abi, from_wasm_abi)]");
+    if (wasm) out.push("#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]");
     out.push(`pub struct ${t.name} {`);
     for (const p of t.props) {
       if (p.description) out.push(`    /// ${cLine(p.description)}`);
@@ -250,7 +253,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 wasm-bindgen = "0.2"
 serde-wasm-bindgen = "0.6"
-tsify = { version = "0.4", features = ["js"] }
+tsify = { version = "0.5", features = ["js"] }
 `;
   return { "rust-wasm/src/lib.rs": renderRustBody(types, { wasm: true }), "rust-wasm/Cargo.toml": cargo };
 }
@@ -333,7 +336,7 @@ export function build() {
 export { loadTypes, pascal, oneLine, refName, isStringEnum, enumTypeName, collectEnums };
 
 function main() {
-  const check = process.argv.includes("--check");
+  const check = process.argv.includes("--check") || /^(1|true|yes|on)$/i.test(process.env.FIDUCIA_GENERATE_CHECK ?? "");
   let files;
   try { files = build(); }
   catch (e) {

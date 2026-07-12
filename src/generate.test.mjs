@@ -63,13 +63,13 @@ test("rust output: struct, optional fields, and a typed enum", () => {
   assert.match(rust, /pub fencing_tokens: Option<std::collections::BTreeMap<String, i64>>,/);
 });
 
-test("rust-wasm output: same types plus the tsify/wasm-bindgen boundary", () => {
+test("rust-wasm output: callable Tsify ABI with JSON-compatible maps", () => {
   const out = build();
   const wasm = out["rust-wasm/src/lib.rs"];
   assert.match(wasm, /use tsify::Tsify;/);
   assert.match(wasm, /use wasm_bindgen::prelude::\*;/);
   assert.match(wasm, /#\[derive\(Debug, Clone, Serialize, Deserialize, Tsify\)\]/);
-  assert.match(wasm, /#\[tsify\(into_wasm_abi, from_wasm_abi\)\]/);
+  assert.match(wasm, /#\[tsify\(into_wasm_abi, from_wasm_abi, hashmap_as_object\)\]/);
   assert.match(wasm, /pub struct ProposeOutcome \{/);
   assert.match(wasm, /pub enum ProposeErrorReason \{/);
   // Type bodies must not drift from the plain rust crate.
@@ -77,7 +77,7 @@ test("rust-wasm output: same types plus the tsify/wasm-bindgen boundary", () => 
   const cargo = out["rust-wasm/Cargo.toml"];
   assert.match(cargo, /crate-type = \["cdylib", "rlib"\]/);
   assert.match(cargo, /wasm-bindgen = /);
-  assert.match(cargo, /tsify = /);
+  assert.match(cargo, /tsify = \{ version = "0\.5", features = \["js"\] \}/);
 });
 
 test("rust and rust-wasm never diverge in data shape (same structs + fields)", () => {
@@ -95,6 +95,9 @@ test("rust-wasm pins map/Value fields to the same TS the typescript emitter uses
   // maps must be Record, not tsify's default `Map`.
   assert.match(wasm, /#\[tsify\(type = "Record<string, unknown>"\)\]\n\s*pub result: Option<serde_json::Value>,/);
   assert.match(wasm, /#\[tsify\(type = "Record<string, string>"\)\]\n\s*pub metadata: Option<std::collections::BTreeMap<String, String>>,/);
+  // The container-level serializer option makes the runtime ABI use ordinary
+  // JavaScript objects too, matching those field-level TypeScript declarations.
+  assert.match(wasm, /#\[tsify\(into_wasm_abi, from_wasm_abi, hashmap_as_object\)\]/);
   // Every serde_json::Value / BTreeMap field must be immediately preceded by a
   // tsify override — none may reach the .d.ts with tsify's broken default.
   const lines = wasm.split("\n");

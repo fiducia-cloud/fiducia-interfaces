@@ -3,6 +3,34 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BarrierPolicyKind {
+    #[serde(rename = "all")]
+    All,
+    #[serde(rename = "quorum")]
+    Quorum,
+    #[serde(rename = "first_success")]
+    FirstSuccess,
+    #[serde(rename = "any_veto")]
+    AnyVeto,
+    #[serde(rename = "best_by_deadline")]
+    BestByDeadline,
+    #[serde(rename = "weighted_quorum")]
+    WeightedQuorum,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BarrierStateStatus {
+    #[serde(rename = "pending")]
+    Pending,
+    #[serde(rename = "satisfied")]
+    Satisfied,
+    #[serde(rename = "vetoed")]
+    Vetoed,
+    #[serde(rename = "timed_out")]
+    TimedOut,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ProposeErrorReason {
     #[serde(rename = "not_leader")]
     NotLeader,
@@ -68,6 +96,82 @@ pub enum ScheduleDelivery {
     AtLeastOnce,
     #[serde(rename = "exactly_once")]
     ExactlyOnce,
+}
+
+/// How a barrier resolves. kind selects the rule; required is used by quorum, required_weight by weighted_quorum.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BarrierPolicy {
+    /// The resolution rule.
+    pub kind: BarrierPolicyKind,
+    /// Distinct arrivals needed for quorum.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub required: Option<i64>,
+    /// Summed arrival weight needed for weighted_quorum.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub required_weight: Option<i64>,
+}
+
+/// Body of POST /v1/barriers/create.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BarrierCreateRequest {
+    /// Slash-safe barrier name, such as release-942/reviewers.
+    pub name: String,
+    pub policy: BarrierPolicy,
+    /// Participant count for all/any_veto. Defaults to 1.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expected: Option<i64>,
+    /// Resolution deadline in ms since epoch; required for best_by_deadline.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deadline_ms: Option<i64>,
+}
+
+/// Body of POST /v1/barriers/arrive. Repeat arrivals by the same participant are idempotent.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BarrierArriveRequest {
+    /// Barrier name.
+    pub name: String,
+    /// Arriving participant id.
+    pub participant: String,
+    /// Arrival weight for weighted_quorum. Defaults to 1.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub weight: Option<i64>,
+    /// Whether this arrival vetoes (aborts under any_veto).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub veto: Option<bool>,
+}
+
+/// One participant's recorded arrival.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BarrierArrival {
+    /// Participant id.
+    pub participant: String,
+    /// Arrival weight.
+    pub weight: i64,
+    /// Whether this arrival vetoed.
+    pub veto: bool,
+    /// Arrival time in ms since epoch.
+    pub arrived_ms: i64,
+}
+
+/// Current barrier state returned by GET /v1/barriers, with status derived at read time.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BarrierState {
+    /// Barrier name.
+    pub name: String,
+    pub policy: BarrierPolicy,
+    /// Expected participant count.
+    pub expected: i64,
+    /// Resolution deadline, if any.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deadline_ms: Option<i64>,
+    /// Whether the barrier is still waiting or how it resolved.
+    pub status: BarrierStateStatus,
+    /// Every recorded arrival.
+    pub arrivals: Vec<BarrierArrival>,
+    /// Distinct non-veto arrivals.
+    pub arrived_count: i64,
+    /// Summed weight of non-veto arrivals.
+    pub arrived_weight: i64,
 }
 
 /// Result of a committed write (lock/kv/election/discovery mutation).

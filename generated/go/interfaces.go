@@ -2,6 +2,70 @@
 
 package fiducia
 
+// BarrierPolicy: How a barrier resolves. kind selects the rule; required is used by quorum, required_weight by weighted_quorum.
+type BarrierPolicy struct {
+	// The resolution rule. (one of: all, quorum, first_success, any_veto, best_by_deadline, weighted_quorum)
+	Kind string `json:"kind"`
+	// Distinct arrivals needed for quorum.
+	Required *int64 `json:"required,omitempty"`
+	// Summed arrival weight needed for weighted_quorum.
+	RequiredWeight *int64 `json:"required_weight,omitempty"`
+}
+
+// BarrierCreateRequest: Body of POST /v1/barriers/create.
+type BarrierCreateRequest struct {
+	// Slash-safe barrier name, such as release-942/reviewers.
+	Name string `json:"name"`
+	Policy BarrierPolicy `json:"policy"`
+	// Participant count for all/any_veto. Defaults to 1.
+	Expected *int64 `json:"expected,omitempty"`
+	// Resolution deadline in ms since epoch; required for best_by_deadline.
+	DeadlineMs *int64 `json:"deadline_ms,omitempty"`
+}
+
+// BarrierArriveRequest: Body of POST /v1/barriers/arrive. Repeat arrivals by the same participant are idempotent.
+type BarrierArriveRequest struct {
+	// Barrier name.
+	Name string `json:"name"`
+	// Arriving participant id.
+	Participant string `json:"participant"`
+	// Arrival weight for weighted_quorum. Defaults to 1.
+	Weight *int64 `json:"weight,omitempty"`
+	// Whether this arrival vetoes (aborts under any_veto).
+	Veto *bool `json:"veto,omitempty"`
+}
+
+// BarrierArrival: One participant's recorded arrival.
+type BarrierArrival struct {
+	// Participant id.
+	Participant string `json:"participant"`
+	// Arrival weight.
+	Weight int64 `json:"weight"`
+	// Whether this arrival vetoed.
+	Veto bool `json:"veto"`
+	// Arrival time in ms since epoch.
+	ArrivedMs int64 `json:"arrived_ms"`
+}
+
+// BarrierState: Current barrier state returned by GET /v1/barriers, with status derived at read time.
+type BarrierState struct {
+	// Barrier name.
+	Name string `json:"name"`
+	Policy BarrierPolicy `json:"policy"`
+	// Expected participant count.
+	Expected int64 `json:"expected"`
+	// Resolution deadline, if any.
+	DeadlineMs *int64 `json:"deadline_ms,omitempty"`
+	// Whether the barrier is still waiting or how it resolved. (one of: pending, satisfied, vetoed, timed_out)
+	Status string `json:"status"`
+	// Every recorded arrival.
+	Arrivals []BarrierArrival `json:"arrivals"`
+	// Distinct non-veto arrivals.
+	ArrivedCount int64 `json:"arrived_count"`
+	// Summed weight of non-veto arrivals.
+	ArrivedWeight int64 `json:"arrived_weight"`
+}
+
 // ProposeOutcome: Result of a committed write (lock/kv/election/discovery mutation).
 type ProposeOutcome struct {
 	// Shard whose Raft group committed the command.

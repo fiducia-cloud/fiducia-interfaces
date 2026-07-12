@@ -302,6 +302,56 @@ type ElectionGetResponse struct {
 	Leadership *Leadership `json:"leadership,omitempty"`
 }
 
+// HandoffOfferRequest: Body of POST /v1/handoffs/offer. The original owner keeps authority until the offer is accepted.
+type HandoffOfferRequest struct {
+	// Handoff id, such as ticket-482/handoff.
+	Name string `json:"name"`
+	// The resource whose ownership is being transferred.
+	Resource string `json:"resource"`
+	// Current owner offering the resource.
+	From string `json:"from"`
+	// Recipient the resource is offered to.
+	To string `json:"to"`
+	// The current owner's fencing token, proving ownership.
+	FromToken int64 `json:"from_token"`
+	// Context manifest handed to the recipient.
+	Context *map[string]any `json:"context,omitempty"`
+	// Accept deadline in ms. Defaults to 30000.
+	TtlMs *int64 `json:"ttl_ms,omitempty"`
+}
+
+// HandoffDecisionRequest: Body of POST /v1/handoffs/accept and /v1/handoffs/reject. Only the offered recipient may decide.
+type HandoffDecisionRequest struct {
+	// Handoff id.
+	Name string `json:"name"`
+	// The offered recipient making the decision.
+	To string `json:"to"`
+}
+
+// HandoffState: Current handoff state returned by GET /v1/handoffs.
+type HandoffState struct {
+	// Handoff id.
+	Name string `json:"name"`
+	// Resource being transferred.
+	Resource string `json:"resource"`
+	// Original owner.
+	From string `json:"from"`
+	// Recipient.
+	To string `json:"to"`
+	// Original owner's fencing token.
+	FromToken int64 `json:"from_token"`
+	// Recipient's fencing token, minted on accept (strictly higher than from_token).
+	ToToken *int64 `json:"to_token,omitempty"`
+	// Lifecycle state. (one of: offered, accepted, rejected, expired)
+	Status string `json:"status"`
+	// Context manifest.
+	Context *map[string]any `json:"context,omitempty"`
+	// Accept deadline.
+	ExpiresMs *int64 `json:"expires_ms,omitempty"`
+	// Monotonic state version.
+	Generation int64 `json:"generation"`
+}
+
 // IdempotencyClaimRequest: Body of POST /v1/idempotency/claim. First claim for a key wins until the TTL expires.
 type IdempotencyClaimRequest struct {
 	// Caller-chosen idempotency key, such as stripe-webhook/event_123.

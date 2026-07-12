@@ -300,6 +300,56 @@ export type ElectionGetResponse = {
   leadership?: Leadership;
 };
 
+/** Body of POST /v1/handoffs/offer. The original owner keeps authority until the offer is accepted. */
+export type HandoffOfferRequest = {
+  /** Handoff id, such as ticket-482/handoff. */
+  name: string;
+  /** The resource whose ownership is being transferred. */
+  resource: string;
+  /** Current owner offering the resource. */
+  from: string;
+  /** Recipient the resource is offered to. */
+  to: string;
+  /** The current owner's fencing token, proving ownership. */
+  from_token: number;
+  /** Context manifest handed to the recipient. */
+  context?: Record<string, unknown>;
+  /** Accept deadline in ms. Defaults to 30000. */
+  ttl_ms?: number;
+};
+
+/** Body of POST /v1/handoffs/accept and /v1/handoffs/reject. Only the offered recipient may decide. */
+export type HandoffDecisionRequest = {
+  /** Handoff id. */
+  name: string;
+  /** The offered recipient making the decision. */
+  to: string;
+};
+
+/** Current handoff state returned by GET /v1/handoffs. */
+export type HandoffState = {
+  /** Handoff id. */
+  name: string;
+  /** Resource being transferred. */
+  resource: string;
+  /** Original owner. */
+  from: string;
+  /** Recipient. */
+  to: string;
+  /** Original owner's fencing token. */
+  from_token: number;
+  /** Recipient's fencing token, minted on accept (strictly higher than from_token). */
+  to_token?: number;
+  /** Lifecycle state. */
+  status: "offered" | "accepted" | "rejected" | "expired";
+  /** Context manifest. */
+  context?: Record<string, unknown>;
+  /** Accept deadline. */
+  expires_ms?: number;
+  /** Monotonic state version. */
+  generation: number;
+};
+
 /** Body of POST /v1/idempotency/claim. First claim for a key wins until the TTL expires. */
 export type IdempotencyClaimRequest = {
   /** Caller-chosen idempotency key, such as stripe-webhook/event_123. */

@@ -61,6 +61,18 @@ pub enum EffectStateStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum HandoffStateStatus {
+    #[serde(rename = "offered")]
+    Offered,
+    #[serde(rename = "accepted")]
+    Accepted,
+    #[serde(rename = "rejected")]
+    Rejected,
+    #[serde(rename = "expired")]
+    Expired,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum IdempotencyRecordStatus {
     #[serde(rename = "claimed")]
     Claimed,
@@ -476,6 +488,64 @@ pub struct ElectionGetResponse {
     /// Holder details when held.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub leadership: Option<Leadership>,
+}
+
+/// Body of POST /v1/handoffs/offer. The original owner keeps authority until the offer is accepted.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HandoffOfferRequest {
+    /// Handoff id, such as ticket-482/handoff.
+    pub name: String,
+    /// The resource whose ownership is being transferred.
+    pub resource: String,
+    /// Current owner offering the resource.
+    pub from: String,
+    /// Recipient the resource is offered to.
+    pub to: String,
+    /// The current owner's fencing token, proving ownership.
+    pub from_token: i64,
+    /// Context manifest handed to the recipient.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<serde_json::Value>,
+    /// Accept deadline in ms. Defaults to 30000.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ttl_ms: Option<i64>,
+}
+
+/// Body of POST /v1/handoffs/accept and /v1/handoffs/reject. Only the offered recipient may decide.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HandoffDecisionRequest {
+    /// Handoff id.
+    pub name: String,
+    /// The offered recipient making the decision.
+    pub to: String,
+}
+
+/// Current handoff state returned by GET /v1/handoffs.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HandoffState {
+    /// Handoff id.
+    pub name: String,
+    /// Resource being transferred.
+    pub resource: String,
+    /// Original owner.
+    pub from: String,
+    /// Recipient.
+    pub to: String,
+    /// Original owner's fencing token.
+    pub from_token: i64,
+    /// Recipient's fencing token, minted on accept (strictly higher than from_token).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub to_token: Option<i64>,
+    /// Lifecycle state.
+    pub status: HandoffStateStatus,
+    /// Context manifest.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<serde_json::Value>,
+    /// Accept deadline.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expires_ms: Option<i64>,
+    /// Monotonic state version.
+    pub generation: i64,
 }
 
 /// Body of POST /v1/idempotency/claim. First claim for a key wins until the TTL expires.

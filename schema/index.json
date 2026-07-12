@@ -5,6 +5,7 @@
     "common.schema.json",
     "counters.schema.json",
     "discovery.schema.json",
+    "effects.schema.json",
     "elections.schema.json",
     "idempotency.schema.json",
     "kv.schema.json",

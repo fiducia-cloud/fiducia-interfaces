@@ -137,6 +137,42 @@ class ServicesListResponse:
     services: List[ServiceSummary]
 
 @dataclass
+class EffectPrepareRequest:
+    """Body of POST /v1/effects/prepare. Idempotent: a repeat prepare returns the existing effect. required_approvals of 0 is pre-approved."""
+    name: str
+    effect_type: str
+    idempotency_key: str
+    payload: Optional[dict] = None
+    risk: Optional[str] = None
+    required_approvals: Optional[int] = None
+
+@dataclass
+class EffectApproveRequest:
+    """Body of POST /v1/effects/approve. Duplicate approvals by the same principal count once."""
+    name: str
+    principal: str
+
+@dataclass
+class EffectCommitRequest:
+    """Body of POST /v1/effects/commit. Commits an approved effect exactly once; a repeat commit replays the recorded result."""
+    name: str
+    result: Optional[dict] = None
+
+@dataclass
+class EffectState:
+    """Current effect state returned by GET /v1/effects."""
+    name: str
+    effect_type: str
+    risk: str
+    idempotency_key: str
+    status: Literal["prepared", "approved", "committed", "aborted"]
+    required_approvals: int
+    approvals: List[str]
+    generation: int
+    payload: Optional[dict] = None
+    result: Optional[dict] = None
+
+@dataclass
 class CampaignRequest:
     """Body of POST /v1/elections/{name}/campaign."""
     candidate: str

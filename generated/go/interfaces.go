@@ -194,6 +194,62 @@ type ServicesListResponse struct {
 	Services []ServiceSummary `json:"services"`
 }
 
+// EffectPrepareRequest: Body of POST /v1/effects/prepare. Idempotent: a repeat prepare returns the existing effect. required_approvals of 0 is pre-approved.
+type EffectPrepareRequest struct {
+	// Effect id, such as invoice-882/payment.
+	Name string `json:"name"`
+	// Kind of side effect, such as send_payment or deploy.
+	EffectType string `json:"effect_type"`
+	// Effect parameters.
+	Payload *map[string]any `json:"payload,omitempty"`
+	// Risk label, such as low/medium/high/critical. Defaults to medium.
+	Risk *string `json:"risk,omitempty"`
+	// Binds the effect to the external operation so the executor stays effectively-once.
+	IdempotencyKey string `json:"idempotency_key"`
+	// Distinct principals required before commit. Defaults to 0.
+	RequiredApprovals *int64 `json:"required_approvals,omitempty"`
+}
+
+// EffectApproveRequest: Body of POST /v1/effects/approve. Duplicate approvals by the same principal count once.
+type EffectApproveRequest struct {
+	// Effect id.
+	Name string `json:"name"`
+	// Approving principal id.
+	Principal string `json:"principal"`
+}
+
+// EffectCommitRequest: Body of POST /v1/effects/commit. Commits an approved effect exactly once; a repeat commit replays the recorded result.
+type EffectCommitRequest struct {
+	// Effect id.
+	Name string `json:"name"`
+	// Durable result to record for replay.
+	Result *map[string]any `json:"result,omitempty"`
+}
+
+// EffectState: Current effect state returned by GET /v1/effects.
+type EffectState struct {
+	// Effect id.
+	Name string `json:"name"`
+	// Kind of side effect.
+	EffectType string `json:"effect_type"`
+	// Effect parameters.
+	Payload *map[string]any `json:"payload,omitempty"`
+	// Risk label.
+	Risk string `json:"risk"`
+	// External-operation binding.
+	IdempotencyKey string `json:"idempotency_key"`
+	// Lifecycle state. (one of: prepared, approved, committed, aborted)
+	Status string `json:"status"`
+	// Approvals required before commit.
+	RequiredApprovals int64 `json:"required_approvals"`
+	// Distinct principals that have approved.
+	Approvals []string `json:"approvals"`
+	// Result recorded on commit.
+	Result *map[string]any `json:"result,omitempty"`
+	// Monotonic state version.
+	Generation int64 `json:"generation"`
+}
+
 // CampaignRequest: Body of POST /v1/elections/{name}/campaign.
 type CampaignRequest struct {
 	// Identifier of the campaigning instance.

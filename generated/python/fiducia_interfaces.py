@@ -47,6 +47,54 @@ class BarrierState:
     deadline_ms: Optional[int] = None
 
 @dataclass
+class BudgetAmount:
+    """A per-axis amount or limit. An omitted axis means unlimited (for a limit) or zero (for a spend)."""
+    usd_micros: Optional[int] = None
+    tokens: Optional[int] = None
+    tool_calls: Optional[int] = None
+
+@dataclass
+class BudgetSetRequest:
+    """Body of POST /v1/budgets/set. Creates or re-caps a budget's per-axis ceiling."""
+    name: str
+    limit: BudgetAmount
+
+@dataclass
+class BudgetReserveRequest:
+    """Body of POST /v1/budgets/reserve. Rejected if it would exceed any limited axis."""
+    name: str
+    reservation_id: str
+    holder: str
+    amount: BudgetAmount
+
+@dataclass
+class BudgetCommitRequest:
+    """Body of POST /v1/budgets/commit. Records the actual spend (capped at the reservation) and frees the difference."""
+    name: str
+    reservation_id: str
+    actual: BudgetAmount
+
+@dataclass
+class BudgetReservation:
+    """One reservation against a budget."""
+    id: str
+    holder: str
+    reserved: BudgetAmount
+    spent: BudgetAmount
+    status: Literal["held", "committed", "released"]
+
+@dataclass
+class BudgetState:
+    """Current budget state returned by GET /v1/budgets."""
+    name: str
+    limit: BudgetAmount
+    reserved: BudgetAmount
+    spent: BudgetAmount
+    available: BudgetAmount
+    reservations: List[BudgetReservation]
+    generation: int
+
+@dataclass
 class ProposeOutcome:
     """Result of a committed write (lock/kv/election/discovery mutation)."""
     shard: int

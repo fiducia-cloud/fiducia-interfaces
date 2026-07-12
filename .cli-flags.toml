@@ -1,0 +1,13 @@
+[help]
+url = "https://github.com/fiducia-cloud/fiducia-interfaces"
+columns = ["options", "env", "type", "description"]
+
+[parse]
+allow_unknown = false
+
+[flags.check]
+env = "FIDUCIA_GENERATE_CHECK"
+aliases = ["check"]
+type = "bool"
+help = "Verify generated interfaces without writing them."
+

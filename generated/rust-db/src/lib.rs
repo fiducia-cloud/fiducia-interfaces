@@ -5,3 +5,4 @@ pub mod customer;
 pub mod admin;
 pub mod ai_agent_control_plane;
 pub mod operations_control_plane;
+pub mod ai_agent_bridge;

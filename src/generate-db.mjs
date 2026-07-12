@@ -26,6 +26,7 @@ const PLANES = [
   { name: "admin", file: "admin.sql" },
   { name: "ai_agent_control_plane", file: "ai_agent_control_plane.sql" },
   { name: "operations_control_plane", file: "operations_control_plane.sql" },
+  { name: "ai_agent_bridge", file: "ai_agent_bridge.sql" },
 ];
 
 const RUST_KEYWORDS = new Set([
@@ -178,7 +179,7 @@ export function build() {
 export { parseTables, parseColumns, baseType, structName };
 
 function main() {
-  const check = process.argv.includes("--check");
+  const check = process.argv.includes("--check") || /^(1|true|yes|on)$/i.test(process.env.FIDUCIA_GENERATE_CHECK ?? "");
   const files = build();
   let drift = 0;
   for (const [rel, content] of Object.entries(files)) {

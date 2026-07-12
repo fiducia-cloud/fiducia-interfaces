@@ -336,7 +336,7 @@ export function build() {
 export { loadTypes, pascal, oneLine, refName, isStringEnum, enumTypeName, collectEnums };
 
 function main() {
-  const check = process.argv.includes("--check");
+  const check = process.argv.includes("--check") || /^(1|true|yes|on)$/i.test(process.env.FIDUCIA_GENERATE_CHECK ?? "");
   let files;
   try { files = build(); }
   catch (e) {

@@ -187,3 +187,99 @@ create index if not exists audit_log_org_created_idx on audit_log (org_id, creat
 create index if not exists audit_log_project_created_idx on audit_log (project_id, created_at desc);
 create index if not exists audit_log_actor_user_created_idx on audit_log (actor_user_id, created_at desc);
 create index if not exists audit_log_actor_key_created_idx on audit_log (actor_key_id, created_at desc);
+
+-- ============================================================================
+-- SUPABASE REALTIME + ROW-LEVEL SECURITY (local-first sync, defense-in-depth)
+-- ----------------------------------------------------------------------------
+-- Idempotent, and a NO-OP on a non-Supabase Postgres (each block guards on the
+-- supabase_realtime publication / auth.uid() existing). Consumed by @fiducia/sync.
+--
+-- IMPORTANT: the customer backend (fiducia-backend.rs) MUST connect as a role
+-- that BYPASSES RLS — the Supabase service role, the table owner, or a role with
+-- BYPASSRLS. It does (service-role DATABASE_URL). These policies therefore
+-- constrain ONLY the realtime consumer (the `authenticated` role using a user
+-- JWT), so realtime CDC can never leak one tenant's rows to another. A plain
+-- non-owner app role would be blocked by RLS — verify the backend's DB role
+-- before applying to a fresh environment.
+-- ============================================================================
+
+-- (1) Deletes must carry the full OLD row (incl. version) over logical
+-- replication; without this, Supabase DELETE events arrive with only the primary
+-- key and the sync engine cannot order them. Safe on any Postgres.
+alter table orgs                 replica identity full;
+alter table projects             replica identity full;
+alter table api_keys             replica identity full;
+alter table mtls_client_certs    replica identity full;
+alter table customer_preferences replica identity full;
+alter table customer_sessions    replica identity full;
+
+-- (2) Register synced tables with Supabase's realtime publication (if present).
+do $$
+declare t text;
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    foreach t in array array[
+      'orgs','projects','api_keys','mtls_client_certs','customer_preferences','customer_sessions'
+    ] loop
+      if not exists (
+        select 1 from pg_publication_tables
+        where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t
+      ) then
+        execute format('alter publication supabase_realtime add table public.%I', t);
+      end if;
+    end loop;
+  end if;
+end $$;
+
+-- (3) RLS tenant policies — Supabase only (guarded on auth.uid()). A member of an
+-- org sees that org's rows; a user sees their own preferences/sessions. Realtime
+-- also respects the client-side postgres_changes `filter` we pass, but RLS is the
+-- authoritative boundary.
+do $$
+begin
+  if to_regprocedure('auth.uid()') is null then
+    return; -- not a Supabase DB; realtime/RLS not applicable
+  end if;
+
+  execute 'alter table orgs enable row level security';
+  execute 'drop policy if exists orgs_member_read on orgs';
+  execute $p$
+    create policy orgs_member_read on orgs for select to authenticated using (
+      exists (select 1 from org_members m join users u on u.id = m.user_id
+              where m.org_id = orgs.id and u.supabase_user_id = auth.uid()))$p$;
+
+  execute 'alter table projects enable row level security';
+  execute 'drop policy if exists projects_member_read on projects';
+  execute $p$
+    create policy projects_member_read on projects for select to authenticated using (
+      exists (select 1 from org_members m join users u on u.id = m.user_id
+              where m.org_id = projects.org_id and u.supabase_user_id = auth.uid()))$p$;
+
+  execute 'alter table api_keys enable row level security';
+  execute 'drop policy if exists api_keys_member_read on api_keys';
+  execute $p$
+    create policy api_keys_member_read on api_keys for select to authenticated using (
+      exists (select 1 from org_members m join users u on u.id = m.user_id
+              where m.org_id = api_keys.org_id and u.supabase_user_id = auth.uid()))$p$;
+
+  execute 'alter table mtls_client_certs enable row level security';
+  execute 'drop policy if exists mtls_certs_member_read on mtls_client_certs';
+  execute $p$
+    create policy mtls_certs_member_read on mtls_client_certs for select to authenticated using (
+      exists (select 1 from org_members m join users u on u.id = m.user_id
+              where m.org_id = mtls_client_certs.org_id and u.supabase_user_id = auth.uid()))$p$;
+
+  execute 'alter table customer_preferences enable row level security';
+  execute 'drop policy if exists customer_preferences_owner_read on customer_preferences';
+  execute $p$
+    create policy customer_preferences_owner_read on customer_preferences for select to authenticated using (
+      exists (select 1 from users u where u.id = customer_preferences.user_id
+              and u.supabase_user_id = auth.uid()))$p$;
+
+  execute 'alter table customer_sessions enable row level security';
+  execute 'drop policy if exists customer_sessions_owner_read on customer_sessions';
+  execute $p$
+    create policy customer_sessions_owner_read on customer_sessions for select to authenticated using (
+      exists (select 1 from users u where u.id = customer_sessions.user_id
+              and u.supabase_user_id = auth.uid()))$p$;
+end $$;

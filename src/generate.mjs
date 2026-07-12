@@ -165,8 +165,13 @@ function goType(s) {
 // --- emitters: type[] -> { relpath: content } --------------------------------
 
 // Shared Rust body renderer for both the plain `rust` crate and the wasm crate.
-// `wasm` toggles the tsify/wasm-bindgen boundary derives; the type bodies are
-// otherwise identical, so the two crates never drift.
+// `wasm` adds a `#[derive(Tsify)]` so wasm-pack emits a matching TypeScript
+// `.d.ts`; the type bodies are otherwise identical, so the crates never drift.
+// The wasm crate is DECLARATION-ONLY (no exported functions) so it deliberately
+// omits `into_wasm_abi`/`from_wasm_abi`: those bake serde-wasm-bindgen's default
+// map=JS-`Map` ABI into the type, which would contradict the `Record<..>` the
+// `.d.ts` declares. A downstream crate that passes these across a real wasm
+// boundary should add its own `#[wasm_bindgen]` fn + serializer config.
 function renderRustBody(types, { wasm }) {
   const structDerive = wasm
     ? "#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]"
@@ -175,12 +180,11 @@ function renderRustBody(types, { wasm }) {
     ? "#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]"
     : "#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]";
   const header = [`// ${BANNER}`, "", "use serde::{Deserialize, Serialize};"];
-  if (wasm) header.push("use tsify::Tsify;", "use wasm_bindgen::prelude::*;");
+  if (wasm) header.push("use tsify::Tsify;");
   const out = [...header, ""];
   // Enums first.
   for (const [enumName, values] of collectEnums(types)) {
     out.push(enumDerive);
-    if (wasm) out.push("#[tsify(into_wasm_abi, from_wasm_abi)]");
     out.push(`pub enum ${enumName} {`);
     for (const v of values) out.push(`    #[serde(rename = "${v}")]`, `    ${pascal(v)},`);
     out.push("}", "");
@@ -188,7 +192,6 @@ function renderRustBody(types, { wasm }) {
   for (const t of types) {
     if (t.description) out.push(`/// ${cLine(t.description)}`);
     out.push(structDerive);
-    if (wasm) out.push("#[tsify(into_wasm_abi, from_wasm_abi)]");
     out.push(`pub struct ${t.name} {`);
     for (const p of t.props) {
       if (p.description) out.push(`    /// ${cLine(p.description)}`);
@@ -333,7 +336,7 @@ export function build() {
 export { loadTypes, pascal, oneLine, refName, isStringEnum, enumTypeName, collectEnums };
 
 function main() {
-  const check = process.argv.includes("--check");
+  const check = process.argv.includes("--check") || /^(1|true|yes|on)$/i.test(process.env.FIDUCIA_GENERATE_CHECK ?? "");
   let files;
   try { files = build(); }
   catch (e) {

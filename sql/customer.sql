@@ -283,3 +283,29 @@ begin
       exists (select 1 from users u where u.id = customer_sessions.user_id
               and u.supabase_user_id = auth.uid()))$p$;
 end $$;
+
+-- ============================================================================
+-- SYNC DURABILITY: idempotency ledger + catch-up (version) indexes
+-- ----------------------------------------------------------------------------
+-- Server-internal (NOT synced, NOT realtime): the backend records the committed
+-- version it returned for each client Idempotency-Key here, so a retried sync
+-- write replays the SAME ack across process restarts instead of re-running the
+-- UPDATE (whose trigger would re-bump version). `committed_version` is null while
+-- a claim is in-flight. Prune old keys with the created_at index (e.g. a daily
+-- `delete from sync_idempotency_keys where created_at < now() - interval '2 days'`).
+create table if not exists sync_idempotency_keys (
+  key text primary key,
+  committed_version bigint,
+  created_at timestamptz default now() not null
+);
+create index if not exists sync_idempotency_created_idx on sync_idempotency_keys (created_at);
+
+-- Catch-up hydration reads each synced table by monotonic `version`
+-- (`where version > $cursor order by version`), tenant-scoped where a tenant
+-- column exists. These indexes make that an index range scan, not a seq scan.
+create index if not exists orgs_version_idx                 on orgs (version);
+create index if not exists projects_org_version_idx         on projects (org_id, version);
+create index if not exists api_keys_org_version_idx         on api_keys (org_id, version);
+create index if not exists mtls_client_certs_org_version_idx on mtls_client_certs (org_id, version);
+create index if not exists customer_preferences_user_version_idx on customer_preferences (user_id, version);
+create index if not exists customer_sessions_user_version_idx    on customer_sessions (user_id, version);

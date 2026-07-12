@@ -139,3 +139,20 @@ begin
       exists (select 1 from operators o
               where o.supabase_user_id = auth.uid() and o.disabled = false))$p$;
 end $$;
+
+-- ============================================================================
+-- SYNC DURABILITY: idempotency ledger + catch-up (version) indexes
+-- ----------------------------------------------------------------------------
+-- Same contract as the customer plane. Server-internal, not synced/realtime: the
+-- admin backend records the committed version returned for each Idempotency-Key
+-- so retried sync writes replay across restarts. Prune via the created_at index.
+create table if not exists sync_idempotency_keys (
+  key text primary key,
+  committed_version bigint,
+  created_at timestamptz default now() not null
+);
+create index if not exists sync_idempotency_created_idx on sync_idempotency_keys (created_at);
+
+-- Catch-up hydration reads by monotonic `version`; index the range scan.
+create index if not exists operators_version_idx        on operators (version);
+create index if not exists infra_operations_version_idx on infra_operations (version);

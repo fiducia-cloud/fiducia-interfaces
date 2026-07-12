@@ -110,6 +110,23 @@ pub enum ScheduleDelivery {
     ExactlyOnce,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub enum TaskStateStatus {
+    #[serde(rename = "pending")]
+    Pending,
+    #[serde(rename = "claimed")]
+    Claimed,
+    #[serde(rename = "running")]
+    Running,
+    #[serde(rename = "completed")]
+    Completed,
+    #[serde(rename = "failed")]
+    Failed,
+    #[serde(rename = "cancelled")]
+    Cancelled,
+}
+
 /// How a barrier resolves. kind selects the rule; required is used by quorum, required_weight by weighted_quorum.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
 #[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
@@ -832,4 +849,123 @@ pub struct ScheduleHistoryResponse {
     pub name: String,
     /// Durable run history.
     pub history: Vec<ScheduleRun>,
+}
+
+/// Body of POST /v1/tasks/create. Idempotent: a repeat create returns the existing task.
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub struct TaskCreateRequest {
+    /// Slash-safe task name, such as repo/acme/api/issue/482.
+    pub name: String,
+    /// Application task kind, such as implement or backup.
+    pub task_type: String,
+    /// Small task input. Large inputs belong in the application database; store a reference here.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[tsify(type = "Record<string, unknown>")]
+    pub payload: Option<serde_json::Value>,
+    /// Overall deadline in ms since epoch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deadline_ms: Option<i64>,
+}
+
+/// Body of POST /v1/tasks/claim. Grants a fresh fencing token and an ownership lease if the task is pending or its prior lease expired.
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub struct TaskClaimRequest {
+    /// Task name.
+    pub name: String,
+    /// Claiming worker id.
+    pub worker: String,
+    /// Ownership lease length in ms. Defaults to 60000.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ttl_ms: Option<i64>,
+}
+
+/// Body of POST /v1/tasks/progress. Renews the lease; rejected unless the caller holds the current fencing token.
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub struct TaskProgressRequest {
+    /// Task name.
+    pub name: String,
+    /// Owning worker id.
+    pub worker: String,
+    /// The token returned by claim.
+    pub fencing_token: i64,
+    /// Progress percent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub percent: Option<i64>,
+    /// Durable resume state.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[tsify(type = "Record<string, unknown>")]
+    pub checkpoint: Option<serde_json::Value>,
+}
+
+/// Body of POST /v1/tasks/complete. Requires the current fencing token.
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub struct TaskCompleteRequest {
+    /// Task name.
+    pub name: String,
+    /// Owning worker id.
+    pub worker: String,
+    /// The token returned by claim.
+    pub fencing_token: i64,
+    /// Durable result to record.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[tsify(type = "Record<string, unknown>")]
+    pub result: Option<serde_json::Value>,
+}
+
+/// Body of POST /v1/tasks/fail. retryable returns the task to Pending for reassignment; otherwise it ends Failed. Requires the current fencing token.
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub struct TaskFailRequest {
+    /// Task name.
+    pub name: String,
+    /// Owning worker id.
+    pub worker: String,
+    /// The token returned by claim.
+    pub fencing_token: i64,
+    /// Whether to requeue for another worker.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retryable: Option<bool>,
+}
+
+/// Current task state returned by GET /v1/tasks.
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub struct TaskState {
+    /// Task name.
+    pub name: String,
+    /// Application task kind.
+    pub task_type: String,
+    /// Task input.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[tsify(type = "Record<string, unknown>")]
+    pub payload: Option<serde_json::Value>,
+    /// Lifecycle state.
+    pub status: TaskStateStatus,
+    /// Current owning worker, if claimed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner: Option<String>,
+    /// Monotonic token of the current claim (0 if never claimed).
+    pub fencing_token: i64,
+    /// Last reported progress percent.
+    pub progress: i64,
+    /// Last durable checkpoint.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[tsify(type = "Record<string, unknown>")]
+    pub checkpoint: Option<serde_json::Value>,
+    /// Result recorded on completion.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[tsify(type = "Record<string, unknown>")]
+    pub result: Option<serde_json::Value>,
+    /// When the current ownership lease expires.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub lease_expires_ms: Option<i64>,
+    /// Overall task deadline.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deadline_ms: Option<i64>,
+    /// Monotonic state version, bumped on every mutation.
+    pub generation: i64,
 }

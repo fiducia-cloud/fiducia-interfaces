@@ -10,6 +10,7 @@
     "kv.schema.json",
     "locks.schema.json",
     "rate_limits.schema.json",
-    "schedules.schema.json"
+    "schedules.schema.json",
+    "tasks.schema.json"
   ]
 }

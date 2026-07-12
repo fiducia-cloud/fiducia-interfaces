@@ -554,3 +554,91 @@ export type ScheduleHistoryResponse = {
   /** Durable run history. */
   history: ScheduleRun[];
 };
+
+/** Body of POST /v1/tasks/create. Idempotent: a repeat create returns the existing task. */
+export type TaskCreateRequest = {
+  /** Slash-safe task name, such as repo/acme/api/issue/482. */
+  name: string;
+  /** Application task kind, such as implement or backup. */
+  task_type: string;
+  /** Small task input. Large inputs belong in the application database; store a reference here. */
+  payload?: Record<string, unknown>;
+  /** Overall deadline in ms since epoch. */
+  deadline_ms?: number;
+};
+
+/** Body of POST /v1/tasks/claim. Grants a fresh fencing token and an ownership lease if the task is pending or its prior lease expired. */
+export type TaskClaimRequest = {
+  /** Task name. */
+  name: string;
+  /** Claiming worker id. */
+  worker: string;
+  /** Ownership lease length in ms. Defaults to 60000. */
+  ttl_ms?: number;
+};
+
+/** Body of POST /v1/tasks/progress. Renews the lease; rejected unless the caller holds the current fencing token. */
+export type TaskProgressRequest = {
+  /** Task name. */
+  name: string;
+  /** Owning worker id. */
+  worker: string;
+  /** The token returned by claim. */
+  fencing_token: number;
+  /** Progress percent. */
+  percent?: number;
+  /** Durable resume state. */
+  checkpoint?: Record<string, unknown>;
+};
+
+/** Body of POST /v1/tasks/complete. Requires the current fencing token. */
+export type TaskCompleteRequest = {
+  /** Task name. */
+  name: string;
+  /** Owning worker id. */
+  worker: string;
+  /** The token returned by claim. */
+  fencing_token: number;
+  /** Durable result to record. */
+  result?: Record<string, unknown>;
+};
+
+/** Body of POST /v1/tasks/fail. retryable returns the task to Pending for reassignment; otherwise it ends Failed. Requires the current fencing token. */
+export type TaskFailRequest = {
+  /** Task name. */
+  name: string;
+  /** Owning worker id. */
+  worker: string;
+  /** The token returned by claim. */
+  fencing_token: number;
+  /** Whether to requeue for another worker. */
+  retryable?: boolean;
+};
+
+/** Current task state returned by GET /v1/tasks. */
+export type TaskState = {
+  /** Task name. */
+  name: string;
+  /** Application task kind. */
+  task_type: string;
+  /** Task input. */
+  payload?: Record<string, unknown>;
+  /** Lifecycle state. */
+  status: "pending" | "claimed" | "running" | "completed" | "failed" | "cancelled";
+  /** Current owning worker, if claimed. */
+  owner?: string;
+  /** Monotonic token of the current claim (0 if never claimed). */
+  fencing_token: number;
+  /** Last reported progress percent. */
+  progress: number;
+  /** Last durable checkpoint. */
+  checkpoint?: Record<string, unknown>;
+  /** Result recorded on completion. */
+  result?: Record<string, unknown>;
+  /** When the current ownership lease expires. */
+  lease_expires_ms?: number;
+  /** Overall task deadline. */
+  deadline_ms?: number;
+  /** Monotonic state version, bumped on every mutation. */
+  generation: number;
+};

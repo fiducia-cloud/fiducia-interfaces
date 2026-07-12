@@ -381,3 +381,59 @@ class ScheduleHistoryResponse:
     """Response of GET /v1/cron/schedules/{name}/history."""
     name: str
     history: List[ScheduleRun]
+
+@dataclass
+class TaskCreateRequest:
+    """Body of POST /v1/tasks/create. Idempotent: a repeat create returns the existing task."""
+    name: str
+    task_type: str
+    payload: Optional[dict] = None
+    deadline_ms: Optional[int] = None
+
+@dataclass
+class TaskClaimRequest:
+    """Body of POST /v1/tasks/claim. Grants a fresh fencing token and an ownership lease if the task is pending or its prior lease expired."""
+    name: str
+    worker: str
+    ttl_ms: Optional[int] = None
+
+@dataclass
+class TaskProgressRequest:
+    """Body of POST /v1/tasks/progress. Renews the lease; rejected unless the caller holds the current fencing token."""
+    name: str
+    worker: str
+    fencing_token: int
+    percent: Optional[int] = None
+    checkpoint: Optional[dict] = None
+
+@dataclass
+class TaskCompleteRequest:
+    """Body of POST /v1/tasks/complete. Requires the current fencing token."""
+    name: str
+    worker: str
+    fencing_token: int
+    result: Optional[dict] = None
+
+@dataclass
+class TaskFailRequest:
+    """Body of POST /v1/tasks/fail. retryable returns the task to Pending for reassignment; otherwise it ends Failed. Requires the current fencing token."""
+    name: str
+    worker: str
+    fencing_token: int
+    retryable: Optional[bool] = None
+
+@dataclass
+class TaskState:
+    """Current task state returned by GET /v1/tasks."""
+    name: str
+    task_type: str
+    status: Literal["pending", "claimed", "running", "completed", "failed", "cancelled"]
+    fencing_token: int
+    progress: int
+    generation: int
+    payload: Optional[dict] = None
+    owner: Optional[str] = None
+    checkpoint: Optional[dict] = None
+    result: Optional[dict] = None
+    lease_expires_ms: Optional[int] = None
+    deadline_ms: Optional[int] = None

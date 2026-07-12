@@ -34,6 +34,7 @@ test("baseType maps the postgres types used in the schemas", () => {
   assert.equal(baseType("boolean"), "bool");
   assert.equal(baseType("jsonb"), "json");
   assert.equal(baseType("inet"), "inet");
+  assert.equal(baseType("vector(1536)"), "vector");
 });
 
 test("structName pascalizes the table and adds a Row suffix", () => {

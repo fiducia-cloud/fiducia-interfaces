@@ -36,6 +36,26 @@ class Introspection:
     require_idempotency: Optional[bool] = None
 
 @dataclass
+class CounterAddRequest:
+    """Body of POST /v1/counters/add. Atomically adds delta (which may be negative), creating the counter at 0 first."""
+    key: str
+    delta: int
+    prev_revision: Optional[int] = None
+
+@dataclass
+class CounterSetRequest:
+    """Body of POST /v1/counters/set. Writes an absolute value, such as resetting to 0."""
+    key: str
+    value: int
+    prev_revision: Optional[int] = None
+
+@dataclass
+class CounterEntry:
+    """The current state of a counter, returned by GET /v1/counters. An absent counter reads as not found and should be treated as 0."""
+    value: int
+    mod_revision: int
+
+@dataclass
 class ServiceRegisterRequest:
     """Body of PUT /v1/services/{service}/instances/{id}."""
     address: str

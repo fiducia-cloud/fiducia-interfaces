@@ -48,6 +48,34 @@ export type Introspection = {
   require_idempotency?: boolean;
 };
 
+/** Body of POST /v1/counters/add. Atomically adds delta (which may be negative), creating the counter at 0 first. */
+export type CounterAddRequest = {
+  /** Slash-safe counter key, such as rollout/v2.4.1/failures. */
+  key: string;
+  /** Signed amount to add; negative decrements. */
+  delta: number;
+  /** When set, the add applies only if the counter's current mod_revision matches (compare-and-set). */
+  prev_revision?: number;
+};
+
+/** Body of POST /v1/counters/set. Writes an absolute value, such as resetting to 0. */
+export type CounterSetRequest = {
+  /** Slash-safe counter key. */
+  key: string;
+  /** Absolute value to store. */
+  value: number;
+  /** When set, the set applies only if the current mod_revision matches (compare-and-set). */
+  prev_revision?: number;
+};
+
+/** The current state of a counter, returned by GET /v1/counters. An absent counter reads as not found and should be treated as 0. */
+export type CounterEntry = {
+  /** Current signed value. */
+  value: number;
+  /** Monotonic revision stamped on the last mutation; pass it as prev_revision to compare-and-set. */
+  mod_revision: number;
+};
+
 /** Body of PUT /v1/services/{service}/instances/{id}. */
 export type ServiceRegisterRequest = {
   /** Reachable address of this instance. */

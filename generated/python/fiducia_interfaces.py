@@ -4,6 +4,49 @@ from dataclasses import dataclass
 from typing import List, Optional, Dict, Literal
 
 @dataclass
+class BarrierPolicy:
+    """How a barrier resolves. kind selects the rule; required is used by quorum, required_weight by weighted_quorum."""
+    kind: Literal["all", "quorum", "first_success", "any_veto", "best_by_deadline", "weighted_quorum"]
+    required: Optional[int] = None
+    required_weight: Optional[int] = None
+
+@dataclass
+class BarrierCreateRequest:
+    """Body of POST /v1/barriers/create."""
+    name: str
+    policy: BarrierPolicy
+    expected: Optional[int] = None
+    deadline_ms: Optional[int] = None
+
+@dataclass
+class BarrierArriveRequest:
+    """Body of POST /v1/barriers/arrive. Repeat arrivals by the same participant are idempotent."""
+    name: str
+    participant: str
+    weight: Optional[int] = None
+    veto: Optional[bool] = None
+
+@dataclass
+class BarrierArrival:
+    """One participant's recorded arrival."""
+    participant: str
+    weight: int
+    veto: bool
+    arrived_ms: int
+
+@dataclass
+class BarrierState:
+    """Current barrier state returned by GET /v1/barriers, with status derived at read time."""
+    name: str
+    policy: BarrierPolicy
+    expected: int
+    status: Literal["pending", "satisfied", "vetoed", "timed_out"]
+    arrivals: List[BarrierArrival]
+    arrived_count: int
+    arrived_weight: int
+    deadline_ms: Optional[int] = None
+
+@dataclass
 class ProposeOutcome:
     """Result of a committed write (lock/kv/election/discovery mutation)."""
     shard: int

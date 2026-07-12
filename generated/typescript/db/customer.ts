@@ -113,3 +113,9 @@ export type AuditLogRow = {
   created_at: string;
   retention_expires_at: string | null;
 };
+
+export type SyncIdempotencyKeysRow = {
+  key: string;
+  committed_version: number | null;
+  created_at: string;
+};

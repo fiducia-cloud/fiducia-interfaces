@@ -1,3 +1,5 @@
+// Compile-time smoke test: imports the generated TypeScript types to assert the
+// emitted payload shapes are usable and named as expected.
 import type {
   LockAcquireManyRequest,
   LockGrant,

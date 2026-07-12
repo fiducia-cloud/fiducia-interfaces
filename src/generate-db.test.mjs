@@ -1,3 +1,4 @@
+// Self-tests for the SQL DDL -> DB row type generator (generate-db.mjs).
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { parseTables, baseType, structName } from "./generate-db.mjs";

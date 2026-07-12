@@ -1,3 +1,6 @@
+# CI for the interfaces repo: generator self-tests, staleness gates that fail if the
+# checked-in generated/ files drift from the schemas/SQL, and compile checks of the
+# generated Rust and Rust->wasm crates (the wasm job also type-checks the emitted .d.ts).
 name: ci
 on:
   push:

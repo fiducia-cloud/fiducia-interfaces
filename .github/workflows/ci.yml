@@ -42,6 +42,9 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
@@ -70,3 +73,9 @@ jobs:
             exit 1
           fi
           echo "clean"
+      # Stronger guard: the generated .d.ts must be valid TypeScript (catches any
+      # unresolved type, e.g. an undefined `Value`, that the grep would miss).
+      - name: Type-check generated .d.ts (tsc)
+        run: |
+          dts=$(ls generated/rust-wasm/pkg/*.d.ts | grep -v _bg)
+          npx -y -p typescript@5 tsc --noEmit --lib esnext,dom "$dts"

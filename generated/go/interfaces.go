@@ -46,6 +46,8 @@ type Introspection struct {
 	KeyId *string `json:"key_id,omitempty"`
 	// Granted scopes.
 	Scopes []string `json:"scopes"`
+	// When true, the edge/LB rejects mutating calls made with this key that omit an Idempotency-Key header. Absent means not required (default).
+	RequireIdempotency *bool `json:"require_idempotency,omitempty"`
 }
 
 // ServiceRegisterRequest: Body of PUT /v1/services/{service}/instances/{id}.

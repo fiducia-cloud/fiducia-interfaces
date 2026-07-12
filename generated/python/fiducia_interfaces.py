@@ -209,6 +209,37 @@ class ElectionGetResponse:
     leadership: Optional[Leadership] = None
 
 @dataclass
+class HandoffOfferRequest:
+    """Body of POST /v1/handoffs/offer. The original owner keeps authority until the offer is accepted."""
+    name: str
+    resource: str
+    from: str
+    to: str
+    from_token: int
+    context: Optional[dict] = None
+    ttl_ms: Optional[int] = None
+
+@dataclass
+class HandoffDecisionRequest:
+    """Body of POST /v1/handoffs/accept and /v1/handoffs/reject. Only the offered recipient may decide."""
+    name: str
+    to: str
+
+@dataclass
+class HandoffState:
+    """Current handoff state returned by GET /v1/handoffs."""
+    name: str
+    resource: str
+    from: str
+    to: str
+    from_token: int
+    status: Literal["offered", "accepted", "rejected", "expired"]
+    generation: int
+    to_token: Optional[int] = None
+    context: Optional[dict] = None
+    expires_ms: Optional[int] = None
+
+@dataclass
 class IdempotencyClaimRequest:
     """Body of POST /v1/idempotency/claim. First claim for a key wins until the TTL expires."""
     key: str

@@ -7,6 +7,7 @@
     "discovery.schema.json",
     "effects.schema.json",
     "elections.schema.json",
+    "handoffs.schema.json",
     "idempotency.schema.json",
     "kv.schema.json",
     "locks.schema.json",

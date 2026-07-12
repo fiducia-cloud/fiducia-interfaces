@@ -556,3 +556,91 @@ type ScheduleHistoryResponse struct {
 	// Durable run history.
 	History []ScheduleRun `json:"history"`
 }
+
+// TaskCreateRequest: Body of POST /v1/tasks/create. Idempotent: a repeat create returns the existing task.
+type TaskCreateRequest struct {
+	// Slash-safe task name, such as repo/acme/api/issue/482.
+	Name string `json:"name"`
+	// Application task kind, such as implement or backup.
+	TaskType string `json:"task_type"`
+	// Small task input. Large inputs belong in the application database; store a reference here.
+	Payload *map[string]any `json:"payload,omitempty"`
+	// Overall deadline in ms since epoch.
+	DeadlineMs *int64 `json:"deadline_ms,omitempty"`
+}
+
+// TaskClaimRequest: Body of POST /v1/tasks/claim. Grants a fresh fencing token and an ownership lease if the task is pending or its prior lease expired.
+type TaskClaimRequest struct {
+	// Task name.
+	Name string `json:"name"`
+	// Claiming worker id.
+	Worker string `json:"worker"`
+	// Ownership lease length in ms. Defaults to 60000.
+	TtlMs *int64 `json:"ttl_ms,omitempty"`
+}
+
+// TaskProgressRequest: Body of POST /v1/tasks/progress. Renews the lease; rejected unless the caller holds the current fencing token.
+type TaskProgressRequest struct {
+	// Task name.
+	Name string `json:"name"`
+	// Owning worker id.
+	Worker string `json:"worker"`
+	// The token returned by claim.
+	FencingToken int64 `json:"fencing_token"`
+	// Progress percent.
+	Percent *int64 `json:"percent,omitempty"`
+	// Durable resume state.
+	Checkpoint *map[string]any `json:"checkpoint,omitempty"`
+}
+
+// TaskCompleteRequest: Body of POST /v1/tasks/complete. Requires the current fencing token.
+type TaskCompleteRequest struct {
+	// Task name.
+	Name string `json:"name"`
+	// Owning worker id.
+	Worker string `json:"worker"`
+	// The token returned by claim.
+	FencingToken int64 `json:"fencing_token"`
+	// Durable result to record.
+	Result *map[string]any `json:"result,omitempty"`
+}
+
+// TaskFailRequest: Body of POST /v1/tasks/fail. retryable returns the task to Pending for reassignment; otherwise it ends Failed. Requires the current fencing token.
+type TaskFailRequest struct {
+	// Task name.
+	Name string `json:"name"`
+	// Owning worker id.
+	Worker string `json:"worker"`
+	// The token returned by claim.
+	FencingToken int64 `json:"fencing_token"`
+	// Whether to requeue for another worker.
+	Retryable *bool `json:"retryable,omitempty"`
+}
+
+// TaskState: Current task state returned by GET /v1/tasks.
+type TaskState struct {
+	// Task name.
+	Name string `json:"name"`
+	// Application task kind.
+	TaskType string `json:"task_type"`
+	// Task input.
+	Payload *map[string]any `json:"payload,omitempty"`
+	// Lifecycle state. (one of: pending, claimed, running, completed, failed, cancelled)
+	Status string `json:"status"`
+	// Current owning worker, if claimed.
+	Owner *string `json:"owner,omitempty"`
+	// Monotonic token of the current claim (0 if never claimed).
+	FencingToken int64 `json:"fencing_token"`
+	// Last reported progress percent.
+	Progress int64 `json:"progress"`
+	// Last durable checkpoint.
+	Checkpoint *map[string]any `json:"checkpoint,omitempty"`
+	// Result recorded on completion.
+	Result *map[string]any `json:"result,omitempty"`
+	// When the current ownership lease expires.
+	LeaseExpiresMs *int64 `json:"lease_expires_ms,omitempty"`
+	// Overall task deadline.
+	DeadlineMs *int64 `json:"deadline_ms,omitempty"`
+	// Monotonic state version, bumped on every mutation.
+	Generation int64 `json:"generation"`
+}

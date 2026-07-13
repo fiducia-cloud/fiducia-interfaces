@@ -13,9 +13,10 @@ sources of truth:
    (operators, infra-operation audit, admin audit, and a request-bound
    idempotency ledger). The admin and customer apps run on **separate Postgres
    instances** — a security boundary — so their schemas are separate too. Every
-   optimistically-editable table carries the local-first sync contract
-   (`updated_at` + monotonic `version`, advanced by the `bump_row_version`
-   trigger).
+   optimistically-editable table carries two distinct ordering values:
+   per-row `version` for compare-and-swap/reconciliation, and a plane-wide,
+   transactionally allocated `sync_sequence` for stable catch-up pagination.
+   Durable, scoped tombstones carry deletes through the same global cursor.
 
 Same spirit as `remote/libs/interfaces` (JSON Schema → types) and
 `remote/libs/pg-defs` (canonical SQL).
@@ -80,6 +81,18 @@ duplicate type names and dangling `$ref`s, enforces snake_case field names,
 sanitizes doc comments, raw-escapes Rust keyword fields (`r#type`), and emits
 typed enums for string `enum`s (Rust enum · TS union · Python `Literal` · Go
 string + allowed-values doc). CI runs the self-tests and `--check` on every push.
+
+Customer and admin sync idempotency keys are bound to a canonical SHA-256 request
+fingerprint. Writers claim the key, perform the version-CAS mutation, and persist
+the committed row version in one transaction. A legacy NULL fingerprint or a
+different fingerprint must never replay; it fails closed and requires a new key.
+The SQL intentionally keeps legacy fingerprints nullable so that state remains
+distinguishable during rolling upgrades.
+
+CI installs dependencies strictly from `package-lock.json`, runs the complete
+`npm test` contract, checks all generated Rust crates with rustfmt and Clippy,
+builds the wasm target with an exact tool version, and audits every npm/Cargo
+lockfile. Action SHAs, Node, Rust, wasm-pack, and cargo-audit are immutable pins.
 
 ## Languages
 
@@ -171,5 +184,6 @@ Dependency advisories (`cargo audit` per generated crate, `npm audit`), last rev
 | npm (`package-lock.json`) | clean — 0 vulnerabilities |
 
 `cargo audit` scans the whole `Cargo.lock` regardless of feature selection, which is
-why the unused `rsa` still surfaces. Node updates land via Dependabot
-(`.github/dependabot.yml`).
+why the unused `rsa` still surfaces. Node, Rust, and GitHub Actions updates land
+via Dependabot (`.github/dependabot.yml`); CI remains pinned until those reviewed
+updates merge.

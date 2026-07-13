@@ -59,10 +59,20 @@ fiducia-interfaces/
 ## Generator
 
 ```sh
-node src/generate.mjs          # write generated/<lang>/...
+node src/generate.mjs          # JSON Schema → generated/<lang>/...
+node src/generate-db.mjs       # SQL DDL → generated/rust-db + generated/typescript/db
 node src/generate.mjs --check  # CI: fail if generated files are stale
 node --test src/*.test.mjs     # generator self-tests
 ```
+
+Two generators, two sources of truth: `generate.mjs` turns the JSON Schema into
+payload types, and `generate-db.mjs` parses each `sql/<plane>.sql` DDL into
+`sqlx::FromRow` row structs (`generated/rust-db`) and TS row types
+(`generated/typescript/db/<plane>.ts`). Both are pure, offline codegen (read local
+files, `JSON.parse` / regex, write `generated/`) — no network, no runtime queries.
+`--check` on either fails CI when the checked-in `generated/` output drifts from
+its source. Everything under `generated/` is a build artifact — never hand-edit it;
+edit the schema or SQL and regenerate.
 
 The generator is hardened: it validates `index.json` + every schema, rejects
 duplicate type names and dangling `$ref`s, enforces snake_case field names,

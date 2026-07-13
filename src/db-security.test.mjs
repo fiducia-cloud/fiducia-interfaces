@@ -38,4 +38,20 @@ test('admin SQL denies browser roles access to internal ledgers', async () => {
       new RegExp(`revoke all privileges on table public\\.${table} from %I`),
     );
   }
+
+  assert.match(
+    sql,
+    /request_fingerprint varchar\(64\)/,
+    'admin idempotency keys bind to a canonical request digest',
+  );
+  assert.match(
+    sql,
+    /alter table sync_idempotency_keys\s+add column if not exists request_fingerprint varchar\(64\)/,
+    'existing admin databases receive the fingerprint column idempotently',
+  );
+  assert.match(
+    sql,
+    /check \(request_fingerprint is null or request_fingerprint ~ '\^\[0-9a-f\]\{64\}\$'\)/,
+    'new ledger values accept only canonical lowercase SHA-256 fingerprints',
+  );
 });

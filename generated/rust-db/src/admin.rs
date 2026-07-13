@@ -46,6 +46,7 @@ pub struct AdminAuditLogRow {
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct SyncIdempotencyKeysRow {
     pub key: String,
+    pub request_fingerprint: Option<String>,
     pub committed_version: Option<i64>,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }

@@ -159,14 +159,36 @@ end $$;
 -- ============================================================================
 -- SYNC DURABILITY: idempotency ledger + catch-up (version) indexes
 -- ----------------------------------------------------------------------------
--- Same contract as the customer plane. Server-internal, not synced/realtime: the
--- admin backend records the committed version returned for each Idempotency-Key
--- so retried sync writes replay across restarts. Prune via the created_at index.
+-- Server-internal, not synced/realtime. Each key is bound to a canonical digest
+-- of the authenticated operator + table + row + operation + base version +
+-- payload. The admin backend claims the key, mutates the row, and records the
+-- committed version in ONE transaction, so a failed mutation cannot strand a
+-- permanently in-flight key. Prune completed keys via the created_at index.
 create table if not exists sync_idempotency_keys (
   key text primary key,
+  request_fingerprint varchar(64),
   committed_version bigint,
   created_at timestamptz default now() not null
 );
+-- Backward-compatible upgrade for databases created from an older admin.sql.
+-- Historical rows remain nullable because their original request cannot be
+-- reconstructed; fiducia-admin rejects those keys and every newly claimed key
+-- is fingerprinted.
+alter table sync_idempotency_keys
+  add column if not exists request_fingerprint varchar(64);
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'sync_idempotency_request_fingerprint_chk'
+      and conrelid = 'sync_idempotency_keys'::regclass
+  ) then
+    alter table sync_idempotency_keys
+      add constraint sync_idempotency_request_fingerprint_chk
+      check (request_fingerprint is null or request_fingerprint ~ '^[0-9a-f]{64}$')
+      not valid;
+  end if;
+end $$;
 create index if not exists sync_idempotency_created_idx on sync_idempotency_keys (created_at);
 alter table sync_idempotency_keys enable row level security;
 

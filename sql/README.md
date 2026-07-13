@@ -8,7 +8,8 @@ these reviewed contracts.
 
 - `customer.sql` — customer portal plane (`fiducia-backend.rs`): orgs, projects, users,
   API keys, mTLS identities, preferences, sessions, audit.
-- `admin.sql` — admin/control plane (`fiducia-admin.rs`): operators, infra-op audit, admin audit.
+- `admin.sql` — admin/control plane (`fiducia-admin.rs`): operators, infra-op
+  audit, admin audit, and the request-fingerprint-bound sync idempotency ledger.
 - `ai_agent_control_plane.sql` — single-tenant AI Agent control plane (rich customer data).
 - `ai_agent_bridge.sql` — AI agent conversation bridge.
 - `operations_control_plane.sql` — single-tenant Operations control plane (workflow history + state).

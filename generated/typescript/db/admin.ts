@@ -42,6 +42,7 @@ export type AdminAuditLogRow = {
 
 export type SyncIdempotencyKeysRow = {
   key: string;
+  request_fingerprint: string | null;
   committed_version: number | null;
   created_at: string;
 };

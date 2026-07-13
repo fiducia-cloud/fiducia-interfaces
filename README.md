@@ -10,11 +10,12 @@ sources of truth:
 2. **SQL** (`sql/customer.sql` + `sql/admin.sql`) — canonical Postgres schemas,
    split **by plane**: the customer plane (orgs, projects, users, API keys, mTLS
    identities, preferences, trusted sessions, audit) and the admin plane
-   (operators, infra-operation audit, admin audit). The admin and customer apps
-   run on **separate Postgres instances** — a security boundary — so their
-   schemas are separate too. Every optimistically-editable table carries the
-   local-first sync contract (`updated_at` + monotonic `version`, advanced by the
-   `bump_row_version` trigger).
+   (operators, infra-operation audit, admin audit, and a request-bound
+   idempotency ledger). The admin and customer apps run on **separate Postgres
+   instances** — a security boundary — so their schemas are separate too. Every
+   optimistically-editable table carries the local-first sync contract
+   (`updated_at` + monotonic `version`, advanced by the `bump_row_version`
+   trigger).
 
 Same spirit as `remote/libs/interfaces` (JSON Schema → types) and
 `remote/libs/pg-defs` (canonical SQL).

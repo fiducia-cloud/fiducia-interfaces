@@ -120,3 +120,46 @@ validate their request/response shapes against these types. The customer portal
 (`fiducia-backend.rs`) uses `sql/customer.sql` and the admin dashboard
 (`fiducia-admin.rs`) uses `sql/admin.sql`, each against its own isolated Postgres
 instance.
+
+## Configuration (CLI flags → env)
+
+CLI flags and their environment-variable mappings are declared once in
+[`.cli-flags.toml`](.cli-flags.toml) and applied by the pinned
+[flags-2-env](https://github.com/ORESoftware/flags-2-env) tool
+(`vendor/flags-2-env`, a git submodule — do not hand-edit; bump the pin instead).
+
+```sh
+git submodule update --init --recursive       # fetch the pinned tool
+make -C vendor/flags-2-env all                 # build vendor/flags-2-env/build/flags2env
+scripts/with-flags2env.sh check -- npm run generate   # flags → env, then exec
+```
+
+`scripts/with-flags2env.sh [flags...] -- <cmd>` resolves the flags through
+`flags2env` and execs `<cmd>` with the resulting env applied (override the binary
+with `FLAGS2ENV_BIN`). Today the only flag is `check` →
+`FIDUCIA_GENERATE_CHECK` (bool), read by both generators to run the staleness gate
+without writing. The `cli-flags` CI workflow runs `flags2env audit .cli-flags.toml`
+so the declared flags never drift from the tool. No secret-valued flags are
+declared; add new ones to `.cli-flags.toml` (mark any secret in its `help`).
+
+## Security & dependency audits
+
+No committed secrets: credential columns store hashes only (e.g. `api_keys.secret_hash`),
+and `fencing_token` throughout is a distributed-systems term, not a credential. The
+SQL is pure DDL; its one dynamic statement uses `format(..., %I)` identifier-quoting
+over a hardcoded table list. The generators run offline over local files and issue no
+SQL, so there is no query-injection or unsafe-deserialization surface.
+
+Dependency advisories (`cargo audit` per generated crate, `npm audit`), last reviewed
+2026-07-12:
+
+| Target | Status |
+| --- | --- |
+| `generated/rust` (payloads) | clean — 0 advisories |
+| `generated/rust-wasm` | clean — 0 advisories |
+| `generated/rust-db` | 1 accepted: `RUSTSEC-2023-0071` (`rsa` — Marvin timing side-channel). No upstream fix; pulled transitively via `sqlx-mysql`, which this crate does **not** enable (Postgres-only features), so it is not compiled in. |
+| npm (`package-lock.json`) | clean — 0 vulnerabilities |
+
+`cargo audit` scans the whole `Cargo.lock` regardless of feature selection, which is
+why the unused `rsa` still surfaces. Node updates land via Dependabot
+(`.github/dependabot.yml`).

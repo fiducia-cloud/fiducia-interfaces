@@ -171,7 +171,10 @@ export function build() {
     mods.push(plane.name);
   }
   files["rust-db/src/lib.rs"] =
-    `// ${BANNER}\n#![allow(dead_code)]\n\n${mods.map((m) => `pub mod ${m};`).join("\n")}\n`;
+    `// ${BANNER}\n#![allow(dead_code)]\n\n${mods
+      .sort()
+      .map((m) => `pub mod ${m};`)
+      .join("\n")}\n`;
   files["rust-db/Cargo.toml"] = CARGO;
   return files;
 }

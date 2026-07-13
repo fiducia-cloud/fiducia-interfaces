@@ -9,6 +9,10 @@ test('customer SQL keeps verifier hashes and backend-only tables off browser rol
 
   assert.match(sql, /alter publication supabase_realtime drop table public\.api_keys/);
   assert.doesNotMatch(sql, /create policy api_keys_member_read/);
+  assert.match(
+    sql,
+    /require_idempotency boolean(?: not null default true| default true not null)/,
+  );
 
   for (const table of [
     'users',

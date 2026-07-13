@@ -56,6 +56,7 @@ pub struct ApiKeysRow {
     pub secret_hash: String,
     pub scopes: serde_json::Value,
     pub env: String,
+    pub require_idempotency: bool,
     pub mtls_required: bool,
     pub revoked: bool,
     pub created_at: chrono::DateTime<chrono::Utc>,

@@ -17,6 +17,7 @@
 -- and a trigger (bump_row_version) that stamps inserts and advances all three
 -- fields on updates. `version` is never a table-wide cursor. The sync engine
 -- consumes only explicitly published, non-secret rows.
+-- Transport adapters emit those rows as {table, op, id, version, row} events.
 -- API-key rows are never published because they contain verifier hashes; customer
 -- key state must be read through the authenticated backend's sanitized API.
 

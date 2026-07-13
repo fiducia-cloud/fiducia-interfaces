@@ -475,7 +475,7 @@ class LockAcquireRequest:
 
 @dataclass
 class LockAcquireManyRequest:
-    """Body of POST /v1/locks/acquire-many. Acquires a bounded union of keys atomically."""
+    """Body of POST /v1/locks/acquire. Acquires a bounded union of keys atomically."""
     keys: List[str]
     holder: Optional[str] = None
     ttl_ms: Optional[int] = None
@@ -513,6 +513,27 @@ class LockReleaseRequest:
 class LockReleaseManyRequest:
     """Body of POST /v1/locks/release-many."""
     lock_id: str
+
+@dataclass
+class FileLeaseAcquireRequest:
+    """Bridge-to-control-plane request to atomically lease repository-relative file paths."""
+    repository: str
+    paths: List[str]
+    agent_key: str
+    ttl_ms: Optional[int] = None
+    wait: Optional[bool] = None
+
+@dataclass
+class FileLeaseReleaseRequest:
+    """Bridge-to-control-plane request to release a file-path union lease."""
+    agent_key: str
+    fencing_token: int
+
+@dataclass
+class FileLeaseQuery:
+    """Query parameters used to find the bot or agent holding a repository file lease."""
+    repository: str
+    path: str
 
 @dataclass
 class RwAcquireRequest:

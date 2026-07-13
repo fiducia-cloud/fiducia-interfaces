@@ -701,7 +701,7 @@ type LockAcquireRequest struct {
 	Max *int64 `json:"max,omitempty"`
 }
 
-// LockAcquireManyRequest: Body of POST /v1/locks/acquire-many. Acquires a bounded union of keys atomically.
+// LockAcquireManyRequest: Body of POST /v1/locks/acquire. Acquires a bounded union of keys atomically.
 type LockAcquireManyRequest struct {
 	// Keys to lock as one union. The server sorts/dedupes before acquisition.
 	Keys []string `json:"keys"`
@@ -756,6 +756,28 @@ type LockReleaseRequest struct {
 type LockReleaseManyRequest struct {
 	// The composite lock id returned at acquire-many.
 	LockId string `json:"lock_id"`
+}
+
+// FileLeaseAcquireRequest: Bridge-to-control-plane request to atomically lease repository-relative file paths.
+type FileLeaseAcquireRequest struct {
+	Repository string `json:"repository"`
+	// Repository-relative paths. Absolute paths, traversal, backslashes, and empty components are rejected.
+	Paths []string `json:"paths"`
+	AgentKey string `json:"agent_key"`
+	TtlMs *int64 `json:"ttl_ms,omitempty"`
+	Wait *bool `json:"wait,omitempty"`
+}
+
+// FileLeaseReleaseRequest: Bridge-to-control-plane request to release a file-path union lease.
+type FileLeaseReleaseRequest struct {
+	AgentKey string `json:"agent_key"`
+	FencingToken int64 `json:"fencing_token"`
+}
+
+// FileLeaseQuery: Query parameters used to find the bot or agent holding a repository file lease.
+type FileLeaseQuery struct {
+	Repository string `json:"repository"`
+	Path string `json:"path"`
 }
 
 // RwAcquireRequest: Body of POST /v1/rw/{key}/read|write.

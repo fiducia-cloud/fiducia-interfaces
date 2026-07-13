@@ -150,6 +150,15 @@ SQL is pure DDL; its one dynamic statement uses `format(..., %I)` identifier-quo
 over a hardcoded table list. The generators run offline over local files and issue no
 SQL, so there is no query-injection or unsafe-deserialization surface.
 
+Supabase's `public` schema is treated as an API-exposed boundary. Backend-only
+membership, audit, and idempotency relations have RLS enabled with no client
+policy and explicitly revoke privileges from `anon` and `authenticated` when
+those roles exist. Raw `api_keys` rows are not in the realtime publication:
+row-level security cannot hide `secret_hash`, so customer key metadata is served
+only by an authenticated backend endpoint that returns a sanitized projection.
+Service backends must connect with a dedicated `BYPASSRLS` role and must never
+hand that credential to browsers.
+
 Dependency advisories (`cargo audit` per generated crate, `npm audit`), last reviewed
 2026-07-12:
 

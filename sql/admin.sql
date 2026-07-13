@@ -118,6 +118,22 @@ begin
   end if;
 end $$;
 
+-- (4) Audit is server-internal even though legacy installations place it in
+-- Supabase's API-exposed `public` schema. RLS with no client policy plus explicit
+-- revocation makes that boundary fail closed. The admin backend must use the
+-- documented BYPASSRLS/service role.
+alter table admin_audit_log enable row level security;
+
+do $$
+declare role_name text;
+begin
+  foreach role_name in array array['anon', 'authenticated'] loop
+    if exists (select 1 from pg_roles where rolname = role_name) then
+      execute format('revoke all privileges on table public.admin_audit_log from %I', role_name);
+    end if;
+  end loop;
+end $$;
+
 -- (3) RLS — Supabase only. An operator sees their own row; any active operator
 -- (staff) may read the control-plane operations feed.
 do $$
@@ -152,6 +168,20 @@ create table if not exists sync_idempotency_keys (
   created_at timestamptz default now() not null
 );
 create index if not exists sync_idempotency_created_idx on sync_idempotency_keys (created_at);
+alter table sync_idempotency_keys enable row level security;
+
+do $$
+declare role_name text;
+begin
+  foreach role_name in array array['anon', 'authenticated'] loop
+    if exists (select 1 from pg_roles where rolname = role_name) then
+      execute format(
+        'revoke all privileges on table public.sync_idempotency_keys from %I',
+        role_name
+      );
+    end if;
+  end loop;
+end $$;
 
 -- Catch-up hydration reads by monotonic `version`; index the range scan.
 create index if not exists operators_version_idx        on operators (version);

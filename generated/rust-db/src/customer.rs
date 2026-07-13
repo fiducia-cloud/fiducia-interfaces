@@ -123,3 +123,10 @@ pub struct AuditLogRow {
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub retention_expires_at: Option<chrono::DateTime<chrono::Utc>>,
 }
+
+#[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
+pub struct SyncIdempotencyKeysRow {
+    pub key: String,
+    pub committed_version: Option<i64>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}

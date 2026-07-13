@@ -39,11 +39,19 @@ fiducia-interfaces/
 │   └── discovery.schema.json   # ServiceRegister/Instance/List
 ├── sql/customer.sql            # customer-plane Postgres schema (own DB instance)
 ├── sql/admin.sql               # admin-plane Postgres schema (separate DB instance)
-├── src/generate.mjs            # JSON Schema → per-language types
+├── sql/ai_agent_control_plane.sql      # additional planes (own DB instances)
+├── sql/operations_control_plane.sql
+├── sql/ai_agent_bridge.sql
+├── src/generate.mjs            # JSON Schema → per-language payload types
+├── src/generate-db.mjs         # SQL DDL → per-plane DB row types
+├── .cli-flags.toml             # CLI-flag ↔ env-var contract (flags-2-env)
+├── scripts/with-flags2env.sh   # apply .cli-flags.toml flags as env, then exec
+├── vendor/flags-2-env/         # pinned submodule (do not hand-edit)
 └── generated/                  # check-in artifacts — never hand-edit
-    ├── rust/{Cargo.toml,src/lib.rs}
+    ├── rust/{Cargo.toml,src/lib.rs}        # payload types (dependency-free serde)
     ├── rust-wasm/{Cargo.toml,src/lib.rs}   # Rust compiled to WebAssembly (tsify boundary)
-    ├── typescript/index.ts
+    ├── rust-db/{Cargo.toml,src/*.rs}       # sqlx::FromRow row types, one module per plane
+    ├── typescript/{index.ts,db/*.ts}       # payload types + per-plane DB row types
     ├── python/fiducia_interfaces.py
     └── go/interfaces.go
 ```

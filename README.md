@@ -39,11 +39,19 @@ fiducia-interfaces/
 │   └── discovery.schema.json   # ServiceRegister/Instance/List
 ├── sql/customer.sql            # customer-plane Postgres schema (own DB instance)
 ├── sql/admin.sql               # admin-plane Postgres schema (separate DB instance)
-├── src/generate.mjs            # JSON Schema → per-language types
+├── sql/ai_agent_control_plane.sql      # additional planes (own DB instances)
+├── sql/operations_control_plane.sql
+├── sql/ai_agent_bridge.sql
+├── src/generate.mjs            # JSON Schema → per-language payload types
+├── src/generate-db.mjs         # SQL DDL → per-plane DB row types
+├── .cli-flags.toml             # CLI-flag ↔ env-var contract (flags-2-env)
+├── scripts/with-flags2env.sh   # apply .cli-flags.toml flags as env, then exec
+├── vendor/flags-2-env/         # pinned submodule (do not hand-edit)
 └── generated/                  # check-in artifacts — never hand-edit
-    ├── rust/{Cargo.toml,src/lib.rs}
+    ├── rust/{Cargo.toml,src/lib.rs}        # payload types (dependency-free serde)
     ├── rust-wasm/{Cargo.toml,src/lib.rs}   # Rust compiled to WebAssembly (tsify boundary)
-    ├── typescript/index.ts
+    ├── rust-db/{Cargo.toml,src/*.rs}       # sqlx::FromRow row types, one module per plane
+    ├── typescript/{index.ts,db/*.ts}       # payload types + per-plane DB row types
     ├── python/fiducia_interfaces.py
     └── go/interfaces.go
 ```
@@ -51,10 +59,20 @@ fiducia-interfaces/
 ## Generator
 
 ```sh
-node src/generate.mjs          # write generated/<lang>/...
+node src/generate.mjs          # JSON Schema → generated/<lang>/...
+node src/generate-db.mjs       # SQL DDL → generated/rust-db + generated/typescript/db
 node src/generate.mjs --check  # CI: fail if generated files are stale
 node --test src/*.test.mjs     # generator self-tests
 ```
+
+Two generators, two sources of truth: `generate.mjs` turns the JSON Schema into
+payload types, and `generate-db.mjs` parses each `sql/<plane>.sql` DDL into
+`sqlx::FromRow` row structs (`generated/rust-db`) and TS row types
+(`generated/typescript/db/<plane>.ts`). Both are pure, offline codegen (read local
+files, `JSON.parse` / regex, write `generated/`) — no network, no runtime queries.
+`--check` on either fails CI when the checked-in `generated/` output drifts from
+its source. Everything under `generated/` is a build artifact — never hand-edit it;
+edit the schema or SQL and regenerate.
 
 The generator is hardened: it validates `index.json` + every schema, rejects
 duplicate type names and dangling `$ref`s, enforces snake_case field names,
@@ -102,3 +120,55 @@ validate their request/response shapes against these types. The customer portal
 (`fiducia-backend.rs`) uses `sql/customer.sql` and the admin dashboard
 (`fiducia-admin.rs`) uses `sql/admin.sql`, each against its own isolated Postgres
 instance.
+
+## Configuration (CLI flags → env)
+
+CLI flags and their environment-variable mappings are declared once in
+[`.cli-flags.toml`](.cli-flags.toml) and applied by the pinned
+[flags-2-env](https://github.com/ORESoftware/flags-2-env) tool
+(`vendor/flags-2-env`, a git submodule — do not hand-edit; bump the pin instead).
+
+```sh
+git submodule update --init --recursive       # fetch the pinned tool
+make -C vendor/flags-2-env all                 # build vendor/flags-2-env/build/flags2env
+scripts/with-flags2env.sh check -- npm run generate   # flags → env, then exec
+```
+
+`scripts/with-flags2env.sh [flags...] -- <cmd>` resolves the flags through
+`flags2env` and execs `<cmd>` with the resulting env applied (override the binary
+with `FLAGS2ENV_BIN`). Today the only flag is `check` →
+`FIDUCIA_GENERATE_CHECK` (bool), read by both generators to run the staleness gate
+without writing. The `cli-flags` CI workflow runs `flags2env audit .cli-flags.toml`
+so the declared flags never drift from the tool. No secret-valued flags are
+declared; add new ones to `.cli-flags.toml` (mark any secret in its `help`).
+
+## Security & dependency audits
+
+No committed secrets: credential columns store hashes only (e.g. `api_keys.secret_hash`),
+and `fencing_token` throughout is a distributed-systems term, not a credential. The
+SQL is pure DDL; its one dynamic statement uses `format(..., %I)` identifier-quoting
+over a hardcoded table list. The generators run offline over local files and issue no
+SQL, so there is no query-injection or unsafe-deserialization surface.
+
+Supabase's `public` schema is treated as an API-exposed boundary. Backend-only
+membership, audit, and idempotency relations have RLS enabled with no client
+policy and explicitly revoke privileges from `anon` and `authenticated` when
+those roles exist. Raw `api_keys` rows are not in the realtime publication:
+row-level security cannot hide `secret_hash`, so customer key metadata is served
+only by an authenticated backend endpoint that returns a sanitized projection.
+Service backends must connect with a dedicated `BYPASSRLS` role and must never
+hand that credential to browsers.
+
+Dependency advisories (`cargo audit` per generated crate, `npm audit`), last reviewed
+2026-07-12:
+
+| Target | Status |
+| --- | --- |
+| `generated/rust` (payloads) | clean — 0 advisories |
+| `generated/rust-wasm` | clean — 0 advisories |
+| `generated/rust-db` | 1 accepted: `RUSTSEC-2023-0071` (`rsa` — Marvin timing side-channel). No upstream fix; pulled transitively via `sqlx-mysql`, which this crate does **not** enable (Postgres-only features), so it is not compiled in. |
+| npm (`package-lock.json`) | clean — 0 vulnerabilities |
+
+`cargo audit` scans the whole `Cargo.lock` regardless of feature selection, which is
+why the unused `rsa` still surfaces. Node updates land via Dependabot
+(`.github/dependabot.yml`).

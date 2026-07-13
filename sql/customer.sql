@@ -14,8 +14,9 @@
 --   updated_at timestamptz  -- server commit time
 --   version    bigint       -- monotonic per-row counter (last-writer-wins tiebreak)
 -- and a BEFORE UPDATE trigger (bump_row_version) that advances both on every
--- write. The sync engine ships {table, op, id, version, row} change events over
--- Supabase realtime OR the backend WS; clients reconcile IndexedDB against version.
+-- write. The sync engine consumes only explicitly published, non-secret rows.
+-- API-key rows are never published because they contain verifier hashes; customer
+-- key state must be read through the authenticated backend's sanitized API.
 
 -- Shared trigger: bump version + updated_at on every UPDATE of a synced row.
 create or replace function bump_row_version() returns trigger as $$
@@ -213,13 +214,16 @@ alter table mtls_client_certs    replica identity full;
 alter table customer_preferences replica identity full;
 alter table customer_sessions    replica identity full;
 
--- (2) Register synced tables with Supabase's realtime publication (if present).
+-- (2) Register only tables whose complete row is safe for the authorized member.
+-- `api_keys` is deliberately excluded: PostgreSQL publications are row-oriented,
+-- and RLS cannot hide its `secret_hash` column. Remove it from older deployments
+-- that published it before this boundary was made explicit.
 do $$
 declare t text;
 begin
   if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
     foreach t in array array[
-      'orgs','projects','api_keys','mtls_client_certs','customer_preferences','customer_sessions'
+      'orgs','projects','mtls_client_certs','customer_preferences','customer_sessions'
     ] loop
       if not exists (
         select 1 from pg_publication_tables
@@ -228,6 +232,15 @@ begin
         execute format('alter publication supabase_realtime add table public.%I', t);
       end if;
     end loop;
+
+    if exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime'
+        and schemaname = 'public'
+        and tablename = 'api_keys'
+    ) then
+      alter publication supabase_realtime drop table public.api_keys;
+    end if;
   end if;
 end $$;
 
@@ -241,47 +254,100 @@ begin
     return; -- not a Supabase DB; realtime/RLS not applicable
   end if;
 
+  -- Policy predicates must not grant browser roles direct access to membership
+  -- tables. These narrowly scoped SECURITY DEFINER helpers run as the migration
+  -- owner; pinning search_path prevents object-shadowing attacks.
+  execute $fn$
+    create or replace function public.fiducia_customer_is_org_member(target_org_id uuid)
+    returns boolean
+    language sql
+    stable
+    security definer
+    set search_path = pg_catalog, public
+    as $body$
+      select exists (
+        select 1
+        from public.org_members m
+        join public.users u on u.id = m.user_id
+        where m.org_id = target_org_id
+          and u.supabase_user_id = auth.uid()
+      )
+    $body$
+  $fn$;
+  execute $fn$
+    create or replace function public.fiducia_customer_is_self(target_user_id uuid)
+    returns boolean
+    language sql
+    stable
+    security definer
+    set search_path = pg_catalog, public
+    as $body$
+      select exists (
+        select 1 from public.users u
+        where u.id = target_user_id and u.supabase_user_id = auth.uid()
+      )
+    $body$
+  $fn$;
+  execute 'revoke all on function public.fiducia_customer_is_org_member(uuid) from public';
+  execute 'revoke all on function public.fiducia_customer_is_self(uuid) from public';
+  execute 'grant execute on function public.fiducia_customer_is_org_member(uuid) to authenticated';
+  execute 'grant execute on function public.fiducia_customer_is_self(uuid) to authenticated';
+
   execute 'alter table orgs enable row level security';
   execute 'drop policy if exists orgs_member_read on orgs';
   execute $p$
     create policy orgs_member_read on orgs for select to authenticated using (
-      exists (select 1 from org_members m join users u on u.id = m.user_id
-              where m.org_id = orgs.id and u.supabase_user_id = auth.uid()))$p$;
+      public.fiducia_customer_is_org_member(orgs.id))$p$;
 
   execute 'alter table projects enable row level security';
   execute 'drop policy if exists projects_member_read on projects';
   execute $p$
     create policy projects_member_read on projects for select to authenticated using (
-      exists (select 1 from org_members m join users u on u.id = m.user_id
-              where m.org_id = projects.org_id and u.supabase_user_id = auth.uid()))$p$;
+      public.fiducia_customer_is_org_member(projects.org_id))$p$;
 
   execute 'alter table api_keys enable row level security';
   execute 'drop policy if exists api_keys_member_read on api_keys';
-  execute $p$
-    create policy api_keys_member_read on api_keys for select to authenticated using (
-      exists (select 1 from org_members m join users u on u.id = m.user_id
-              where m.org_id = api_keys.org_id and u.supabase_user_id = auth.uid()))$p$;
 
   execute 'alter table mtls_client_certs enable row level security';
   execute 'drop policy if exists mtls_certs_member_read on mtls_client_certs';
   execute $p$
     create policy mtls_certs_member_read on mtls_client_certs for select to authenticated using (
-      exists (select 1 from org_members m join users u on u.id = m.user_id
-              where m.org_id = mtls_client_certs.org_id and u.supabase_user_id = auth.uid()))$p$;
+      public.fiducia_customer_is_org_member(mtls_client_certs.org_id))$p$;
 
   execute 'alter table customer_preferences enable row level security';
   execute 'drop policy if exists customer_preferences_owner_read on customer_preferences';
   execute $p$
     create policy customer_preferences_owner_read on customer_preferences for select to authenticated using (
-      exists (select 1 from users u where u.id = customer_preferences.user_id
-              and u.supabase_user_id = auth.uid()))$p$;
+      public.fiducia_customer_is_self(customer_preferences.user_id))$p$;
 
   execute 'alter table customer_sessions enable row level security';
   execute 'drop policy if exists customer_sessions_owner_read on customer_sessions';
   execute $p$
     create policy customer_sessions_owner_read on customer_sessions for select to authenticated using (
-      exists (select 1 from users u where u.id = customer_sessions.user_id
-              and u.supabase_user_id = auth.uid()))$p$;
+      public.fiducia_customer_is_self(customer_sessions.user_id))$p$;
+end $$;
+
+-- (4) Public is Supabase's API-exposed schema. Backend-only relation tables and
+-- ledgers therefore get both RLS-with-no-client-policy and explicit privilege
+-- revocation. The guarded statements keep this portable to plain Postgres where
+-- Supabase's roles do not exist. The backend must use BYPASSRLS as required above.
+alter table users enable row level security;
+alter table org_members enable row level security;
+alter table project_members enable row level security;
+alter table audit_log enable row level security;
+
+do $$
+declare role_name text;
+begin
+  foreach role_name in array array['anon', 'authenticated'] loop
+    if exists (select 1 from pg_roles where rolname = role_name) then
+      execute format('revoke all privileges on table public.users from %I', role_name);
+      execute format('revoke all privileges on table public.org_members from %I', role_name);
+      execute format('revoke all privileges on table public.project_members from %I', role_name);
+      execute format('revoke all privileges on table public.audit_log from %I', role_name);
+      execute format('revoke all privileges on table public.api_keys from %I', role_name);
+    end if;
+  end loop;
 end $$;
 
 -- ============================================================================
@@ -299,6 +365,20 @@ create table if not exists sync_idempotency_keys (
   created_at timestamptz default now() not null
 );
 create index if not exists sync_idempotency_created_idx on sync_idempotency_keys (created_at);
+alter table sync_idempotency_keys enable row level security;
+
+do $$
+declare role_name text;
+begin
+  foreach role_name in array array['anon', 'authenticated'] loop
+    if exists (select 1 from pg_roles where rolname = role_name) then
+      execute format(
+        'revoke all privileges on table public.sync_idempotency_keys from %I',
+        role_name
+      );
+    end if;
+  end loop;
+end $$;
 
 -- Catch-up hydration reads each synced table by monotonic `version`
 -- (`where version > $cursor order by version`), tenant-scoped where a tenant

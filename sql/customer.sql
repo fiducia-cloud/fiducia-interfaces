@@ -97,6 +97,7 @@ create table if not exists api_keys (
   secret_hash varchar(255) not null,
   scopes jsonb default '[]'::jsonb not null,
   env varchar(16) default 'live' not null,
+  require_idempotency boolean default true not null,
   mtls_required boolean default false not null,
   revoked boolean default false not null,
   created_at timestamptz default now() not null,
@@ -107,6 +108,8 @@ create table if not exists api_keys (
   constraint api_keys_env_chk check (env in ('live', 'test')),
   constraint api_keys_scopes_array_chk check (jsonb_typeof(scopes) = 'array')
 );
+alter table api_keys
+  add column if not exists require_idempotency boolean not null default true;
 create unique index if not exists api_keys_key_id_uq on api_keys (key_id);
 create index if not exists api_keys_org_idx on api_keys (org_id) where revoked = false;
 create index if not exists api_keys_project_idx on api_keys (project_id) where revoked = false;

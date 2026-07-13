@@ -50,6 +50,7 @@ export type ApiKeysRow = {
   secret_hash: string;
   scopes: unknown;
   env: string;
+  require_idempotency: boolean;
   mtls_required: boolean;
   revoked: boolean;
   created_at: string;

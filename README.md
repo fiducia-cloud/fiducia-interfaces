@@ -94,6 +94,13 @@ CI installs dependencies strictly from `package-lock.json`, runs the complete
 builds the wasm target with an exact tool version, and audits every npm/Cargo
 lockfile. Action SHAs, Node, Rust, wasm-pack, and cargo-audit are immutable pins.
 
+The root Dockerfile is a contract **test image**, not a long-running service. It
+copies `package-lock.json` and every generated Rust `Cargo.lock`, installs npm
+dependencies with `npm ci --ignore-scripts`, and relies on the `--locked` Cargo
+commands in `npm test`. Build and test execution run as numeric UID/GID
+`65532:65532`; the image exposes no port and starts no daemon. TypeScript comes
+from the npm lockfile rather than a mutable global install.
+
 ## Languages
 
 First-class today: **Rust**, **Rust→WebAssembly**, **TypeScript**, **Python**,
@@ -106,8 +113,8 @@ the JS/wasm boundary as real objects (and a `.d.ts` is emitted). It is a separat
 crate so the plain `rust` crate stays dependency-free. Build it with:
 
 ```sh
-wasm-pack build generated/rust-wasm --target web
-# or: cargo build --manifest-path generated/rust-wasm/Cargo.toml --target wasm32-unknown-unknown
+wasm-pack build generated/rust-wasm --target web -- --locked
+# or: cargo build --locked --manifest-path generated/rust-wasm/Cargo.toml --target wasm32-unknown-unknown
 ```
 
 The roadmap is the rest of the **client languages** in

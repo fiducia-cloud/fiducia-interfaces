@@ -1,10 +1,16 @@
 # syntax=docker/dockerfile:1
 # CI/test image for generated interface contracts.
-FROM rust:1-bookworm
+FROM rust:1.95.0-bookworm
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends nodejs npm \
-    && npm install -g typescript
+    && apt-get install -y --no-install-recommends nodejs npm
+ENV HOME=/tmp \
+    CARGO_HOME=/tmp/cargo
 WORKDIR /app
-COPY . .
+RUN install -d -o 65532 -g 65532 /tmp/cargo \
+    && chown 65532:65532 /app
+COPY --chown=65532:65532 package.json package-lock.json ./
+USER 65532:65532
+RUN npm ci --ignore-scripts
+COPY --chown=65532:65532 . .
 RUN npm test
 CMD ["npm", "test"]

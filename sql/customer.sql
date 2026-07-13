@@ -1,7 +1,7 @@
 -- Canonical Postgres schema for fiducia.cloud's CUSTOMER plane.
 --
 -- Isolation: this DB is owned exclusively by the customer portal backend
--- (fiducia-backend.rs). The admin plane (fiducia-admin.rs) has its OWN separate
+-- (fiducia-customer.rs). The admin plane (fiducia-admin.rs) has its OWN separate
 -- Postgres instance (sql/admin.sql) and never connects here. See
 -- docs/repo-boundaries.md — admin ⟂ customer is a security boundary.
 --
@@ -379,7 +379,7 @@ create index if not exists audit_log_actor_key_created_idx on audit_log (actor_k
 -- Idempotent, and a NO-OP on a non-Supabase Postgres (each block guards on the
 -- supabase_realtime publication / auth.uid() existing). Consumed by @fiducia/sync.
 --
--- IMPORTANT: the customer backend (fiducia-backend.rs) MUST connect as a role
+-- IMPORTANT: the customer backend (fiducia-customer.rs) MUST connect as a role
 -- that BYPASSES RLS — the Supabase service role, the table owner, or a role with
 -- BYPASSRLS. It does (service-role DATABASE_URL). These policies therefore
 -- constrain ONLY the realtime consumer (the `authenticated` role using a user

@@ -6,7 +6,7 @@ boundary. `src/generate-db.mjs` derives the row types in `generated/rust-db` and
 `generated/typescript/db` from these files. Services own no migrations; operators apply
 these reviewed contracts.
 
-- `customer.sql` — customer portal plane (`fiducia-backend.rs`): orgs, projects, users,
+- `customer.sql` — customer portal plane (`fiducia-customer.rs`): orgs, projects, users,
   API keys, mTLS identities, preferences, sessions, audit, request-bound sync
   idempotency, and tenant/user-scoped delete tombstones.
 - `admin.sql` — admin/control plane (`fiducia-admin.rs`): operators, infra-op

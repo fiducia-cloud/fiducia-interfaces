@@ -20,7 +20,7 @@ test("helpers", () => {
 test("loadTypes parses the real schemas without error", () => {
   const types = loadTypes();
   const names = types.map((t) => t.name);
-  for (const expected of ["ProposeOutcome", "KvEntry", "LockGrant", "LockAcquireManyRequest", "LockReleaseManyRequest", "RateLimitCheckRequest", "ScheduleUpsertRequest", "Leadership", "ServiceInstance", "IdempotencyClaimRequest", "IdempotencyCompleteRequest", "IdempotencyRecord"]) {
+  for (const expected of ["ProposeOutcome", "KvEntry", "LockGrant", "LockAcquireManyRequest", "LockReleaseManyRequest", "FileLeaseAcquireRequest", "FileLeaseReleaseRequest", "FileLeaseQuery", "RateLimitCheckRequest", "ScheduleUpsertRequest", "Leadership", "ServiceInstance", "IdempotencyClaimRequest", "IdempotencyCompleteRequest", "IdempotencyRecord"]) {
     assert.ok(names.includes(expected), `missing ${expected}`);
   }
   const outcome = types.find((t) => t.name === "ProposeOutcome");

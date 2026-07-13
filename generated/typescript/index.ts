@@ -699,7 +699,7 @@ export type LockAcquireRequest = {
   max?: number;
 };
 
-/** Body of POST /v1/locks/acquire-many. Acquires a bounded union of keys atomically. */
+/** Body of POST /v1/locks/acquire. Acquires a bounded union of keys atomically. */
 export type LockAcquireManyRequest = {
   /** Keys to lock as one union. The server sorts/dedupes before acquisition. */
   keys: string[];
@@ -754,6 +754,28 @@ export type LockReleaseRequest = {
 export type LockReleaseManyRequest = {
   /** The composite lock id returned at acquire-many. */
   lock_id: string;
+};
+
+/** Bridge-to-control-plane request to atomically lease repository-relative file paths. */
+export type FileLeaseAcquireRequest = {
+  repository: string;
+  /** Repository-relative paths. Absolute paths, traversal, backslashes, and empty components are rejected. */
+  paths: string[];
+  agent_key: string;
+  ttl_ms?: number;
+  wait?: boolean;
+};
+
+/** Bridge-to-control-plane request to release a file-path union lease. */
+export type FileLeaseReleaseRequest = {
+  agent_key: string;
+  fencing_token: number;
+};
+
+/** Query parameters used to find the bot or agent holding a repository file lease. */
+export type FileLeaseQuery = {
+  repository: string;
+  path: string;
 };
 
 /** Body of POST /v1/rw/{key}/read|write. */

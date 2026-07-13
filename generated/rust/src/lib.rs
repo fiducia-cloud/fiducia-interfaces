@@ -1008,7 +1008,7 @@ pub struct LockAcquireRequest {
     pub max: Option<i64>,
 }
 
-/// Body of POST /v1/locks/acquire-many. Acquires a bounded union of keys atomically.
+/// Body of POST /v1/locks/acquire. Acquires a bounded union of keys atomically.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LockAcquireManyRequest {
     /// Keys to lock as one union. The server sorts/dedupes before acquisition.
@@ -1078,6 +1078,33 @@ pub struct LockReleaseRequest {
 pub struct LockReleaseManyRequest {
     /// The composite lock id returned at acquire-many.
     pub lock_id: String,
+}
+
+/// Bridge-to-control-plane request to atomically lease repository-relative file paths.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FileLeaseAcquireRequest {
+    pub repository: String,
+    /// Repository-relative paths. Absolute paths, traversal, backslashes, and empty components are rejected.
+    pub paths: Vec<String>,
+    pub agent_key: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ttl_ms: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wait: Option<bool>,
+}
+
+/// Bridge-to-control-plane request to release a file-path union lease.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FileLeaseReleaseRequest {
+    pub agent_key: String,
+    pub fencing_token: i64,
+}
+
+/// Query parameters used to find the bot or agent holding a repository file lease.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FileLeaseQuery {
+    pub repository: String,
+    pub path: String,
 }
 
 /// Body of POST /v1/rw/{key}/read|write.

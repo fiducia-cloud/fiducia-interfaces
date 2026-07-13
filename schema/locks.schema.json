@@ -20,14 +20,14 @@
     "LockAcquireManyRequest": {
       "type": "object",
       "title": "LockAcquireManyRequest",
-      "description": "Body of POST /v1/locks/acquire-many. Acquires a bounded union of keys atomically.",
+      "description": "Body of POST /v1/locks/acquire. Acquires a bounded union of keys atomically.",
       "additionalProperties": false,
       "required": ["keys"],
       "properties": {
         "keys": {
           "type": "array",
           "minItems": 1,
-          "maxItems": 5,
+          "maxItems": 256,
           "items": { "type": "string" },
           "description": "Keys to lock as one union. The server sorts/dedupes before acquisition."
         },
@@ -91,6 +91,49 @@
       "required": ["lock_id"],
       "properties": {
         "lock_id": { "type": "string", "description": "The composite lock id returned at acquire-many." }
+      }
+    },
+    "FileLeaseAcquireRequest": {
+      "type": "object",
+      "title": "FileLeaseAcquireRequest",
+      "description": "Bridge-to-control-plane request to atomically lease repository-relative file paths.",
+      "additionalProperties": false,
+      "required": ["repository", "paths", "agent_key"],
+      "properties": {
+        "repository": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "paths": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 800 },
+          "description": "Repository-relative paths. Absolute paths, traversal, backslashes, and empty components are rejected."
+        },
+        "agent_key": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "ttl_ms": { "type": "integer", "minimum": 1, "maximum": 86400000, "default": 30000 },
+        "wait": { "type": "boolean", "default": false }
+      }
+    },
+    "FileLeaseReleaseRequest": {
+      "type": "object",
+      "title": "FileLeaseReleaseRequest",
+      "description": "Bridge-to-control-plane request to release a file-path union lease.",
+      "additionalProperties": false,
+      "required": ["agent_key", "fencing_token"],
+      "properties": {
+        "agent_key": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "fencing_token": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "FileLeaseQuery": {
+      "type": "object",
+      "title": "FileLeaseQuery",
+      "description": "Query parameters used to find the bot or agent holding a repository file lease.",
+      "additionalProperties": false,
+      "required": ["repository", "path"],
+      "properties": {
+        "repository": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "path": { "type": "string", "minLength": 1, "maxLength": 800 }
       }
     },
     "RwAcquireRequest": {

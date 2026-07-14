@@ -1,6 +1,5 @@
 node_modules
 generated/rust/target
-generated/rust/Cargo.lock
 .git
 .github
 .env

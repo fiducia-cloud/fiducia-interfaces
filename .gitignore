@@ -14,3 +14,17 @@ __pycache__/
 
 # Scratch / git worktrees (tmp/worktrees/*)
 tmp/
+
+# --- hardened baseline (auto) ---
+Thumbs.db
+*.swp
+*~
+.direnv/
+dist/
+.next/
+.astro/
+.cache/
+coverage/
+*.tsbuildinfo
+pkg-node/
+*-debug.log*

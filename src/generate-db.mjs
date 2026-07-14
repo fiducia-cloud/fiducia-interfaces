@@ -152,7 +152,7 @@ edition = "2021"
 description = "Generated sqlx::FromRow row types for the fiducia.cloud Postgres planes (see fiducia-interfaces)."
 
 [dependencies]
-sqlx = { version = "0.8", default-features = false, features = ["postgres", "uuid", "chrono", "json", "macros"] }
+sqlx = { version = "0.9", default-features = false, features = ["postgres", "uuid", "chrono", "json", "macros"] }
 uuid = { version = "1", features = ["serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
@@ -171,7 +171,10 @@ export function build() {
     mods.push(plane.name);
   }
   files["rust-db/src/lib.rs"] =
-    `// ${BANNER}\n#![allow(dead_code)]\n\n${mods.map((m) => `pub mod ${m};`).join("\n")}\n`;
+    `// ${BANNER}\n#![allow(dead_code)]\n\n${mods
+      .sort()
+      .map((m) => `pub mod ${m};`)
+      .join("\n")}\n`;
   files["rust-db/Cargo.toml"] = CARGO;
   return files;
 }

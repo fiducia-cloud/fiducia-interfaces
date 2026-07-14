@@ -10,11 +10,13 @@ sources of truth:
 2. **SQL** (`sql/customer.sql` + `sql/admin.sql`) — canonical Postgres schemas,
    split **by plane**: the customer plane (orgs, projects, users, API keys, mTLS
    identities, preferences, trusted sessions, audit) and the admin plane
-   (operators, infra-operation audit, admin audit). The admin and customer apps
-   run on **separate Postgres instances** — a security boundary — so their
-   schemas are separate too. Every optimistically-editable table carries the
-   local-first sync contract (`updated_at` + monotonic `version`, advanced by the
-   `bump_row_version` trigger).
+   (operators, infra-operation audit, admin audit, and a request-bound
+   idempotency ledger). The admin and customer apps run on **separate Postgres
+   instances** — a security boundary — so their schemas are separate too. Every
+   optimistically-editable table carries two distinct ordering values:
+   per-row `version` for compare-and-swap/reconciliation, and a plane-wide,
+   transactionally allocated `sync_sequence` for stable catch-up pagination.
+   Durable, scoped tombstones carry deletes through the same global cursor.
 
 Same spirit as `remote/libs/interfaces` (JSON Schema → types) and
 `remote/libs/pg-defs` (canonical SQL).
@@ -80,6 +82,25 @@ sanitizes doc comments, raw-escapes Rust keyword fields (`r#type`), and emits
 typed enums for string `enum`s (Rust enum · TS union · Python `Literal` · Go
 string + allowed-values doc). CI runs the self-tests and `--check` on every push.
 
+Customer and admin sync idempotency keys are bound to a canonical SHA-256 request
+fingerprint. Writers claim the key, perform the version-CAS mutation, and persist
+the committed row version in one transaction. A legacy NULL fingerprint or a
+different fingerprint must never replay; it fails closed and requires a new key.
+The SQL intentionally keeps legacy fingerprints nullable so that state remains
+distinguishable during rolling upgrades.
+
+CI installs dependencies strictly from `package-lock.json`, runs the complete
+`npm test` contract, checks all generated Rust crates with rustfmt and Clippy,
+builds the wasm target with an exact tool version, and audits every npm/Cargo
+lockfile. Action SHAs, Node, Rust, wasm-pack, and cargo-audit are immutable pins.
+
+The root Dockerfile is a contract **test image**, not a long-running service. It
+copies `package-lock.json` and every generated Rust `Cargo.lock`, installs npm
+dependencies with `npm ci --ignore-scripts`, and relies on the `--locked` Cargo
+commands in `npm test`. Build and test execution run as numeric UID/GID
+`65532:65532`; the image exposes no port and starts no daemon. TypeScript comes
+from the npm lockfile rather than a mutable global install.
+
 ## Languages
 
 First-class today: **Rust**, **Rust→WebAssembly**, **TypeScript**, **Python**,
@@ -92,8 +113,8 @@ the JS/wasm boundary as real objects (and a `.d.ts` is emitted). It is a separat
 crate so the plain `rust` crate stays dependency-free. Build it with:
 
 ```sh
-wasm-pack build generated/rust-wasm --target web
-# or: cargo build --manifest-path generated/rust-wasm/Cargo.toml --target wasm32-unknown-unknown
+wasm-pack build generated/rust-wasm --target web -- --locked
+# or: cargo build --locked --manifest-path generated/rust-wasm/Cargo.toml --target wasm32-unknown-unknown
 ```
 
 The roadmap is the rest of the **client languages** in
@@ -117,7 +138,7 @@ import type { LockGrant } from "@fiducia/interfaces/typescript";
 
 Servers (`fiducia-node`/`auth`/...) and every client in `fiducia-clients`
 validate their request/response shapes against these types. The customer portal
-(`fiducia-backend.rs`) uses `sql/customer.sql` and the admin dashboard
+(`fiducia-customer.rs`) uses `sql/customer.sql` and the admin dashboard
 (`fiducia-admin.rs`) uses `sql/admin.sql`, each against its own isolated Postgres
 instance.
 
@@ -150,6 +171,15 @@ SQL is pure DDL; its one dynamic statement uses `format(..., %I)` identifier-quo
 over a hardcoded table list. The generators run offline over local files and issue no
 SQL, so there is no query-injection or unsafe-deserialization surface.
 
+Supabase's `public` schema is treated as an API-exposed boundary. Backend-only
+membership, audit, and idempotency relations have RLS enabled with no client
+policy and explicitly revoke privileges from `anon` and `authenticated` when
+those roles exist. Raw `api_keys` rows are not in the realtime publication:
+row-level security cannot hide `secret_hash`, so customer key metadata is served
+only by an authenticated backend endpoint that returns a sanitized projection.
+Service backends must connect with a dedicated `BYPASSRLS` role and must never
+hand that credential to browsers.
+
 Dependency advisories (`cargo audit` per generated crate, `npm audit`), last reviewed
 2026-07-12:
 
@@ -161,5 +191,6 @@ Dependency advisories (`cargo audit` per generated crate, `npm audit`), last rev
 | npm (`package-lock.json`) | clean — 0 vulnerabilities |
 
 `cargo audit` scans the whole `Cargo.lock` regardless of feature selection, which is
-why the unused `rsa` still surfaces. Node updates land via Dependabot
-(`.github/dependabot.yml`).
+why the unused `rsa` still surfaces. Node, Rust, and GitHub Actions updates land
+via Dependabot (`.github/dependabot.yml`); CI remains pinned until those reviewed
+updates merge.

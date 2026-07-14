@@ -31,6 +31,6 @@ fn generated_lock_payloads_round_trip_multi_key_grants() {
     let decoded: LockGrant = serde_json::from_str(&encoded).expect("deserialize generated grant");
 
     assert_eq!(release.lock_id, "lock-1");
-    assert_eq!(decoded.acquired, true);
+    assert!(decoded.acquired);
     assert_eq!(decoded.keys.expect("keys"), acquire.keys);
 }

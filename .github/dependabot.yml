@@ -9,3 +9,19 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+  - package-ecosystem: cargo
+    directory: "/generated/rust"
+    schedule:
+      interval: weekly
+  - package-ecosystem: cargo
+    directory: "/generated/rust-wasm"
+    schedule:
+      interval: weekly
+  - package-ecosystem: cargo
+    directory: "/generated/rust-db"
+    schedule:
+      interval: weekly

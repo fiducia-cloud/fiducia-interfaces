@@ -237,7 +237,7 @@ serde_json = "1"
 // Wasm build of the Rust types: same serde structs, plus tsify + wasm-bindgen so
 // the payloads cross the JS/wasm boundary as real objects and a .d.ts is emitted.
 // Kept in a separate crate (generated/rust-wasm) so the plain `rust` crate stays
-// dependency-free. Build with: wasm-pack build generated/rust-wasm --target web
+// dependency-free. Build with: wasm-pack build generated/rust-wasm --target web -- --locked
 function emitRustWasm(types) {
   const cargo = `[package]
 name = "fiducia-interfaces-wasm"

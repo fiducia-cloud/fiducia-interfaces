@@ -1,0 +1,8 @@
+# cargo-audit configuration for generated interface crates.
+[advisories]
+ignore = [
+    # rsa 0.9.x — Marvin timing side-channel. This is resolved only through
+    # sqlx-mysql in the generated DB crate's lock graph; that crate enables only
+    # sqlx's PostgreSQL features, so the vulnerable code is not compiled.
+    "RUSTSEC-2023-0071",
+]

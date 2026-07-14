@@ -676,3 +676,5 @@ create index if not exists customer_preferences_user_sync_sequence_idx
   on customer_preferences (user_id, sync_sequence);
 create index if not exists customer_sessions_user_sync_sequence_idx
   on customer_sessions (user_id, sync_sequence);
+create index if not exists customer_notifications_user_sync_sequence_idx
+  on customer_notifications (user_id, sync_sequence);

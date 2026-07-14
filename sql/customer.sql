@@ -660,6 +660,7 @@ update public.sync_clock
      coalesce((select max(sync_sequence) from public.mtls_client_certs), 0),
      coalesce((select max(sync_sequence) from public.customer_preferences), 0),
      coalesce((select max(sync_sequence) from public.customer_sessions), 0),
+     coalesce((select max(sync_sequence) from public.customer_notifications), 0),
      coalesce((select max(sequence) from public.sync_tombstones), 0)
    )
  where singleton = true;

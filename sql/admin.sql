@@ -386,6 +386,7 @@ update public.sync_clock
      last_sequence,
      coalesce((select max(sync_sequence) from public.operators), 0),
      coalesce((select max(sync_sequence) from public.infra_operations), 0),
+     coalesce((select max(sync_sequence) from public.admin_broadcast_notices), 0),
      coalesce((select max(sequence) from public.sync_tombstones), 0)
    )
  where singleton = true;
@@ -393,3 +394,5 @@ create index if not exists operators_sync_sequence_idx
   on operators (sync_sequence);
 create index if not exists infra_operations_sync_sequence_idx
   on infra_operations (sync_sequence);
+create index if not exists admin_broadcast_notices_sync_sequence_idx
+  on admin_broadcast_notices (sync_sequence);

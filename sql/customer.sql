@@ -373,6 +373,47 @@ create index if not exists audit_log_project_created_idx on audit_log (project_i
 create index if not exists audit_log_actor_user_created_idx on audit_log (actor_user_id, created_at desc);
 create index if not exists audit_log_actor_key_created_idx on audit_log (actor_key_id, created_at desc);
 
+-- In-product notifications for a signed-in user (key-rotation reminders, lock
+-- contention alerts, MFA nudges, operator broadcasts). User-owned and part of
+-- the local-first sync set so the portal hydrates and reconciles the unread
+-- feed offline; `read_at` is the only client-editable field. Non-secret, so
+-- rows are published to the sync engine. Delivery preferences live in
+-- customer_preferences (notify_*); this table is the delivered instances.
+create table if not exists customer_notifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users (id) on delete cascade,
+  org_id uuid references orgs (id) on delete set null,
+  kind varchar(40) not null,
+  severity varchar(16) default 'info' not null,
+  title varchar(200) not null,
+  body varchar(2000) default '' not null,
+  link varchar(500),
+  read_at timestamptz,
+  created_at timestamptz default now() not null,
+  updated_at timestamptz default now() not null,
+  version bigint default 1 not null,
+  sync_sequence bigint not null,
+  constraint customer_notifications_severity_chk
+    check (severity in ('info', 'success', 'warning', 'critical')),
+  constraint customer_notifications_kind_chk
+    check (kind ~ '^[a-z][a-z0-9_.]{1,38}[a-z0-9]$')
+);
+alter table customer_notifications add column if not exists sync_sequence bigint;
+create index if not exists customer_notifications_user_created_idx
+  on customer_notifications (user_id, created_at desc);
+create index if not exists customer_notifications_user_unread_idx
+  on customer_notifications (user_id) where read_at is null;
+update customer_notifications set sync_sequence = public.allocate_sync_sequence()
+ where sync_sequence is null or sync_sequence <= 0;
+alter table customer_notifications alter column sync_sequence set not null;
+alter table customer_notifications alter column sync_sequence drop default;
+drop trigger if exists customer_notifications_sync_clock_guard on customer_notifications;
+create trigger customer_notifications_sync_clock_guard before insert or update or delete on customer_notifications for each statement execute function lock_sync_clock();
+drop trigger if exists customer_notifications_bump on customer_notifications;
+create trigger customer_notifications_bump before insert or update on customer_notifications for each row execute function bump_row_version();
+drop trigger if exists customer_notifications_tombstone on customer_notifications;
+create trigger customer_notifications_tombstone after delete on customer_notifications for each row execute function record_sync_tombstone('id', '', 'user_id');
+
 -- ============================================================================
 -- SUPABASE REALTIME + ROW-LEVEL SECURITY (local-first sync, defense-in-depth)
 -- ----------------------------------------------------------------------------
@@ -619,6 +660,7 @@ update public.sync_clock
      coalesce((select max(sync_sequence) from public.mtls_client_certs), 0),
      coalesce((select max(sync_sequence) from public.customer_preferences), 0),
      coalesce((select max(sync_sequence) from public.customer_sessions), 0),
+     coalesce((select max(sync_sequence) from public.customer_notifications), 0),
      coalesce((select max(sequence) from public.sync_tombstones), 0)
    )
  where singleton = true;
@@ -634,3 +676,5 @@ create index if not exists customer_preferences_user_sync_sequence_idx
   on customer_preferences (user_id, sync_sequence);
 create index if not exists customer_sessions_user_sync_sequence_idx
   on customer_sessions (user_id, sync_sequence);
+create index if not exists customer_notifications_user_sync_sequence_idx
+  on customer_notifications (user_id, sync_sequence);

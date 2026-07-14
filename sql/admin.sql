@@ -181,6 +181,42 @@ create trigger infra_operations_bump before insert or update on infra_operations
 drop trigger if exists infra_operations_tombstone on infra_operations;
 create trigger infra_operations_tombstone after delete on infra_operations for each row execute function record_sync_tombstone('id');
 
+-- Operator-authored broadcast notices surfaced on the admin dashboard
+-- (maintenance windows, incident notes, policy reminders). Operator plane only;
+-- never shown to customers. Part of the admin sync set so open operator
+-- consoles reconcile the active banner set live.
+create table if not exists admin_broadcast_notices (
+  id uuid primary key default gen_random_uuid(),
+  operator_id uuid references operators (id) on delete set null,
+  severity varchar(16) default 'info' not null,
+  title varchar(200) not null,
+  body varchar(2000) default '' not null,
+  active boolean default true not null,
+  starts_at timestamptz default now() not null,
+  ends_at timestamptz,
+  created_at timestamptz default now() not null,
+  updated_at timestamptz default now() not null,
+  version bigint default 1 not null,
+  sync_sequence bigint not null,
+  constraint admin_broadcast_notices_severity_chk
+    check (severity in ('info', 'warning', 'critical')),
+  constraint admin_broadcast_notices_window_chk
+    check (ends_at is null or ends_at > starts_at)
+);
+alter table admin_broadcast_notices add column if not exists sync_sequence bigint;
+create index if not exists admin_broadcast_notices_active_idx
+  on admin_broadcast_notices (starts_at desc) where active;
+update admin_broadcast_notices set sync_sequence = public.allocate_sync_sequence()
+ where sync_sequence is null or sync_sequence <= 0;
+alter table admin_broadcast_notices alter column sync_sequence set not null;
+alter table admin_broadcast_notices alter column sync_sequence drop default;
+drop trigger if exists admin_broadcast_notices_sync_clock_guard on admin_broadcast_notices;
+create trigger admin_broadcast_notices_sync_clock_guard before insert or update or delete on admin_broadcast_notices for each statement execute function lock_sync_clock();
+drop trigger if exists admin_broadcast_notices_bump on admin_broadcast_notices;
+create trigger admin_broadcast_notices_bump before insert or update on admin_broadcast_notices for each row execute function bump_row_version();
+drop trigger if exists admin_broadcast_notices_tombstone on admin_broadcast_notices;
+create trigger admin_broadcast_notices_tombstone after delete on admin_broadcast_notices for each row execute function record_sync_tombstone('id');
+
 -- Admin-plane audit (append-only; no version/trigger).
 create table if not exists admin_audit_log (
   id uuid primary key default gen_random_uuid(),
@@ -350,6 +386,7 @@ update public.sync_clock
      last_sequence,
      coalesce((select max(sync_sequence) from public.operators), 0),
      coalesce((select max(sync_sequence) from public.infra_operations), 0),
+     coalesce((select max(sync_sequence) from public.admin_broadcast_notices), 0),
      coalesce((select max(sequence) from public.sync_tombstones), 0)
    )
  where singleton = true;
@@ -357,3 +394,5 @@ create index if not exists operators_sync_sequence_idx
   on operators (sync_sequence);
 create index if not exists infra_operations_sync_sequence_idx
   on infra_operations (sync_sequence);
+create index if not exists admin_broadcast_notices_sync_sequence_idx
+  on admin_broadcast_notices (sync_sequence);

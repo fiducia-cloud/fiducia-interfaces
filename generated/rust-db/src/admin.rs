@@ -46,6 +46,22 @@ pub struct InfraOperationsRow {
 }
 
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
+pub struct AdminBroadcastNoticesRow {
+    pub id: uuid::Uuid,
+    pub operator_id: Option<uuid::Uuid>,
+    pub severity: String,
+    pub title: String,
+    pub body: String,
+    pub active: bool,
+    pub starts_at: chrono::DateTime<chrono::Utc>,
+    pub ends_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub version: i64,
+    pub sync_sequence: i64,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct AdminAuditLogRow {
     pub id: uuid::Uuid,
     pub actor_operator_id: Option<uuid::Uuid>,

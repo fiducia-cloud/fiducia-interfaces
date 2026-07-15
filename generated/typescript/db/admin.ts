@@ -41,6 +41,21 @@ export type InfraOperationsRow = {
   sync_sequence: number;
 };
 
+export type AdminBroadcastNoticesRow = {
+  id: string;
+  operator_id: string | null;
+  severity: string;
+  title: string;
+  body: string;
+  active: boolean;
+  starts_at: string;
+  ends_at: string | null;
+  created_at: string;
+  updated_at: string;
+  version: number;
+  sync_sequence: number;
+};
+
 export type AdminAuditLogRow = {
   id: string;
   actor_operator_id: string | null;

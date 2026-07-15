@@ -1,5 +1,5 @@
-# Cargo configuration
+# .cargo
 
-Repository-local Cargo settings for shared interface generation and validation.
-Keep them deterministic across consumers; protocol or generated-code changes
-must be regenerated and verified in every supported language.
+Cargo configuration scoped to this crate. `audit.toml` is the `cargo audit`
+advisory policy CI enforces — any accepted/ignored advisory must be recorded
+here with a justification, so the dependency-audit gate stays reviewable.

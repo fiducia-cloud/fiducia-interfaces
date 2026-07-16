@@ -1,0 +1,33 @@
+{
+  "comment": "Shared cross-language wire fixtures. Every language's test suite must decode each `valid` entry and reject each `invalid` entry (a required field is missing). One source of truth; see generated/rust/tests/lock_payloads.rs and src/wire-parity.test.mjs.",
+  "valid": {
+    "LockAcquireManyRequest": [
+      {
+        "keys": ["orders/42", "inventory/sku-7"],
+        "holder": "worker-a",
+        "ttl_ms": 30000,
+        "wait": false
+      },
+      {
+        "keys": ["billing/invoice-9"]
+      }
+    ],
+    "DecisionProposeRequest": [
+      {
+        "name": "release-942/ship",
+        "question": "ship release 942?",
+        "options": ["ship", "hold"],
+        "policy": { "kind": "plurality", "min_votes": 3 },
+        "deadline_ms": 1767225600000
+      }
+    ]
+  },
+  "invalid": {
+    "LockAcquireManyRequest": [
+      {
+        "holder": "worker-b",
+        "ttl_ms": 5000
+      }
+    ]
+  }
+}

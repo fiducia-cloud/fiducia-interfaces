@@ -5,6 +5,7 @@ import type {
   LockGrant,
   LockReleaseManyRequest,
 } from "../generated/typescript/index";
+import lockFixtures from "../fixtures/lock-payloads.json" with { type: "json" };
 
 const acquire: LockAcquireManyRequest = {
   keys: ["orders/42", "inventory/sku-7"],
@@ -31,3 +32,20 @@ const release: LockReleaseManyRequest = {
 };
 
 void release;
+
+// Cross-language wire parity (see fixtures/lock-payloads.json, the single
+// source of truth also decoded by generated/rust/tests/lock_payloads.rs and
+// validated at runtime by src/wire-parity.test.mjs): every valid lock fixture
+// entry must be assignable to the generated type...
+const fixtureAcquires: LockAcquireManyRequest[] =
+  lockFixtures.valid.LockAcquireManyRequest;
+
+// ...and the invalid entry (missing the required `keys` field) must be
+// REJECTED by the compiler. If the generated type ever stops requiring
+// `keys`, this @ts-expect-error itself becomes a compile error.
+// @ts-expect-error — fixture omits the required `keys` field on purpose
+const rejectedAcquire: LockAcquireManyRequest =
+  lockFixtures.invalid.LockAcquireManyRequest[0];
+
+void fixtureAcquires;
+void rejectedAcquire;

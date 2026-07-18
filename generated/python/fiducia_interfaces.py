@@ -437,11 +437,20 @@ class KvEntry:
     expires_at_ms: Optional[int] = None
 
 @dataclass
+class KvProtection:
+    """How the returned value is protected in Fiducia's replicated storage."""
+    at_rest: Literal["encrypted", "plaintext"]
+    provider: Optional[Literal["local_keyring", "local_keyring_legacy", "vault_transit"]] = None
+    key_id: Optional[str] = None
+    key_version: Optional[int] = None
+
+@dataclass
 class KvPutRequest:
     """Body of PUT /v1/kv/{key}."""
     value: str
     ttl_ms: Optional[int] = None
     prev_revision: Optional[int] = None
+    plaintext: Optional[bool] = None
 
 @dataclass
 class KvGetResponse:
@@ -449,6 +458,7 @@ class KvGetResponse:
     key: str
     found: bool
     entry: Optional[KvEntry] = None
+    protection: Optional[KvProtection] = None
 
 @dataclass
 class KvListItem:
@@ -457,6 +467,7 @@ class KvListItem:
     value: str
     mod_revision: int
     expires_at_ms: Optional[int] = None
+    protection: Optional[KvProtection] = None
 
 @dataclass
 class KvListResponse:

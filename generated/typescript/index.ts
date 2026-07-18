@@ -645,6 +645,18 @@ export type KvEntry = {
   expires_at_ms?: number;
 };
 
+/** How the returned value is protected in Fiducia's replicated storage. */
+export type KvProtection = {
+  /** Whether Fiducia stores this value as ciphertext or plaintext. */
+  at_rest: "encrypted" | "plaintext";
+  /** Protection backend for an encrypted value. */
+  provider?: "local_keyring" | "local_keyring_legacy" | "vault_transit";
+  /** Non-secret key identifier used to encrypt the value. */
+  key_id?: string;
+  /** External-provider key version, when available. */
+  key_version?: number;
+};
+
 /** Body of PUT /v1/kv/{key}. */
 export type KvPutRequest = {
   /** Value to store. */
@@ -653,6 +665,8 @@ export type KvPutRequest = {
   ttl_ms?: number;
   /** Optional compare-and-swap guard; 0 means must-not-exist. */
   prev_revision?: number;
+  /** Explicitly opt this value out of configured at-rest encryption. Omit or false for encrypted-by-default storage. */
+  plaintext?: boolean;
 };
 
 /** Response of GET /v1/kv/{key}. */
@@ -663,6 +677,8 @@ export type KvGetResponse = {
   found: boolean;
   /** The value when found. */
   entry?: KvEntry;
+  /** Storage protection metadata when found. */
+  protection?: KvProtection;
 };
 
 /** One row of a prefix listing: a key with its entry fields flattened in. */
@@ -675,6 +691,8 @@ export type KvListItem = {
   mod_revision: number;
   /** Absolute expiry (ms since epoch) if a TTL was set. */
   expires_at_ms?: number;
+  /** Storage protection metadata. */
+  protection?: KvProtection;
 };
 
 /** Response of GET /v1/kv?prefix=... — live keys under a prefix, merged across shards and sorted by key. */

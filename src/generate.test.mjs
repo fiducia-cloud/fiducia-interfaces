@@ -44,6 +44,28 @@ test("idempotency schema exposes claim, complete, record, and lookup payloads", 
   );
 });
 
+test("KV schema exposes protection metadata and explicit plaintext opt-out", () => {
+  const types = loadTypes();
+  const protection = types.find((type) => type.name === "KvProtection");
+  const put = types.find((type) => type.name === "KvPutRequest");
+  const get = types.find((type) => type.name === "KvGetResponse");
+
+  assert.ok(protection, "missing KvProtection");
+  assert.deepEqual(
+    protection.props.map((prop) => prop.name),
+    ["at_rest", "provider", "key_id", "key_version"],
+  );
+  assert.equal(put.props.find((prop) => prop.name === "plaintext").required, false);
+  assert.equal(get.props.find((prop) => prop.name === "protection").required, false);
+  const enums = collectEnums(types);
+  assert.deepEqual(enums.get("KvProtectionAtRest"), ["encrypted", "plaintext"]);
+  assert.deepEqual(enums.get("KvProtectionProvider"), [
+    "local_keyring",
+    "local_keyring_legacy",
+    "vault_transit",
+  ]);
+});
+
 test("string enums are collected and typed", () => {
   const enums = collectEnums(loadTypes());
   assert.deepEqual(enums.get("ProposeErrorReason"), ["not_leader", "unavailable"]);

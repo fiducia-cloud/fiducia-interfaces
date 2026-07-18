@@ -647,6 +647,18 @@ type KvEntry struct {
 	ExpiresAtMs *int64 `json:"expires_at_ms,omitempty"`
 }
 
+// KvProtection: How the returned value is protected in Fiducia's replicated storage.
+type KvProtection struct {
+	// Whether Fiducia stores this value as ciphertext or plaintext. (one of: encrypted, plaintext)
+	AtRest string `json:"at_rest"`
+	// Protection backend for an encrypted value. (one of: local_keyring, local_keyring_legacy, vault_transit)
+	Provider *string `json:"provider,omitempty"`
+	// Non-secret key identifier used to encrypt the value.
+	KeyId *string `json:"key_id,omitempty"`
+	// External-provider key version, when available.
+	KeyVersion *int64 `json:"key_version,omitempty"`
+}
+
 // KvPutRequest: Body of PUT /v1/kv/{key}.
 type KvPutRequest struct {
 	// Value to store.
@@ -655,6 +667,8 @@ type KvPutRequest struct {
 	TtlMs *int64 `json:"ttl_ms,omitempty"`
 	// Optional compare-and-swap guard; 0 means must-not-exist.
 	PrevRevision *int64 `json:"prev_revision,omitempty"`
+	// Explicitly opt this value out of configured at-rest encryption. Omit or false for encrypted-by-default storage.
+	Plaintext *bool `json:"plaintext,omitempty"`
 }
 
 // KvGetResponse: Response of GET /v1/kv/{key}.
@@ -665,6 +679,8 @@ type KvGetResponse struct {
 	Found bool `json:"found"`
 	// The value when found.
 	Entry *KvEntry `json:"entry,omitempty"`
+	// Storage protection metadata when found.
+	Protection *KvProtection `json:"protection,omitempty"`
 }
 
 // KvListItem: One row of a prefix listing: a key with its entry fields flattened in.
@@ -677,6 +693,8 @@ type KvListItem struct {
 	ModRevision int64 `json:"mod_revision"`
 	// Absolute expiry (ms since epoch) if a TTL was set.
 	ExpiresAtMs *int64 `json:"expires_at_ms,omitempty"`
+	// Storage protection metadata.
+	Protection *KvProtection `json:"protection,omitempty"`
 }
 
 // KvListResponse: Response of GET /v1/kv?prefix=... — live keys under a prefix, merged across shards and sorted by key.

@@ -141,6 +141,26 @@ pub enum IdempotencyRecordStatus {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
 #[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub enum KvProtectionAtRest {
+    #[serde(rename = "encrypted")]
+    Encrypted,
+    #[serde(rename = "plaintext")]
+    Plaintext,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub enum KvProtectionProvider {
+    #[serde(rename = "local_keyring")]
+    LocalKeyring,
+    #[serde(rename = "local_keyring_legacy")]
+    LocalKeyringLegacy,
+    #[serde(rename = "vault_transit")]
+    VaultTransit,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
 pub enum RateLimitCheckRequestAlgorithm {
     #[serde(rename = "token_bucket")]
     TokenBucket,
@@ -1029,6 +1049,23 @@ pub struct KvEntry {
     pub expires_at_ms: Option<i64>,
 }
 
+/// How the returned value is protected in Fiducia's replicated storage.
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub struct KvProtection {
+    /// Whether Fiducia stores this value as ciphertext or plaintext.
+    pub at_rest: KvProtectionAtRest,
+    /// Protection backend for an encrypted value.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider: Option<KvProtectionProvider>,
+    /// Non-secret key identifier used to encrypt the value.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key_id: Option<String>,
+    /// External-provider key version, when available.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key_version: Option<i64>,
+}
+
 /// Body of PUT /v1/kv/{key}.
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
 #[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
@@ -1041,6 +1078,9 @@ pub struct KvPutRequest {
     /// Optional compare-and-swap guard; 0 means must-not-exist.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub prev_revision: Option<i64>,
+    /// Explicitly opt this value out of configured at-rest encryption. Omit or false for encrypted-by-default storage.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plaintext: Option<bool>,
 }
 
 /// Response of GET /v1/kv/{key}.
@@ -1054,6 +1094,9 @@ pub struct KvGetResponse {
     /// The value when found.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub entry: Option<KvEntry>,
+    /// Storage protection metadata when found.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub protection: Option<KvProtection>,
 }
 
 /// One row of a prefix listing: a key with its entry fields flattened in.
@@ -1069,6 +1112,9 @@ pub struct KvListItem {
     /// Absolute expiry (ms since epoch) if a TTL was set.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub expires_at_ms: Option<i64>,
+    /// Storage protection metadata.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub protection: Option<KvProtection>,
 }
 
 /// Response of GET /v1/kv?prefix=... — live keys under a prefix, merged across shards and sorted by key.

@@ -1,8 +1,5 @@
-use fiducia_interfaces::{
-    DecisionPolicyKind, DecisionProposeRequest, LockAcquireManyRequest, LockGrant,
-    LockReleaseManyRequest,
-};
-use std::collections::BTreeMap;
+use fiducia_interfaces::*;
+use serde::de::DeserializeOwned;
 
 /// The shared cross-language wire fixtures (one source of truth, also decoded
 /// by src/wire-parity.test.mjs). Path is anchored on CARGO_MANIFEST_DIR so it
@@ -16,72 +13,130 @@ fn fixtures() -> serde_json::Value {
 }
 
 #[test]
-fn generated_lock_payloads_round_trip_multi_key_grants() {
+fn generated_lock_payloads_round_trip_hardened_lifecycle() {
     let acquire = LockAcquireManyRequest {
         keys: vec!["orders/42".to_string(), "inventory/sku-7".to_string()],
-        holder: Some("worker-a".to_string()),
+        holder: "worker-a".to_string(),
+        request_id: Some("attempt-union-09b2f8c4".to_string()),
         ttl_ms: Some(30_000),
         wait: Some(false),
+        wait_timeout_ms: None,
     };
 
-    let grant = LockGrant {
+    let grant = LockAcquireResponse {
         acquired: true,
-        lock_id: Some("lock-1".to_string()),
-        fencing_token: None,
-        fencing_tokens: Some(BTreeMap::from([
-            ("orders/42".to_string(), 41),
-            ("inventory/sku-7".to_string(), 42),
-        ])),
-        keys: Some(acquire.keys.clone()),
-        holders: Some(1),
-        max: Some(1),
-        available: Some(0),
+        queued: false,
+        renewed: None,
+        keys: acquire.keys.clone(),
+        holder: acquire.holder.clone(),
+        fencing_token: Some(41),
+        lease_expires_ms: Some(1_767_225_600_000),
+        position: None,
+        wait_expires_ms: None,
+        conflicts: None,
+        revision: 120,
     };
-    let release = LockReleaseManyRequest {
-        lock_id: grant.lock_id.clone().expect("lock id"),
+    let release = LockReleaseRequest {
+        holder: grant.holder.clone(),
+        fencing_token: grant.fencing_token.expect("fencing token"),
+    };
+    let raced_cancel = LockCancelResponse {
+        cancelled: false,
+        acquired: true,
+        reason: None,
+        keys: grant.keys.clone(),
+        holder: grant.holder.clone(),
+        fencing_token: grant.fencing_token,
+        lease_expires_ms: grant.lease_expires_ms,
+        promoted: vec![],
+        revision: 121,
     };
 
     let encoded = serde_json::to_string(&grant).expect("serialize generated grant");
-    let decoded: LockGrant = serde_json::from_str(&encoded).expect("deserialize generated grant");
+    let decoded: LockAcquireResponse =
+        serde_json::from_str(&encoded).expect("deserialize generated grant");
 
-    assert_eq!(release.lock_id, "lock-1");
+    assert_eq!(release.fencing_token, 41);
     assert!(decoded.acquired);
-    assert_eq!(decoded.keys.expect("keys"), acquire.keys);
+    assert_eq!(decoded.keys, acquire.keys);
+    assert!(raced_cancel.acquired);
+    assert_eq!(raced_cancel.fencing_token, Some(41));
+}
+
+fn assert_valid_entries<T: DeserializeOwned>(fixtures: &serde_json::Value, name: &str) {
+    let entries = fixtures["valid"][name]
+        .as_array()
+        .unwrap_or_else(|| panic!("valid {name} entries"));
+    assert!(
+        !entries.is_empty(),
+        "fixture must carry valid {name} entries"
+    );
+    for (i, entry) in entries.iter().enumerate() {
+        serde_json::from_value::<T>(entry.clone())
+            .unwrap_or_else(|e| panic!("valid {name}[{i}] must decode: {e}"));
+    }
+}
+
+fn assert_invalid_entries<T: DeserializeOwned>(fixtures: &serde_json::Value, name: &str) {
+    let entries = fixtures["invalid"][name]
+        .as_array()
+        .unwrap_or_else(|| panic!("invalid {name} entries"));
+    assert!(
+        !entries.is_empty(),
+        "fixture must carry invalid {name} entries"
+    );
+    for (i, entry) in entries.iter().enumerate() {
+        let err = serde_json::from_value::<T>(entry.clone())
+            .err()
+            .unwrap_or_else(|| panic!("invalid {name}[{i}] must not decode"));
+        assert!(
+            err.to_string().contains("missing field"),
+            "invalid {name}[{i}] should identify a missing field, got: {err}"
+        );
+    }
 }
 
 #[test]
 fn shared_fixture_valid_payloads_decode() {
     let fixtures = fixtures();
 
+    assert_valid_entries::<LockAcquireRequest>(&fixtures, "LockAcquireRequest");
+    assert_valid_entries::<LockAcquireManyRequest>(&fixtures, "LockAcquireManyRequest");
+    assert_valid_entries::<LockAcquireResponse>(&fixtures, "LockAcquireResponse");
+    assert_valid_entries::<LockRenewRequest>(&fixtures, "LockRenewRequest");
+    assert_valid_entries::<LockRenewResponse>(&fixtures, "LockRenewResponse");
+    assert_valid_entries::<LockReleaseRequest>(&fixtures, "LockReleaseRequest");
+    assert_valid_entries::<LockReleaseResponse>(&fixtures, "LockReleaseResponse");
+    assert_valid_entries::<LockCancelRequest>(&fixtures, "LockCancelRequest");
+    assert_valid_entries::<LockCancelResponse>(&fixtures, "LockCancelResponse");
+    assert_valid_entries::<SemaphoreAcquireRequest>(&fixtures, "SemaphoreAcquireRequest");
+    assert_valid_entries::<SemaphoreAcquireResponse>(&fixtures, "SemaphoreAcquireResponse");
+    assert_valid_entries::<SemaphoreRenewRequest>(&fixtures, "SemaphoreRenewRequest");
+    assert_valid_entries::<SemaphoreRenewResponse>(&fixtures, "SemaphoreRenewResponse");
+    assert_valid_entries::<SemaphoreReleaseRequest>(&fixtures, "SemaphoreReleaseRequest");
+    assert_valid_entries::<SemaphoreReleaseResponse>(&fixtures, "SemaphoreReleaseResponse");
+    assert_valid_entries::<SemaphoreCancelRequest>(&fixtures, "SemaphoreCancelRequest");
+    assert_valid_entries::<SemaphoreCancelResponse>(&fixtures, "SemaphoreCancelResponse");
+    assert_valid_entries::<FileLeaseAcquireRequest>(&fixtures, "FileLeaseAcquireRequest");
+    assert_valid_entries::<FileLeaseRenewRequest>(&fixtures, "FileLeaseRenewRequest");
+    assert_valid_entries::<FileLeaseQuery>(&fixtures, "FileLeaseQuery");
+    assert_valid_entries::<DecisionProposeRequest>(&fixtures, "DecisionProposeRequest");
+
     let acquires = fixtures["valid"]["LockAcquireManyRequest"]
         .as_array()
         .expect("valid LockAcquireManyRequest entries");
-    assert!(!acquires.is_empty(), "fixture must carry acquire payloads");
-    for (i, entry) in acquires.iter().enumerate() {
-        let decoded: LockAcquireManyRequest = serde_json::from_value(entry.clone())
-            .unwrap_or_else(|e| panic!("valid LockAcquireManyRequest[{i}] must decode: {e}"));
-        assert!(
-            !decoded.keys.is_empty(),
-            "decoded acquire[{i}] must keep its keys"
-        );
-    }
     // Spot-check field fidelity on the first entry, not just decodability.
     let first: LockAcquireManyRequest =
         serde_json::from_value(acquires[0].clone()).expect("first acquire");
     assert_eq!(first.keys, ["orders/42", "inventory/sku-7"]);
-    assert_eq!(first.holder.as_deref(), Some("worker-a"));
+    assert_eq!(first.holder, "worker-a");
+    assert_eq!(first.request_id.as_deref(), Some("attempt-union-09b2f8c4"));
     assert_eq!(first.ttl_ms, Some(30_000));
     assert_eq!(first.wait, Some(false));
 
     let proposes = fixtures["valid"]["DecisionProposeRequest"]
         .as_array()
         .expect("valid DecisionProposeRequest entries");
-    assert!(!proposes.is_empty(), "fixture must carry propose payloads");
-    for (i, entry) in proposes.iter().enumerate() {
-        let decoded: DecisionProposeRequest = serde_json::from_value(entry.clone())
-            .unwrap_or_else(|e| panic!("valid DecisionProposeRequest[{i}] must decode: {e}"));
-        assert!(!decoded.options.is_empty());
-    }
     let propose: DecisionProposeRequest =
         serde_json::from_value(proposes[0].clone()).expect("first propose");
     assert_eq!(propose.name, "release-942/ship");
@@ -91,16 +146,7 @@ fn shared_fixture_valid_payloads_decode() {
 #[test]
 fn shared_fixture_invalid_payloads_are_rejected() {
     let fixtures = fixtures();
-    let invalid = fixtures["invalid"]["LockAcquireManyRequest"]
-        .as_array()
-        .expect("invalid LockAcquireManyRequest entries");
-    assert!(!invalid.is_empty(), "fixture must carry invalid payloads");
-    for (i, entry) in invalid.iter().enumerate() {
-        let err = serde_json::from_value::<LockAcquireManyRequest>(entry.clone())
-            .expect_err("payload missing required `keys` must NOT decode");
-        assert!(
-            err.to_string().contains("keys"),
-            "rejection for invalid[{i}] should name the missing field, got: {err}"
-        );
-    }
+    assert_invalid_entries::<LockAcquireRequest>(&fixtures, "LockAcquireRequest");
+    assert_invalid_entries::<LockAcquireManyRequest>(&fixtures, "LockAcquireManyRequest");
+    assert_invalid_entries::<SemaphoreAcquireRequest>(&fixtures, "SemaphoreAcquireRequest");
 }

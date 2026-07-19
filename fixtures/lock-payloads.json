@@ -1,15 +1,273 @@
 {
-  "comment": "Shared cross-language wire fixtures. Every language's test suite must decode each `valid` entry and reject each `invalid` entry (a required field is missing). One source of truth; see generated/rust/tests/lock_payloads.rs and src/wire-parity.test.mjs.",
+  "comment": "Shared cross-language wire fixtures. Every valid entry decodes as its named generated type. `invalid` entries omit required fields and must fail generated-language decoding; `schema_invalid` entries exercise bounds/composition that remain runtime validation rather than static type information.",
   "valid": {
+    "LockAcquireRequest": [
+      {
+        "key": "orders/42",
+        "holder": "worker-a",
+        "request_id": "attempt-lock-8a1f0b7d",
+        "ttl_ms": 30000,
+        "wait": true,
+        "wait_timeout_ms": 5000
+      }
+    ],
     "LockAcquireManyRequest": [
       {
         "keys": ["orders/42", "inventory/sku-7"],
         "holder": "worker-a",
+        "request_id": "attempt-union-09b2f8c4",
         "ttl_ms": 30000,
         "wait": false
       },
       {
-        "keys": ["billing/invoice-9"]
+        "keys": ["billing/invoice-9"],
+        "holder": "worker-b",
+        "wait": true,
+        "wait_timeout_ms": 5000
+      }
+    ],
+    "LockAcquireResponse": [
+      {
+        "acquired": true,
+        "queued": false,
+        "keys": ["inventory/sku-7", "orders/42"],
+        "holder": "worker-a",
+        "fencing_token": 41,
+        "lease_expires_ms": 1767225600000,
+        "revision": 120
+      },
+      {
+        "acquired": true,
+        "queued": false,
+        "renewed": false,
+        "keys": ["inventory/sku-7", "orders/42"],
+        "holder": "worker-a",
+        "fencing_token": 41,
+        "lease_expires_ms": 1767225600000,
+        "revision": 121
+      },
+      {
+        "acquired": false,
+        "queued": true,
+        "keys": ["orders/42"],
+        "holder": "worker-b",
+        "position": 1,
+        "wait_expires_ms": 1767225575000,
+        "conflicts": ["orders/42"],
+        "revision": 121
+      },
+      {
+        "acquired": false,
+        "queued": false,
+        "keys": ["orders/42"],
+        "holder": "worker-c",
+        "position": null,
+        "wait_expires_ms": null,
+        "conflicts": ["orders/42"],
+        "revision": 122
+      }
+    ],
+    "LockRenewRequest": [
+      {
+        "keys": ["inventory/sku-7", "orders/42"],
+        "holder": "worker-a",
+        "fencing_token": 41,
+        "ttl_ms": 30000
+      }
+    ],
+    "LockRenewResponse": [
+      {
+        "renewed": true,
+        "keys": ["inventory/sku-7", "orders/42"],
+        "holder": "worker-a",
+        "fencing_token": 41,
+        "lease_expires_ms": 1767225630000,
+        "revision": 122
+      }
+    ],
+    "LockReleaseRequest": [
+      {
+        "holder": "worker-a",
+        "fencing_token": 41
+      }
+    ],
+    "LockReleaseResponse": [
+      {
+        "released": true,
+        "keys": ["inventory/sku-7", "orders/42"],
+        "promoted": [
+          {
+            "holder": "worker-b",
+            "keys": ["orders/42"],
+            "fencing_token": 42,
+            "lease_expires_ms": 1767225631000
+          }
+        ],
+        "revision": 123
+      }
+    ],
+    "LockCancelRequest": [
+      {
+        "key": "orders/42",
+        "holder": "worker-b",
+        "request_id": "attempt-lock-queued-4f32a9d1"
+      }
+    ],
+    "LockCancelResponse": [
+      {
+        "cancelled": false,
+        "acquired": true,
+        "keys": ["orders/42"],
+        "holder": "worker-b",
+        "fencing_token": 42,
+        "lease_expires_ms": 1767225631000,
+        "promoted": [],
+        "revision": 124
+      },
+      {
+        "cancelled": false,
+        "acquired": false,
+        "reason": "cancellation_capacity",
+        "keys": ["orders/42"],
+        "holder": "worker-b",
+        "promoted": [],
+        "revision": 125
+      }
+    ],
+    "SemaphoreAcquireRequest": [
+      {
+        "key": "pools/db/primary",
+        "holder": "worker-a",
+        "request_id": "attempt-semaphore-1a2b3c4d",
+        "limit": 3,
+        "ttl_ms": 30000,
+        "wait": true,
+        "wait_timeout_ms": 5000
+      }
+    ],
+    "SemaphoreAcquireResponse": [
+      {
+        "acquired": false,
+        "queued": true,
+        "key": "pools/db/primary",
+        "holder": "worker-d",
+        "limit": 3,
+        "available": 0,
+        "position": 1,
+        "wait_expires_ms": 1767225575000,
+        "revision": 125
+      },
+      {
+        "acquired": false,
+        "queued": false,
+        "key": "pools/db/primary",
+        "holder": "worker-e",
+        "limit": 3,
+        "available": 0,
+        "position": null,
+        "wait_expires_ms": null,
+        "revision": 126
+      },
+      {
+        "acquired": false,
+        "queued": false,
+        "reason": "limit_mismatch",
+        "key": "pools/db/primary",
+        "holder": "worker-f",
+        "requested_limit": 5,
+        "limit": 3,
+        "revision": 127
+      }
+    ],
+    "SemaphoreRenewRequest": [
+      {
+        "key": "pools/db/primary",
+        "holder": "worker-a",
+        "fencing_token": 51,
+        "ttl_ms": 30000
+      }
+    ],
+    "SemaphoreRenewResponse": [
+      {
+        "renewed": true,
+        "key": "pools/db/primary",
+        "holder": "worker-a",
+        "fencing_token": 51,
+        "lease_expires_ms": 1767225630000,
+        "revision": 126
+      }
+    ],
+    "SemaphoreReleaseRequest": [
+      {
+        "key": "pools/db/primary",
+        "holder": "worker-a",
+        "fencing_token": 51
+      }
+    ],
+    "SemaphoreReleaseResponse": [
+      {
+        "released": true,
+        "key": "pools/db/primary",
+        "promoted": [
+          {
+            "holder": "worker-d",
+            "fencing_token": 54,
+            "lease_expires_ms": 1767225631000
+          }
+        ],
+        "revision": 127
+      }
+    ],
+    "SemaphoreCancelRequest": [
+      {
+        "key": "pools/db/primary",
+        "holder": "worker-d",
+        "request_id": "attempt-semaphore-queued-5e6f7a8b"
+      }
+    ],
+    "SemaphoreCancelResponse": [
+      {
+        "cancelled": false,
+        "acquired": true,
+        "key": "pools/db/primary",
+        "holder": "worker-d",
+        "fencing_token": 54,
+        "lease_expires_ms": 1767225631000,
+        "promoted": [],
+        "revision": 128
+      },
+      {
+        "cancelled": false,
+        "acquired": false,
+        "reason": "cancellation_capacity",
+        "key": "pools/db/primary",
+        "holder": "worker-d",
+        "promoted": [],
+        "revision": 129
+      }
+    ],
+    "FileLeaseAcquireRequest": [
+      {
+        "repository": "fiducia-cloud/fiducia-node.rs",
+        "paths": ["src/locks.rs", "src/semaphore.rs"],
+        "agent_key": "codex-lock-audit",
+        "ttl_ms": 30000,
+        "wait": false
+      }
+    ],
+    "FileLeaseRenewRequest": [
+      {
+        "repository": "fiducia-cloud/fiducia-node.rs",
+        "paths": ["src/locks.rs", "src/semaphore.rs"],
+        "agent_key": "codex-lock-audit",
+        "fencing_token": 61,
+        "ttl_ms": 30000
+      }
+    ],
+    "FileLeaseQuery": [
+      {
+        "repository": "fiducia-cloud/fiducia-node.rs",
+        "path": "src/locks.rs"
       }
     ],
     "DecisionProposeRequest": [
@@ -23,11 +281,67 @@
     ]
   },
   "invalid": {
+    "LockAcquireRequest": [
+      {
+        "key": "orders/42",
+        "ttl_ms": 5000
+      }
+    ],
     "LockAcquireManyRequest": [
       {
         "holder": "worker-b",
         "ttl_ms": 5000
+      },
+      {
+        "keys": ["orders/42"],
+        "ttl_ms": 5000
       }
+    ],
+    "SemaphoreAcquireRequest": [
+      {
+        "key": "pools/db/primary",
+        "limit": 3
+      }
+    ]
+  },
+  "schema_invalid": {
+    "LockAcquireRequest": [
+      { "key": "orders/42", "holder": "" },
+      { "key": "orders/42", "holder": "worker-a", "request_id": "   " },
+      { "key": "orders/42", "holder": "worker-a", "request_id": "bad\u0000id" },
+      { "key": "orders/42", "holder": "worker-a", "ttl_ms": 0 },
+      { "key": "orders/42", "holder": "worker-a", "wait_timeout_ms": 0 },
+      { "holder": "worker-a" }
+    ],
+    "LockRenewRequest": [
+      { "key": "orders/42", "holder": "worker-a", "fencing_token": 0 }
+    ],
+    "LockAcquireResponse": [
+      { "acquired": true, "queued": false, "keys": ["orders/42"], "holder": "worker-a", "revision": 1 },
+      { "acquired": false, "queued": true, "keys": ["orders/42"], "holder": "worker-b", "position": null, "wait_expires_ms": null, "conflicts": ["orders/42"], "revision": 2 }
+    ],
+    "LockRenewResponse": [
+      { "renewed": false, "revision": 3 }
+    ],
+    "LockReleaseResponse": [
+      { "released": true, "keys": ["orders/42"], "revision": 4 }
+    ],
+    "LockCancelResponse": [
+      { "cancelled": false, "acquired": true, "keys": ["orders/42"], "holder": "worker-b", "promoted": [], "revision": 5 }
+    ],
+    "SemaphoreAcquireRequest": [
+      { "key": "pools/db/primary", "holder": "", "limit": 3 },
+      { "key": "pools/db/primary", "holder": "worker-a", "request_id": "\u0007", "limit": 3 },
+      { "key": "pools/db/primary", "holder": "worker-a", "limit": 3, "ttl_ms": 0 },
+      { "key": "pools/db/primary", "holder": "worker-a", "limit": 0 }
+    ],
+    "FileLeaseAcquireRequest": [
+      { "repository": "fiducia-node.rs", "paths": ["src/locks.rs"], "agent_key": "codex-lock-audit" },
+      { "repository": "fiducia-cloud/fiducia-node.rs/extra", "paths": ["src/locks.rs"], "agent_key": "codex-lock-audit" }
+    ],
+    "FileLeaseRenewRequest": [
+      { "repository": "fiducia-cloud/fiducia-node.rs", "paths": ["src/locks.rs"], "agent_key": "codex-lock-audit", "fencing_token": 0 },
+      { "repository": "fiducia-node.rs", "paths": ["src/locks.rs"], "agent_key": "codex-lock-audit", "fencing_token": 61 }
     ]
   }
 }

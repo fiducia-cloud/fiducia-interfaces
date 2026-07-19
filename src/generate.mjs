@@ -40,10 +40,24 @@ const RUST_KEYWORDS = new Set([
   "in","let","loop","match","mod","move","mut","pub","ref","return","self","static","struct","super",
   "trait","true","type","unsafe","use","where","while","async","await","box","union",
 ]);
+const PYTHON_KEYWORDS = new Set([
+  "False", "None", "True", "and", "as", "assert", "async", "await", "break", "class",
+  "continue", "def", "del", "elif", "else", "except", "finally", "for", "from", "global",
+  "if", "import", "in", "is", "lambda", "nonlocal", "not", "or", "pass", "raise", "return",
+  "try", "while", "with", "yield",
+]);
 const FIELD_RE = /^[a-z][a-z0-9_]*$/;
 
 const refName = (s) => (s && s.$ref ? s.$ref.split("/").pop() : null);
 const isStringEnum = (s) => s && s.type === "string" && Array.isArray(s.enum) && s.enum.length > 0;
+const isNullable = (s) => s && Array.isArray(s.type) && s.type.includes("null");
+const nonNullSchema = (s) => {
+  if (!isNullable(s)) return s;
+  const candidates = s.type.filter((candidate) => candidate !== "null");
+  if (candidates.length !== 1) fail("nullable schema must include exactly one non-null type");
+  const [type] = candidates;
+  return { ...s, type };
+};
 const mapValueSchema = (s) => (
   s && s.type === "object" && s.additionalProperties && typeof s.additionalProperties === "object"
     ? s.additionalProperties
@@ -82,9 +96,25 @@ function loadTypes() {
       const required = new Set(def.required || []);
       const props = Object.entries(def.properties || {}).map(([pname, pschema]) => {
         if (!FIELD_RE.test(pname)) fail(`${file}:${name}: property "${pname}" must be snake_case (${FIELD_RE})`);
-        return { name: pname, schema: pschema, required: required.has(pname), description: pschema.description || "" };
+        return {
+          name: pname,
+          schema: pschema,
+          required: required.has(pname),
+          description: pschema.description || "",
+          deprecated: pschema.deprecated === true,
+        };
       });
-      types.push({ name, description: def.description || "", props, source: file });
+      // Keep the complete definition as well as the flattened property list.
+      // Emitters use `props`; contract tests use `schema` to exercise bounds,
+      // patterns, and composition keywords from the same source of truth.
+      types.push({
+        name,
+        description: def.description || "",
+        deprecated: def.deprecated === true,
+        props,
+        schema: def,
+        source: file,
+      });
     }
   }
 
@@ -115,6 +145,7 @@ function collectEnums(types) {
 // --- per-language scalar resolvers (non-enum) --------------------------------
 
 function rustType(s) {
+  s = nonNullSchema(s);
   const r = refName(s); if (r) return r;
   const mapValue = mapValueSchema(s); if (mapValue) return `std::collections::BTreeMap<String, ${rustType(mapValue)}>`;
   switch (s.type) {
@@ -127,6 +158,7 @@ function rustType(s) {
   }
 }
 function tsType(s) {
+  s = nonNullSchema(s);
   const r = refName(s); if (r) return r;
   const mapValue = mapValueSchema(s); if (mapValue) return `Record<string, ${tsType(mapValue)}>`;
   switch (s.type) {
@@ -138,6 +170,7 @@ function tsType(s) {
   }
 }
 function pyType(s) {
+  s = nonNullSchema(s);
   const r = refName(s); if (r) return r;
   const mapValue = mapValueSchema(s); if (mapValue) return `Dict[str, ${pyType(mapValue)}]`;
   switch (s.type) {
@@ -150,6 +183,7 @@ function pyType(s) {
   }
 }
 function goType(s) {
+  s = nonNullSchema(s);
   const r = refName(s); if (r) return r;
   const mapValue = mapValueSchema(s); if (mapValue) return `map[string]${goType(mapValue)}`;
   switch (s.type) {
@@ -177,7 +211,10 @@ function renderRustBody(types, { wasm }) {
   const enumDerive = wasm
     ? "#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]"
     : "#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]";
-  const header = [`// ${BANNER}`, "", "use serde::{Deserialize, Serialize};"];
+  // Compatibility exports carry real #[deprecated] metadata. Derive macros
+  // necessarily reference the item they implement, so silence only this
+  // generated crate's internal uses; downstream uses still warn normally.
+  const header = [`// ${BANNER}`, "", "#![allow(deprecated)]", "", "use serde::{Deserialize, Serialize};"];
   if (wasm) header.push("use tsify::Tsify;", "use wasm_bindgen::prelude::*;");
   const out = [...header, ""];
   // Enums first.
@@ -190,12 +227,20 @@ function renderRustBody(types, { wasm }) {
   }
   for (const t of types) {
     if (t.description) out.push(`/// ${cLine(t.description)}`);
+    // Derive macros inspect every field/type and would otherwise warn while
+    // generating implementations for intentionally retained compatibility
+    // members. The deprecation still warns at downstream use sites.
+    if (t.deprecated || t.props.some((p) => p.deprecated)) out.push("#[allow(deprecated)]");
+    if (t.deprecated) {
+      out.push("#[deprecated(", `    note = "${cLine(t.description).replace(/"/g, '\\"')}"`, ")]");
+    }
     out.push(structDerive);
     if (wasm) out.push("#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]");
     out.push(`pub struct ${t.name} {`);
     for (const p of t.props) {
       if (p.description) out.push(`    /// ${cLine(p.description)}`);
-      const ty = isStringEnum(p.schema) ? enumTypeName(t.name, p.name) : rustType(p.schema);
+      const baseTy = isStringEnum(p.schema) ? enumTypeName(t.name, p.name) : rustType(p.schema);
+      const ty = isNullable(p.schema) ? `Option<${baseTy}>` : baseTy;
       const kw = RUST_KEYWORDS.has(p.name);
       const ident = kw ? `r#${p.name}` : p.name;
       if (kw) out.push(`    #[serde(rename = "${p.name}")]`);
@@ -212,7 +257,9 @@ function renderRustBody(types, { wasm }) {
       } else {
         out.push(`    #[serde(default, skip_serializing_if = "Option::is_none")]`);
         if (tsifyOverride) out.push(tsifyOverride);
-        out.push(`    pub ${ident}: Option<${ty}>,`);
+        // Missing and explicit null intentionally collapse to None for an
+        // optional nullable JSON field; never emit Option<Option<T>>.
+        out.push(`    pub ${ident}: ${isNullable(p.schema) ? ty : `Option<${ty}>`},`);
       }
     }
     out.push("}", "");
@@ -261,16 +308,19 @@ tsify = { version = "0.5", features = ["js"] }
 // The canonical TypeScript type for a field — shared by the `typescript` emitter
 // and the `rust-wasm` tsify overrides so both TS surfaces stay identical.
 function tsFieldType(p) {
-  return isStringEnum(p.schema) ? p.schema.enum.map((v) => `"${v}"`).join(" | ") : tsType(p.schema);
+  const base = isStringEnum(p.schema) ? p.schema.enum.map((v) => `"${v}"`).join(" | ") : tsType(p.schema);
+  return isNullable(p.schema) ? `${base} | null` : base;
 }
 
 function emitTs(types) {
   const out = [`// ${BANNER}`, ""];
   for (const t of types) {
-    if (t.description) out.push(`/** ${cBlock(t.description)} */`);
+    if (t.deprecated) out.push(`/** @deprecated ${cBlock(t.description)} */`);
+    else if (t.description) out.push(`/** ${cBlock(t.description)} */`);
     out.push(`export type ${t.name} = {`);
     for (const p of t.props) {
-      if (p.description) out.push(`  /** ${cBlock(p.description)} */`);
+      if (p.deprecated) out.push(`  /** @deprecated ${cBlock(p.description)} */`);
+      else if (p.description) out.push(`  /** ${cBlock(p.description)} */`);
       const ty = tsFieldType(p);
       out.push(`  ${p.name}${p.required ? "" : "?"}: ${ty};`);
     }
@@ -283,15 +333,49 @@ function emitPython(types) {
   const usesLiteral = types.some((t) => t.props.some((p) => isStringEnum(p.schema)));
   const usesDict = types.some((t) => t.props.some((p) => mapValueSchema(p.schema)));
   const typing = `from typing import List, Optional${usesDict ? ", Dict" : ""}${usesLiteral ? ", Literal" : ""}`;
-  const out = [`# ${BANNER}`, "from __future__ import annotations", "from dataclasses import dataclass", typing, ""];
+  const out = [
+    `# ${BANNER}`,
+    "from __future__ import annotations",
+    "from dataclasses import MISSING, dataclass, field as dataclass_field, fields, is_dataclass",
+    typing,
+    "",
+    "def to_wire(value):",
+    '    """Convert generated dataclasses to canonical snake-case JSON values."""',
+    "    if is_dataclass(value):",
+    "        output = {}",
+    "        for info in fields(value):",
+    "            item = getattr(value, info.name)",
+    "            if item is None and info.default is not MISSING:",
+    "                continue",
+    '            output[info.metadata.get("wire_name", info.name)] = to_wire(item)',
+    "        return output",
+    "    if isinstance(value, list):",
+    "        return [to_wire(item) for item in value]",
+    "    if isinstance(value, tuple):",
+    "        return [to_wire(item) for item in value]",
+    "    if isinstance(value, dict):",
+    "        return {key: to_wire(item) for key, item in value.items()}",
+    "    return value",
+    "",
+  ];
   for (const t of types) {
     out.push("@dataclass", `class ${t.name}:`);
     if (t.description) out.push(`    """${pyDoc(t.description)}"""`);
     const ordered = [...t.props].sort((a, b) => Number(b.required) - Number(a.required));
     if (ordered.length === 0) out.push("    pass");
     for (const p of ordered) {
-      const base = isStringEnum(p.schema) ? `Literal[${p.schema.enum.map((v) => `"${v}"`).join(", ")}]` : pyType(p.schema);
-      out.push(p.required ? `    ${p.name}: ${base}` : `    ${p.name}: Optional[${base}] = None`);
+      const raw = isStringEnum(p.schema) ? `Literal[${p.schema.enum.map((v) => `"${v}"`).join(", ")}]` : pyType(p.schema);
+      const base = isNullable(p.schema) ? `Optional[${raw}]` : raw;
+      const ident = PYTHON_KEYWORDS.has(p.name) ? `${p.name}_` : p.name;
+      if (ident !== p.name) out.push(`    # JSON field: ${p.name}`);
+      if (ident !== p.name) {
+        const field = p.required
+          ? `dataclass_field(metadata={"wire_name": "${p.name}"})`
+          : `dataclass_field(default=None, metadata={"wire_name": "${p.name}"})`;
+        out.push(`    ${ident}: ${p.required ? base : (isNullable(p.schema) ? base : `Optional[${base}]`)} = ${field}`);
+      } else {
+        out.push(p.required ? `    ${ident}: ${base}` : `    ${ident}: ${isNullable(p.schema) ? base : `Optional[${base}]`} = None`);
+      }
     }
     out.push("");
   }
@@ -301,15 +385,17 @@ function emitPython(types) {
 function emitGo(types) {
   const out = [`// ${BANNER}`, "", "package fiducia", ""];
   for (const t of types) {
-    if (t.description) out.push(`// ${t.name}: ${cLine(t.description)}`);
+    if (t.deprecated) out.push(`// ${t.name}: Deprecated: ${cLine(t.description)}`);
+    else if (t.description) out.push(`// ${t.name}: ${cLine(t.description)}`);
     out.push(`type ${t.name} struct {`);
     for (const p of t.props) {
       let doc = p.description ? cLine(p.description) : "";
+      if (p.deprecated) doc = `Deprecated: ${doc}`;
       if (isStringEnum(p.schema)) doc = `${doc} (one of: ${p.schema.enum.join(", ")})`.trim();
       if (doc) out.push(`\t// ${doc}`);
       const ty = goType(p.schema); // enums are plain strings in Go
       const tag = p.required ? `json:"${p.name}"` : `json:"${p.name},omitempty"`;
-      out.push(`\t${pascal(p.name)} ${p.required ? "" : "*"}${ty} \`${tag}\``);
+      out.push(`\t${pascal(p.name)} ${p.required && !isNullable(p.schema) ? "" : "*"}${ty} \`${tag}\``);
     }
     out.push("}", "");
   }

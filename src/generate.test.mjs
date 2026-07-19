@@ -2,6 +2,7 @@
 //   node --test src/*.test.mjs
 
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { test } from "node:test";
 
 import { build, loadTypes, pascal, oneLine, refName, isStringEnum, enumTypeName, collectEnums } from "./generate.mjs";
@@ -20,11 +21,33 @@ test("helpers", () => {
 test("loadTypes parses the real schemas without error", () => {
   const types = loadTypes();
   const names = types.map((t) => t.name);
-  for (const expected of ["ProposeOutcome", "KvEntry", "LockGrant", "LockAcquireManyRequest", "LockReleaseManyRequest", "FileLeaseAcquireRequest", "FileLeaseReleaseRequest", "FileLeaseQuery", "RateLimitCheckRequest", "ScheduleUpsertRequest", "Leadership", "ServiceInstance", "IdempotencyClaimRequest", "IdempotencyCompleteRequest", "IdempotencyRecord"]) {
+  for (const expected of ["ProposeOutcome", "KvEntry", "LockAcquireRequest", "LockAcquireResponse", "LockRenewRequest", "LockRenewResponse", "LockReleaseRequest", "LockReleaseResponse", "LockCancelRequest", "LockCancelResponse", "SemaphoreAcquireRequest", "SemaphoreAcquireResponse", "SemaphoreRenewRequest", "SemaphoreRenewResponse", "SemaphoreReleaseRequest", "SemaphoreReleaseResponse", "SemaphoreCancelRequest", "SemaphoreCancelResponse", "LockGrant", "LockAcquireManyRequest", "LockReleaseManyRequest", "FileLeaseAcquireRequest", "FileLeaseRenewRequest", "FileLeaseReleaseRequest", "FileLeaseQuery", "RateLimitCheckRequest", "ScheduleUpsertRequest", "Leadership", "ServiceInstance", "IdempotencyClaimRequest", "IdempotencyCompleteRequest", "IdempotencyRecord"]) {
     assert.ok(names.includes(expected), `missing ${expected}`);
   }
   const outcome = types.find((t) => t.name === "ProposeOutcome");
   assert.deepEqual(outcome.props.map((p) => p.name).sort(), ["log_index", "revision", "shard"]);
+});
+
+test("lock and semaphore contracts expose durable waits and token-bound lifecycle operations", () => {
+  const types = loadTypes();
+  const byName = (name) => types.find((type) => type.name === name);
+  const required = (name) => byName(name).props.filter((prop) => prop.required).map((prop) => prop.name);
+  const field = (name, property) => byName(name).props.find((prop) => prop.name === property).schema;
+
+  assert.deepEqual(required("LockAcquireRequest"), ["holder"]);
+  assert.deepEqual(required("LockAcquireManyRequest"), ["keys", "holder"]);
+  assert.equal(field("LockAcquireRequest", "holder").minLength, 1);
+  assert.equal(field("LockAcquireRequest", "ttl_ms").minimum, 1);
+  assert.equal(field("LockAcquireRequest", "wait_timeout_ms").maximum, 86_400_000);
+  assert.equal(field("LockRenewRequest", "fencing_token").minimum, 1);
+  assert.ok(byName("LockAcquireResponse").props.some((prop) => prop.name === "wait_expires_ms"));
+  assert.deepEqual(field("LockAcquireResponse", "position").type, ["integer", "null"]);
+  assert.deepEqual(required("SemaphoreAcquireRequest"), ["key", "holder", "limit"]);
+  assert.equal(field("SemaphoreRenewRequest", "fencing_token").minimum, 1);
+  assert.deepEqual(field("SemaphoreAcquireResponse", "reason").enum, ["limit_mismatch"]);
+  assert.equal(field("SemaphoreAcquireResponse", "requested_limit").minimum, 1);
+  assert.ok(byName("SemaphoreCancelResponse").props.some((prop) => prop.name === "lease_expires_ms"));
+  assert.match(field("FileLeaseAcquireRequest", "repository").pattern, /\//);
 });
 
 test("idempotency schema exposes claim, complete, record, and lookup payloads", () => {
@@ -83,6 +106,10 @@ test("rust output: struct, optional fields, and a typed enum", () => {
   assert.match(rust, /pub reason: ProposeErrorReason,/);          // field uses the enum
   assert.match(rust, /pub metadata: Option<std::collections::BTreeMap<String, String>>,/);
   assert.match(rust, /pub fencing_tokens: Option<std::collections::BTreeMap<String, i64>>,/);
+  assert.match(rust, /pub struct LockCancelResponse \{/);
+  assert.match(rust, /pub wait_expires_ms: Option<i64>,/);
+  assert.doesNotMatch(rust, /Option<Option<i64>>/);
+  assert.match(rust, /#\[deprecated\(\n\s+note = "Deprecated compatibility shape/);
 });
 
 test("rust-wasm output: callable Tsify ABI with JSON-compatible maps", () => {
@@ -138,6 +165,10 @@ test("typescript output: union for enum, optional marker", () => {
   assert.match(ts, /algorithm: "token_bucket" \| "sliding_window";/);
   assert.match(ts, /delivery\?: "at_least_once" \| "exactly_once";/);
   assert.match(ts, /ttl_ms\?: number;/);
+  assert.match(ts, /export type SemaphoreRenewRequest = \{/);
+  assert.match(ts, /wait_expires_ms\?: number \| null;/);
+  assert.match(ts, /position\?: number \| null;/);
+  assert.match(ts, /\/\*\* @deprecated Deprecated compatibility shape/);
 });
 
 test("idempotency output is generated for every supported language", () => {
@@ -164,6 +195,36 @@ test("python output: Literal + Optional ordering compiles", () => {
   assert.match(py, /from typing import List, Optional, Dict, Literal/);
   assert.match(py, /metadata: Optional\[Dict\[str, str\]\] = None/);
   assert.match(py, /fencing_tokens: Optional\[Dict\[str, int\]\] = None/);
+  assert.match(py, /# JSON field: from\n\s+from_: str = dataclass_field\(metadata=\{"wire_name": "from"\}\)/);
+  assert.match(py, /def to_wire\(value\):/);
+  assert.match(py, /output\[info\.metadata\.get\("wire_name", info\.name\)\] = to_wire\(item\)/);
+});
+
+test("python to_wire restores keyword aliases and omits optional None", () => {
+  const script = `
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location("fi", "generated/python/fiducia_interfaces.py")
+module = importlib.util.module_from_spec(spec)
+sys.modules["fi"] = module
+spec.loader.exec_module(module)
+value = module.HandoffOfferRequest(name="handoff", resource="repo", from_="worker-a", to="worker-b", from_token=7)
+wire = module.to_wire(value)
+assert wire["from"] == "worker-a"
+assert "from_" not in wire
+assert wire["from_token"] == 7
+`;
+  const result = spawnSync("python3", ["-c", script], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test("lock attempt ids and file-lease renewal generate in every language", () => {
+  const output = build();
+
+  assert.match(output["rust/src/lib.rs"], /pub request_id: Option<String>,/);
+  assert.match(output["rust/src/lib.rs"], /pub struct FileLeaseRenewRequest \{/);
+  assert.match(output["typescript/index.ts"], /export type FileLeaseRenewRequest = \{/);
+  assert.match(output["python/fiducia_interfaces.py"], /class FileLeaseRenewRequest:/);
+  assert.match(output["go/interfaces.go"], /type FileLeaseRenewRequest struct \{/);
 });
 
 test("go output: pointer+omitempty for optional, json tags", () => {

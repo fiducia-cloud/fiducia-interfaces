@@ -78,9 +78,12 @@ edit the schema or SQL and regenerate.
 
 The generator is hardened: it validates `index.json` + every schema, rejects
 duplicate type names and dangling `$ref`s, enforces snake_case field names,
-sanitizes doc comments, raw-escapes Rust keyword fields (`r#type`), and emits
-typed enums for string `enum`s (Rust enum · TS union · Python `Literal` · Go
-string + allowed-values doc). CI runs the self-tests and `--check` on every push.
+sanitizes doc comments, escapes Rust keyword fields (`r#type`) and Python
+keyword fields (`from_`, documented with its JSON name), and emits typed enums
+for string `enum`s (Rust enum · TS union · Python `Literal` · Go
+string + allowed-values doc). Explicit JSON `null` unions remain nullable in
+every generated language instead of degrading to an untyped value. CI runs the
+self-tests and `--check` on every push.
 
 Customer and admin sync idempotency keys are bound to a canonical SHA-256 request
 fingerprint. Writers claim the key, perform the version-CAS mutation, and persist
@@ -141,6 +144,66 @@ validate their request/response shapes against these types. The customer portal
 (`fiducia-customer.rs`) uses `sql/customer.sql` and the admin dashboard
 (`fiducia-admin.rs`) uses `sql/admin.sql`, each against its own isolated Postgres
 instance.
+
+## Lock, semaphore, and file-lease wire contract
+
+`schema/locks.schema.json` describes the operation output nested inside the
+node's normal propose envelope. Lock and semaphore acquire requests always carry
+a caller-generated, non-empty `holder`; there is no anonymous wire identity.
+Optional `ttl_ms` and `wait_timeout_ms` values are positive and capped at 24
+hours. The former bounds a granted lease, while the latter independently bounds
+a durable `wait:true` queue entry. A queued acquire response includes the
+replicated absolute `wait_expires_ms`; retrying the same holder/resource identity
+does not extend that deadline.
+
+New clients also send a cryptographically random `request_id` for each logical
+acquisition attempt. They reuse that ID for every retry and for the matching
+cancel, then generate a different ID for a later attempt—even when the holder
+and resource are unchanged. This lets a cancel committed before an ambiguous
+acquire durably suppress that one late request without creating a long-lived
+tombstone for the holder. Omitting `request_id` preserves the legacy
+holder/resource cancellation contract during rolling upgrades. Request IDs are
+1–128 non-control characters and cannot be blank.
+The replicated tombstone table is deliberately bounded. If it is full, cancel
+returns `cancelled:false`, `acquired:false`, and
+`reason:"cancellation_capacity"`; a caller must surface that failure and must
+not assume its ambiguous acquire was suppressed.
+
+The complete mutating lifecycle is explicit and token-bound:
+
+| Primitive | Acquire | Renew | Release | Cancel queued waiter |
+| --- | --- | --- | --- | --- |
+| union lock | `POST /v1/locks/acquire` | `POST /v1/locks/renew` | `POST /v1/locks/release` | `POST /v1/locks/cancel` |
+| semaphore | `POST /v1/semaphores/acquire` | `POST /v1/semaphores/renew` | `POST /v1/semaphores/release` | `POST /v1/semaphores/cancel` |
+
+Renew and release require the original `holder` plus the positive
+`fencing_token`; lock renewal also requires the exact canonical key set. Cancel
+is idempotent and never silently releases an active grant. If cancellation races
+queue promotion, its response has `acquired:true` plus `fencing_token` and
+`lease_expires_ms`, so an aborting client can immediately issue the corresponding
+release.
+
+Fencing tokens are JSON integers in the range 1 through
+`9007199254740991` (JavaScript's maximum safe integer). This keeps browser
+authorization exact; implementations must refuse overflow rather than round a
+token.
+
+Reissuing acquire with the exact same holder/resource identity is idempotent: it
+returns the existing fencing token and expiry with `renewed:false`, but it cannot
+extend authority using only the unfenced holder name. Only the dedicated
+token-bound renew operation extends a live lease. A semaphore's `limit` is fixed
+when that key is first created; a later acquire with a different limit returns
+`reason:"limit_mismatch"` and the requested/current limits without changing
+capacity.
+
+File-lease repository identity is canonical GitHub `owner/repo` (for example,
+`fiducia-cloud/fiducia-node.rs`). A control-plane migration path may accept one
+legacy bare repository name while old callers roll forward, but new clients and
+stored/generated payloads must emit `owner/repo`; nested or traversal-shaped
+repository values are invalid.
+`FileLeaseRenewRequest` carries the complete repository/path union, `agent_key`,
+current fencing token, and bounded renewal TTL so a partial or stale lease cannot
+be extended accidentally.
 
 ## Configuration (CLI flags → env)
 

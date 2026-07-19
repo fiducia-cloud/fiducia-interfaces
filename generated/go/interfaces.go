@@ -707,62 +707,131 @@ type KvListResponse struct {
 	Keys []KvListItem `json:"keys"`
 }
 
-// LockAcquireRequest: Body of POST /v1/locks/{key}/acquire. max=1 is a mutex; max>1 a semaphore.
+// LockAcquireRequest: Body of POST /v1/locks/acquire. Supply key or keys; when both are present, keys takes precedence.
 type LockAcquireRequest struct {
-	// Lease TTL in milliseconds.
+	// One slash-safe member key. Use keys for an atomic union.
+	Key *string `json:"key,omitempty"`
+	// Keys acquired atomically as one canonicalized union. The server sorts and deduplicates them.
+	Keys *[]string `json:"keys,omitempty"`
+	// Required, non-empty caller-chosen holder identity. Reuse it for retry, renew, release, and cancel.
+	Holder string `json:"holder"`
+	// Optional caller-generated identity for this logical acquisition attempt. Generate it with cryptographically strong randomness, reuse it for every retry and the matching cancel, and never reuse it for a later attempt.
+	RequestId *string `json:"request_id,omitempty"`
+	// Held-lease TTL in milliseconds; defaults to 30000.
 	TtlMs *int64 `json:"ttl_ms,omitempty"`
-	// Block (long-poll) until granted; false = try-lock.
+	// When true, enqueue durably if the union cannot be granted immediately; defaults to false.
 	Wait *bool `json:"wait,omitempty"`
-	// Caller-chosen holder identity.
-	Holder *string `json:"holder,omitempty"`
-	// Max concurrent holders (semaphore).
-	Max *int64 `json:"max,omitempty"`
+	// Independent lifetime of a wait:true queue entry; defaults to 30000. Retries do not extend the original deadline.
+	WaitTimeoutMs *int64 `json:"wait_timeout_ms,omitempty"`
 }
 
-// LockAcquireManyRequest: Body of POST /v1/locks/acquire. Acquires a bounded union of keys atomically.
+// LockAcquireManyRequest: Typed multi-key subset of POST /v1/locks/acquire. Acquires a bounded union atomically; use LockAcquireRequest when key-or-keys flexibility is needed.
 type LockAcquireManyRequest struct {
 	// Keys to lock as one union. The server sorts/dedupes before acquisition.
 	Keys []string `json:"keys"`
-	// Caller-chosen holder identity.
-	Holder *string `json:"holder,omitempty"`
-	// Lease TTL in milliseconds.
+	// Required, non-empty caller-chosen holder identity.
+	Holder string `json:"holder"`
+	// Optional caller-generated identity for this logical acquisition attempt. Reuse it across retries and cancellation; a new logical attempt must use a new value.
+	RequestId *string `json:"request_id,omitempty"`
+	// Held-lease TTL in milliseconds; defaults to 30000.
 	TtlMs *int64 `json:"ttl_ms,omitempty"`
-	// Reserved for long-poll composite waits; false = try-lock.
+	// When true, enqueue durably if the union cannot be granted immediately; defaults to false.
 	Wait *bool `json:"wait,omitempty"`
+	// Independent lifetime of a wait:true queue entry; defaults to 30000.
+	WaitTimeoutMs *int64 `json:"wait_timeout_ms,omitempty"`
 }
 
-// LockHolder: Current holder of a mutex, semaphore slot, or composite lock member.
+// LockHolder: One active union-lock grant. lock_id and exclusive are deprecated compatibility fields and are not emitted by the current node API.
 type LockHolder struct {
 	Holder string `json:"holder"`
-	LockId string `json:"lock_id"`
+	// Deprecated: Deprecated legacy identifier; current grants are authorized by holder plus fencing_token.
+	LockId *string `json:"lock_id,omitempty"`
 	FencingToken int64 `json:"fencing_token"`
 	LeaseExpiresMs int64 `json:"lease_expires_ms"`
 	Keys []string `json:"keys"`
-	// True for composite members that block semaphore sharing.
-	Exclusive bool `json:"exclusive"`
+	// Deprecated: Deprecated legacy field; union locks are always exclusive and current responses omit it.
+	Exclusive *bool `json:"exclusive,omitempty"`
 }
 
-// LockGrant: Response to an acquire / RW-acquire.
+// LockPromotedGrant: A queued union-lock request promoted by the same committed release or cancel operation.
+type LockPromotedGrant struct {
+	Holder string `json:"holder"`
+	Keys []string `json:"keys"`
+	FencingToken int64 `json:"fencing_token"`
+	LeaseExpiresMs int64 `json:"lease_expires_ms"`
+}
+
+// SemaphorePromotedGrant: A queued semaphore holder promoted by the same committed release or cancel operation.
+type SemaphorePromotedGrant struct {
+	Holder string `json:"holder"`
+	FencingToken int64 `json:"fencing_token"`
+	LeaseExpiresMs int64 `json:"lease_expires_ms"`
+}
+
+// LockAcquireResponse: Exact operation output of POST /v1/locks/acquire, inside the node propose envelope. Authority fields are present only when acquired is true; queue fields describe a durable waiter when queued is true.
+type LockAcquireResponse struct {
+	Acquired bool `json:"acquired"`
+	Queued bool `json:"queued"`
+	// False on an idempotent same-holder/key-set retry, making explicit that acquire did not extend the lease; absent on a new grant or failed acquire.
+	Renewed *bool `json:"renewed,omitempty"`
+	Keys []string `json:"keys"`
+	Holder string `json:"holder"`
+	// Present only for a live grant. The canonical JSON wire range is capped at JavaScript's maximum safe integer so browser clients never silently round authority.
+	FencingToken *int64 `json:"fencing_token,omitempty"`
+	// Present only for a live grant.
+	LeaseExpiresMs *int64 `json:"lease_expires_ms,omitempty"`
+	// One-based queue position when queued is true; explicit null on an unqueued failed try-lock.
+	Position *int64 `json:"position,omitempty"`
+	// Absolute replicated queue deadline when queued is true; explicit null on an unqueued failed try-lock.
+	WaitExpiresMs *int64 `json:"wait_expires_ms,omitempty"`
+	// Requested member keys currently held by another grant.
+	Conflicts *[]string `json:"conflicts,omitempty"`
+	Revision int64 `json:"revision"`
+}
+
+// LockGrant: Deprecated: Deprecated compatibility shape from the pre-union lock API. Current consumers must use LockAcquireResponse or the dedicated semaphore/RW response type.
 type LockGrant struct {
 	// Whether the lock was granted.
 	Acquired bool `json:"acquired"`
-	// Opaque id to present on release; set when acquired.
+	// Deprecated: Deprecated legacy id; never emitted by current union-lock endpoints.
 	LockId *string `json:"lock_id,omitempty"`
 	// Monotonic token to fence stale holders; set when acquired.
 	FencingToken *int64 `json:"fencing_token,omitempty"`
-	// Per-key fencing tokens for multi-key grants.
+	// Deprecated: Deprecated legacy per-key tokens; current union grants have one fencing_token for the complete key set.
 	FencingTokens *map[string]int64 `json:"fencing_tokens,omitempty"`
 	// Composite keys when this is a multi-key grant.
 	Keys *[]string `json:"keys,omitempty"`
-	// Current holder count (semaphores).
+	// Deprecated: Deprecated legacy semaphore count; use SemaphoreAcquireResponse.
 	Holders *int64 `json:"holders,omitempty"`
-	// Configured max holders.
+	// Deprecated: Deprecated legacy semaphore limit; use SemaphoreAcquireResponse.limit.
 	Max *int64 `json:"max,omitempty"`
-	// Remaining semaphore slots.
+	// Deprecated: Deprecated legacy semaphore capacity; use SemaphoreAcquireResponse.available.
 	Available *int64 `json:"available,omitempty"`
 }
 
-// LockReleaseRequest: Body of POST /v1/locks/{key}/release.
+// LockRenewRequest: Token-bound body of POST /v1/locks/renew. Supply the exact key set and holder from the grant.
+type LockRenewRequest struct {
+	Key *string `json:"key,omitempty"`
+	Keys *[]string `json:"keys,omitempty"`
+	Holder string `json:"holder"`
+	FencingToken int64 `json:"fencing_token"`
+	// Renewal TTL measured from the committed command time; defaults to 30000.
+	TtlMs *int64 `json:"ttl_ms,omitempty"`
+}
+
+// LockRenewResponse: Exact operation output of POST /v1/locks/renew. Grant fields are present only when renewed is true.
+type LockRenewResponse struct {
+	Renewed bool `json:"renewed"`
+	// Stable failure reason when renewed is false. (one of: not_found, not_holder, key_mismatch)
+	Reason *string `json:"reason,omitempty"`
+	Keys *[]string `json:"keys,omitempty"`
+	Holder *string `json:"holder,omitempty"`
+	FencingToken *int64 `json:"fencing_token,omitempty"`
+	LeaseExpiresMs *int64 `json:"lease_expires_ms,omitempty"`
+	Revision int64 `json:"revision"`
+}
+
+// LockReleaseRequest: Token-bound body of POST /v1/locks/release.
 type LockReleaseRequest struct {
 	// The holder identity used at acquire.
 	Holder string `json:"holder"`
@@ -770,14 +839,157 @@ type LockReleaseRequest struct {
 	FencingToken int64 `json:"fencing_token"`
 }
 
-// LockReleaseManyRequest: Body of POST /v1/locks/release-many.
+// LockReleaseResponse: Exact operation output of POST /v1/locks/release.
+type LockReleaseResponse struct {
+	Released bool `json:"released"`
+	// Stable failure reason when released is false. (one of: not_found, not_holder)
+	Reason *string `json:"reason,omitempty"`
+	// Released union when released is true.
+	Keys *[]string `json:"keys,omitempty"`
+	// Waiters promoted by the same committed release.
+	Promoted *[]LockPromotedGrant `json:"promoted,omitempty"`
+	Revision int64 `json:"revision"`
+}
+
+// LockReleaseManyRequest: Deprecated: Deprecated request for the removed POST /v1/locks/release-many route. Current union grants are released with LockReleaseRequest.
 type LockReleaseManyRequest struct {
-	// The composite lock id returned at acquire-many.
+	// Deprecated: Deprecated composite id; current endpoints do not emit lock_id.
 	LockId string `json:"lock_id"`
+}
+
+// LockCancelRequest: Body of idempotent POST /v1/locks/cancel. Identifies one exact queued holder/key-set request; it never silently releases an active grant.
+type LockCancelRequest struct {
+	Key *string `json:"key,omitempty"`
+	Keys *[]string `json:"keys,omitempty"`
+	Holder string `json:"holder"`
+	// Attempt identity from the acquire being cancelled. When present, cancellation is durable and suppresses only that exact late acquire; omitting it preserves the legacy holder/key cancellation behavior.
+	RequestId *string `json:"request_id,omitempty"`
+}
+
+// LockCancelResponse: Exact operation output of POST /v1/locks/cancel. If cancellation races promotion, acquired is true and authority fields let the aborting client release safely.
+type LockCancelResponse struct {
+	Cancelled bool `json:"cancelled"`
+	Acquired bool `json:"acquired"`
+	// Present when cancellation did not establish safety. cancellation_capacity means the bounded replicated tombstone table was full; callers must surface failure and must not assume the ambiguous acquire was suppressed. (one of: not_found, cancellation_capacity)
+	Reason *string `json:"reason,omitempty"`
+	Keys []string `json:"keys"`
+	Holder string `json:"holder"`
+	// Present when acquired is true after a promotion race.
+	FencingToken *int64 `json:"fencing_token,omitempty"`
+	// Present when acquired is true after a promotion race.
+	LeaseExpiresMs *int64 `json:"lease_expires_ms,omitempty"`
+	Promoted []LockPromotedGrant `json:"promoted"`
+	Revision int64 `json:"revision"`
+}
+
+// SemaphoreAcquireRequest: Body of POST /v1/semaphores/acquire.
+type SemaphoreAcquireRequest struct {
+	Key string `json:"key"`
+	// Required, non-empty permit identity.
+	Holder string `json:"holder"`
+	// Optional caller-generated identity for this logical permit-acquisition attempt. Reuse it across retries and cancellation; a new logical attempt must use a new value.
+	RequestId *string `json:"request_id,omitempty"`
+	// Maximum concurrent holders. It becomes immutable when the semaphore is first created; later mismatches fail without changing capacity.
+	Limit int64 `json:"limit"`
+	// Permit TTL; defaults to 30000.
+	TtlMs *int64 `json:"ttl_ms,omitempty"`
+	// When true, enqueue durably when capacity is unavailable; defaults to false.
+	Wait *bool `json:"wait,omitempty"`
+	// Independent lifetime of a wait:true queue entry; defaults to 30000.
+	WaitTimeoutMs *int64 `json:"wait_timeout_ms,omitempty"`
+}
+
+// SemaphoreAcquireResponse: Exact operation output of POST /v1/semaphores/acquire.
+type SemaphoreAcquireResponse struct {
+	Acquired bool `json:"acquired"`
+	Queued bool `json:"queued"`
+	// False on an idempotent same-holder retry, making explicit that acquire did not extend the permit; absent otherwise.
+	Renewed *bool `json:"renewed,omitempty"`
+	// Present only when an existing semaphore has a different immutable limit. (one of: limit_mismatch)
+	Reason *string `json:"reason,omitempty"`
+	Key string `json:"key"`
+	Holder string `json:"holder"`
+	Limit int64 `json:"limit"`
+	// Rejected caller-provided limit when reason is limit_mismatch.
+	RequestedLimit *int64 `json:"requested_limit,omitempty"`
+	// Current free permits; absent from a limit_mismatch response.
+	Available *int64 `json:"available,omitempty"`
+	// Present only for a live permit. The canonical JSON wire range is capped at JavaScript's maximum safe integer so browser clients never silently round authority.
+	FencingToken *int64 `json:"fencing_token,omitempty"`
+	// Present only for a live permit.
+	LeaseExpiresMs *int64 `json:"lease_expires_ms,omitempty"`
+	// One-based queue position when queued; explicit null on an unqueued failed try-acquire.
+	Position *int64 `json:"position,omitempty"`
+	// Absolute replicated queue deadline when queued; explicit null on an unqueued failed try-acquire.
+	WaitExpiresMs *int64 `json:"wait_expires_ms,omitempty"`
+	Revision int64 `json:"revision"`
+}
+
+// SemaphoreRenewRequest: Token-bound body of POST /v1/semaphores/renew.
+type SemaphoreRenewRequest struct {
+	Key string `json:"key"`
+	Holder string `json:"holder"`
+	FencingToken int64 `json:"fencing_token"`
+	// Renewal TTL measured from the committed command time; defaults to 30000.
+	TtlMs *int64 `json:"ttl_ms,omitempty"`
+}
+
+// SemaphoreRenewResponse: Exact operation output of POST /v1/semaphores/renew.
+type SemaphoreRenewResponse struct {
+	Renewed bool `json:"renewed"`
+	// (one of: not_found, not_holder)
+	Reason *string `json:"reason,omitempty"`
+	Key *string `json:"key,omitempty"`
+	Holder *string `json:"holder,omitempty"`
+	FencingToken *int64 `json:"fencing_token,omitempty"`
+	LeaseExpiresMs *int64 `json:"lease_expires_ms,omitempty"`
+	Revision int64 `json:"revision"`
+}
+
+// SemaphoreReleaseRequest: Token-bound body of POST /v1/semaphores/release.
+type SemaphoreReleaseRequest struct {
+	Key string `json:"key"`
+	Holder string `json:"holder"`
+	FencingToken int64 `json:"fencing_token"`
+}
+
+// SemaphoreReleaseResponse: Exact operation output of POST /v1/semaphores/release.
+type SemaphoreReleaseResponse struct {
+	Released bool `json:"released"`
+	// (one of: not_found, not_holder)
+	Reason *string `json:"reason,omitempty"`
+	Key *string `json:"key,omitempty"`
+	Promoted *[]SemaphorePromotedGrant `json:"promoted,omitempty"`
+	Revision int64 `json:"revision"`
+}
+
+// SemaphoreCancelRequest: Body of idempotent POST /v1/semaphores/cancel for one exact key/holder queue identity.
+type SemaphoreCancelRequest struct {
+	Key string `json:"key"`
+	Holder string `json:"holder"`
+	// Attempt identity from the acquire being cancelled. When present, cancellation is durable and scoped to that exact attempt; omitting it preserves legacy behavior.
+	RequestId *string `json:"request_id,omitempty"`
+}
+
+// SemaphoreCancelResponse: Exact operation output of POST /v1/semaphores/cancel. A promotion race returns acquired:true with authority fields so the client can release safely.
+type SemaphoreCancelResponse struct {
+	Cancelled bool `json:"cancelled"`
+	Acquired bool `json:"acquired"`
+	// cancellation_capacity means no durable attempt tombstone was installed; callers must surface failure. (one of: not_found, cancellation_capacity)
+	Reason *string `json:"reason,omitempty"`
+	Key string `json:"key"`
+	Holder string `json:"holder"`
+	// Present when acquired is true after a promotion race.
+	FencingToken *int64 `json:"fencing_token,omitempty"`
+	// Present when acquired is true after a promotion race.
+	LeaseExpiresMs *int64 `json:"lease_expires_ms,omitempty"`
+	Promoted []SemaphorePromotedGrant `json:"promoted"`
+	Revision int64 `json:"revision"`
 }
 
 // FileLeaseAcquireRequest: Bridge-to-control-plane request to atomically lease repository-relative file paths.
 type FileLeaseAcquireRequest struct {
+	// Canonical GitHub owner/repo identity. A legacy bare repo may be accepted only by a server migration path and must not be emitted by new clients.
 	Repository string `json:"repository"`
 	// Repository-relative paths. Absolute paths, traversal, backslashes, and empty components are rejected.
 	Paths []string `json:"paths"`
@@ -792,8 +1004,20 @@ type FileLeaseReleaseRequest struct {
 	FencingToken int64 `json:"fencing_token"`
 }
 
+// FileLeaseRenewRequest: Bridge-to-control-plane request to renew one exact repository-path union lease without changing its fencing token.
+type FileLeaseRenewRequest struct {
+	// Canonical GitHub owner/repo identity.
+	Repository string `json:"repository"`
+	// The complete canonical repository-relative path set from the acquired union lease.
+	Paths []string `json:"paths"`
+	AgentKey string `json:"agent_key"`
+	FencingToken int64 `json:"fencing_token"`
+	TtlMs *int64 `json:"ttl_ms,omitempty"`
+}
+
 // FileLeaseQuery: Query parameters used to find the bot or agent holding a repository file lease.
 type FileLeaseQuery struct {
+	// Canonical GitHub owner/repo identity. Legacy bare values are migration input only.
 	Repository string `json:"repository"`
 	Path string `json:"path"`
 }

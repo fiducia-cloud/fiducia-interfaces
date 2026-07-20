@@ -759,10 +759,7 @@ create table if not exists billing_subscriptions (
   created_at timestamptz default now() not null,
   updated_at timestamptz default now() not null,
   constraint billing_subscriptions_provider_chk check (provider in ('stripe', 'paypal')),
-  constraint billing_subscriptions_status_chk check (status in (
-    'trialing', 'active', 'past_due', 'canceled', 'unpaid',
-    'incomplete', 'incomplete_expired', 'paused'
-  ))
+  constraint billing_subscriptions_status_chk check (status in ('trialing', 'active', 'past_due', 'canceled', 'unpaid', 'incomplete', 'incomplete_expired', 'paused'))
 );
 create unique index if not exists billing_subscriptions_provider_id_uq
   on billing_subscriptions (provider, provider_subscription_id);

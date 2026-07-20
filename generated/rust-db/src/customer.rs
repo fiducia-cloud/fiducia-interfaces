@@ -149,6 +149,23 @@ pub struct AuditLogRow {
 }
 
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
+pub struct CustomerNotificationsRow {
+    pub id: uuid::Uuid,
+    pub user_id: uuid::Uuid,
+    pub org_id: Option<uuid::Uuid>,
+    pub kind: String,
+    pub severity: String,
+    pub title: String,
+    pub body: String,
+    pub link: Option<String>,
+    pub read_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub version: i64,
+    pub sync_sequence: i64,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct SyncIdempotencyKeysRow {
     pub key: String,
     pub request_fingerprint: Option<String>,

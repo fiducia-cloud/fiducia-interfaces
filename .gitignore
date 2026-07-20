@@ -1,6 +1,7 @@
 node_modules/
 target/
 Cargo.lock
+!/Cargo.lock
 # wasm-pack output for generated/rust-wasm
 pkg/
 __pycache__/

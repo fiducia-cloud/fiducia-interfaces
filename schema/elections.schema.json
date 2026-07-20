@@ -29,7 +29,7 @@
       "required": ["candidate", "fencing_token"],
       "properties": {
         "candidate": { "type": "string", "description": "The current holder." },
-        "fencing_token": { "type": "integer", "minimum": 0, "description": "Token from the grant." },
+        "fencing_token": { "type": "integer", "minimum": 0, "maximum": 9007199254740991, "description": "Token from the grant." },
         "ttl_ms": { "type": "integer", "minimum": 1, "description": "Optional new lease TTL; when omitted the original campaign TTL is reused." }
       }
     },
@@ -41,7 +41,7 @@
       "required": ["candidate", "fencing_token"],
       "properties": {
         "candidate": { "type": "string", "description": "The current holder." },
-        "fencing_token": { "type": "integer", "minimum": 0, "description": "Token from the grant." }
+        "fencing_token": { "type": "integer", "minimum": 0, "maximum": 9007199254740991, "description": "Token from the grant." }
       }
     },
     "Leadership": {
@@ -52,7 +52,7 @@
       "required": ["leader", "fencing_token", "lease_expires_ms", "ttl_ms", "metadata"],
       "properties": {
         "leader": { "type": "string", "description": "Current leader id." },
-        "fencing_token": { "type": "integer", "minimum": 0, "description": "Monotonic token for this leadership term." },
+        "fencing_token": { "type": "integer", "minimum": 0, "maximum": 9007199254740991, "description": "Monotonic token for this leadership term." },
         "lease_expires_ms": { "type": "integer", "minimum": 0, "description": "Lease expiry (ms since epoch)." },
         "ttl_ms": { "type": "integer", "minimum": 0, "description": "Campaign TTL retained so a renew without an explicit TTL reuses it." },
         "metadata": {

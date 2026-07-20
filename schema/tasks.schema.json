@@ -39,7 +39,7 @@
       "properties": {
         "name": { "type": "string", "description": "Task name." },
         "worker": { "type": "string", "description": "Owning worker id." },
-        "fencing_token": { "type": "integer", "minimum": 0, "description": "The token returned by claim." },
+        "fencing_token": { "type": "integer", "minimum": 0, "maximum": 9007199254740991, "description": "The token returned by claim." },
         "percent": { "type": "integer", "minimum": 0, "maximum": 100, "description": "Progress percent." },
         "checkpoint": { "type": "object", "description": "Durable resume state." }
       }
@@ -53,7 +53,7 @@
       "properties": {
         "name": { "type": "string", "description": "Task name." },
         "worker": { "type": "string", "description": "Owning worker id." },
-        "fencing_token": { "type": "integer", "minimum": 0, "description": "The token returned by claim." },
+        "fencing_token": { "type": "integer", "minimum": 0, "maximum": 9007199254740991, "description": "The token returned by claim." },
         "result": { "type": "object", "description": "Durable result to record." }
       }
     },
@@ -66,7 +66,7 @@
       "properties": {
         "name": { "type": "string", "description": "Task name." },
         "worker": { "type": "string", "description": "Owning worker id." },
-        "fencing_token": { "type": "integer", "minimum": 0, "description": "The token returned by claim." },
+        "fencing_token": { "type": "integer", "minimum": 0, "maximum": 9007199254740991, "description": "The token returned by claim." },
         "retryable": { "type": "boolean", "description": "Whether to requeue for another worker." }
       }
     },
@@ -86,7 +86,7 @@
           "description": "Lifecycle state."
         },
         "owner": { "type": "string", "description": "Current owning worker, if claimed." },
-        "fencing_token": { "type": "integer", "minimum": 0, "description": "Monotonic token of the current claim (0 if never claimed)." },
+        "fencing_token": { "type": "integer", "minimum": 0, "maximum": 9007199254740991, "description": "Monotonic token of the current claim (0 if never claimed)." },
         "progress": { "type": "integer", "minimum": 0, "maximum": 100, "description": "Last reported progress percent." },
         "checkpoint": { "type": "object", "description": "Last durable checkpoint." },
         "result": { "type": "object", "description": "Result recorded on completion." },

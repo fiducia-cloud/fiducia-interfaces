@@ -136,6 +136,22 @@ export type AuditLogRow = {
   retention_expires_at: string | null;
 };
 
+export type CustomerNotificationsRow = {
+  id: string;
+  user_id: string;
+  org_id: string | null;
+  kind: string;
+  severity: string;
+  title: string;
+  body: string;
+  link: string | null;
+  read_at: string | null;
+  created_at: string;
+  updated_at: string;
+  version: number;
+  sync_sequence: number;
+};
+
 export type SyncIdempotencyKeysRow = {
   key: string;
   request_fingerprint: string | null;

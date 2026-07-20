@@ -645,6 +645,18 @@ export type KvEntry = {
   expires_at_ms?: number;
 };
 
+/** How the returned value is protected in Fiducia's replicated storage. */
+export type KvProtection = {
+  /** Whether Fiducia stores this value as ciphertext or plaintext. */
+  at_rest: "encrypted" | "plaintext";
+  /** Protection backend for an encrypted value. */
+  provider?: "local_keyring" | "local_keyring_legacy" | "vault_transit";
+  /** Non-secret key identifier used to encrypt the value. */
+  key_id?: string;
+  /** External-provider key version, when available. */
+  key_version?: number;
+};
+
 /** Body of PUT /v1/kv/{key}. */
 export type KvPutRequest = {
   /** Value to store. */
@@ -653,6 +665,8 @@ export type KvPutRequest = {
   ttl_ms?: number;
   /** Optional compare-and-swap guard; 0 means must-not-exist. */
   prev_revision?: number;
+  /** Explicitly opt this value out of configured at-rest encryption. Omit or false for encrypted-by-default storage. */
+  plaintext?: boolean;
 };
 
 /** Response of GET /v1/kv/{key}. */
@@ -663,6 +677,8 @@ export type KvGetResponse = {
   found: boolean;
   /** The value when found. */
   entry?: KvEntry;
+  /** Storage protection metadata when found. */
+  protection?: KvProtection;
 };
 
 /** One row of a prefix listing: a key with its entry fields flattened in. */
@@ -675,6 +691,8 @@ export type KvListItem = {
   mod_revision: number;
   /** Absolute expiry (ms since epoch) if a TTL was set. */
   expires_at_ms?: number;
+  /** Storage protection metadata. */
+  protection?: KvProtection;
 };
 
 /** Response of GET /v1/kv?prefix=... — live keys under a prefix, merged across shards and sorted by key. */
@@ -687,62 +705,131 @@ export type KvListResponse = {
   keys: KvListItem[];
 };
 
-/** Body of POST /v1/locks/{key}/acquire. max=1 is a mutex; max>1 a semaphore. */
+/** Body of POST /v1/locks/acquire. Supply key or keys; when both are present, keys takes precedence. */
 export type LockAcquireRequest = {
-  /** Lease TTL in milliseconds. */
+  /** One slash-safe member key. Use keys for an atomic union. */
+  key?: string;
+  /** Keys acquired atomically as one canonicalized union. The server sorts and deduplicates them. */
+  keys?: string[];
+  /** Required, non-empty caller-chosen holder identity. Reuse it for retry, renew, release, and cancel. */
+  holder: string;
+  /** Optional caller-generated identity for this logical acquisition attempt. Generate it with cryptographically strong randomness, reuse it for every retry and the matching cancel, and never reuse it for a later attempt. */
+  request_id?: string;
+  /** Held-lease TTL in milliseconds; defaults to 30000. */
   ttl_ms?: number;
-  /** Block (long-poll) until granted; false = try-lock. */
+  /** When true, enqueue durably if the union cannot be granted immediately; defaults to false. */
   wait?: boolean;
-  /** Caller-chosen holder identity. */
-  holder?: string;
-  /** Max concurrent holders (semaphore). */
-  max?: number;
+  /** Independent lifetime of a wait:true queue entry; defaults to 30000. Retries do not extend the original deadline. */
+  wait_timeout_ms?: number;
 };
 
-/** Body of POST /v1/locks/acquire. Acquires a bounded union of keys atomically. */
+/** Typed multi-key subset of POST /v1/locks/acquire. Acquires a bounded union atomically; use LockAcquireRequest when key-or-keys flexibility is needed. */
 export type LockAcquireManyRequest = {
   /** Keys to lock as one union. The server sorts/dedupes before acquisition. */
   keys: string[];
-  /** Caller-chosen holder identity. */
-  holder?: string;
-  /** Lease TTL in milliseconds. */
+  /** Required, non-empty caller-chosen holder identity. */
+  holder: string;
+  /** Optional caller-generated identity for this logical acquisition attempt. Reuse it across retries and cancellation; a new logical attempt must use a new value. */
+  request_id?: string;
+  /** Held-lease TTL in milliseconds; defaults to 30000. */
   ttl_ms?: number;
-  /** Reserved for long-poll composite waits; false = try-lock. */
+  /** When true, enqueue durably if the union cannot be granted immediately; defaults to false. */
   wait?: boolean;
+  /** Independent lifetime of a wait:true queue entry; defaults to 30000. */
+  wait_timeout_ms?: number;
 };
 
-/** Current holder of a mutex, semaphore slot, or composite lock member. */
+/** One active union-lock grant. lock_id and exclusive are deprecated compatibility fields and are not emitted by the current node API. */
 export type LockHolder = {
   holder: string;
-  lock_id: string;
+  /** @deprecated Deprecated legacy identifier; current grants are authorized by holder plus fencing_token. */
+  lock_id?: string;
   fencing_token: number;
   lease_expires_ms: number;
   keys: string[];
-  /** True for composite members that block semaphore sharing. */
-  exclusive: boolean;
+  /** @deprecated Deprecated legacy field; union locks are always exclusive and current responses omit it. */
+  exclusive?: boolean;
 };
 
-/** Response to an acquire / RW-acquire. */
+/** A queued union-lock request promoted by the same committed release or cancel operation. */
+export type LockPromotedGrant = {
+  holder: string;
+  keys: string[];
+  fencing_token: number;
+  lease_expires_ms: number;
+};
+
+/** A queued semaphore holder promoted by the same committed release or cancel operation. */
+export type SemaphorePromotedGrant = {
+  holder: string;
+  fencing_token: number;
+  lease_expires_ms: number;
+};
+
+/** Exact operation output of POST /v1/locks/acquire, inside the node propose envelope. Authority fields are present only when acquired is true; queue fields describe a durable waiter when queued is true. */
+export type LockAcquireResponse = {
+  acquired: boolean;
+  queued: boolean;
+  /** False on an idempotent same-holder/key-set retry, making explicit that acquire did not extend the lease; absent on a new grant or failed acquire. */
+  renewed?: boolean;
+  keys: string[];
+  holder: string;
+  /** Present only for a live grant. The canonical JSON wire range is capped at JavaScript's maximum safe integer so browser clients never silently round authority. */
+  fencing_token?: number;
+  /** Present only for a live grant. */
+  lease_expires_ms?: number;
+  /** One-based queue position when queued is true; explicit null on an unqueued failed try-lock. */
+  position?: number | null;
+  /** Absolute replicated queue deadline when queued is true; explicit null on an unqueued failed try-lock. */
+  wait_expires_ms?: number | null;
+  /** Requested member keys currently held by another grant. */
+  conflicts?: string[];
+  revision: number;
+};
+
+/** @deprecated Deprecated compatibility shape from the pre-union lock API. Current consumers must use LockAcquireResponse or the dedicated semaphore/RW response type. */
 export type LockGrant = {
   /** Whether the lock was granted. */
   acquired: boolean;
-  /** Opaque id to present on release; set when acquired. */
+  /** @deprecated Deprecated legacy id; never emitted by current union-lock endpoints. */
   lock_id?: string;
   /** Monotonic token to fence stale holders; set when acquired. */
   fencing_token?: number;
-  /** Per-key fencing tokens for multi-key grants. */
+  /** @deprecated Deprecated legacy per-key tokens; current union grants have one fencing_token for the complete key set. */
   fencing_tokens?: Record<string, number>;
   /** Composite keys when this is a multi-key grant. */
   keys?: string[];
-  /** Current holder count (semaphores). */
+  /** @deprecated Deprecated legacy semaphore count; use SemaphoreAcquireResponse. */
   holders?: number;
-  /** Configured max holders. */
+  /** @deprecated Deprecated legacy semaphore limit; use SemaphoreAcquireResponse.limit. */
   max?: number;
-  /** Remaining semaphore slots. */
+  /** @deprecated Deprecated legacy semaphore capacity; use SemaphoreAcquireResponse.available. */
   available?: number;
 };
 
-/** Body of POST /v1/locks/{key}/release. */
+/** Token-bound body of POST /v1/locks/renew. Supply the exact key set and holder from the grant. */
+export type LockRenewRequest = {
+  key?: string;
+  keys?: string[];
+  holder: string;
+  fencing_token: number;
+  /** Renewal TTL measured from the committed command time; defaults to 30000. */
+  ttl_ms?: number;
+};
+
+/** Exact operation output of POST /v1/locks/renew. Grant fields are present only when renewed is true. */
+export type LockRenewResponse = {
+  renewed: boolean;
+  /** Stable failure reason when renewed is false. */
+  reason?: "not_found" | "not_holder" | "key_mismatch";
+  keys?: string[];
+  holder?: string;
+  fencing_token?: number;
+  lease_expires_ms?: number;
+  revision: number;
+};
+
+/** Token-bound body of POST /v1/locks/release. */
 export type LockReleaseRequest = {
   /** The holder identity used at acquire. */
   holder: string;
@@ -750,14 +837,155 @@ export type LockReleaseRequest = {
   fencing_token: number;
 };
 
-/** Body of POST /v1/locks/release-many. */
+/** Exact operation output of POST /v1/locks/release. */
+export type LockReleaseResponse = {
+  released: boolean;
+  /** Stable failure reason when released is false. */
+  reason?: "not_found" | "not_holder";
+  /** Released union when released is true. */
+  keys?: string[];
+  /** Waiters promoted by the same committed release. */
+  promoted?: LockPromotedGrant[];
+  revision: number;
+};
+
+/** @deprecated Deprecated request for the removed POST /v1/locks/release-many route. Current union grants are released with LockReleaseRequest. */
 export type LockReleaseManyRequest = {
-  /** The composite lock id returned at acquire-many. */
+  /** @deprecated Deprecated composite id; current endpoints do not emit lock_id. */
   lock_id: string;
+};
+
+/** Body of idempotent POST /v1/locks/cancel. Identifies one exact queued holder/key-set request; it never silently releases an active grant. */
+export type LockCancelRequest = {
+  key?: string;
+  keys?: string[];
+  holder: string;
+  /** Attempt identity from the acquire being cancelled. When present, cancellation is durable and suppresses only that exact late acquire; omitting it preserves the legacy holder/key cancellation behavior. */
+  request_id?: string;
+};
+
+/** Exact operation output of POST /v1/locks/cancel. If cancellation races promotion, acquired is true and authority fields let the aborting client release safely. */
+export type LockCancelResponse = {
+  cancelled: boolean;
+  acquired: boolean;
+  /** Present when cancellation did not establish safety. cancellation_capacity means the bounded replicated tombstone table was full; callers must surface failure and must not assume the ambiguous acquire was suppressed. */
+  reason?: "not_found" | "cancellation_capacity";
+  keys: string[];
+  holder: string;
+  /** Present when acquired is true after a promotion race. */
+  fencing_token?: number;
+  /** Present when acquired is true after a promotion race. */
+  lease_expires_ms?: number;
+  promoted: LockPromotedGrant[];
+  revision: number;
+};
+
+/** Body of POST /v1/semaphores/acquire. */
+export type SemaphoreAcquireRequest = {
+  key: string;
+  /** Required, non-empty permit identity. */
+  holder: string;
+  /** Optional caller-generated identity for this logical permit-acquisition attempt. Reuse it across retries and cancellation; a new logical attempt must use a new value. */
+  request_id?: string;
+  /** Maximum concurrent holders. It becomes immutable when the semaphore is first created; later mismatches fail without changing capacity. */
+  limit: number;
+  /** Permit TTL; defaults to 30000. */
+  ttl_ms?: number;
+  /** When true, enqueue durably when capacity is unavailable; defaults to false. */
+  wait?: boolean;
+  /** Independent lifetime of a wait:true queue entry; defaults to 30000. */
+  wait_timeout_ms?: number;
+};
+
+/** Exact operation output of POST /v1/semaphores/acquire. */
+export type SemaphoreAcquireResponse = {
+  acquired: boolean;
+  queued: boolean;
+  /** False on an idempotent same-holder retry, making explicit that acquire did not extend the permit; absent otherwise. */
+  renewed?: boolean;
+  /** Present only when an existing semaphore has a different immutable limit. */
+  reason?: "limit_mismatch";
+  key: string;
+  holder: string;
+  limit: number;
+  /** Rejected caller-provided limit when reason is limit_mismatch. */
+  requested_limit?: number;
+  /** Current free permits; absent from a limit_mismatch response. */
+  available?: number;
+  /** Present only for a live permit. The canonical JSON wire range is capped at JavaScript's maximum safe integer so browser clients never silently round authority. */
+  fencing_token?: number;
+  /** Present only for a live permit. */
+  lease_expires_ms?: number;
+  /** One-based queue position when queued; explicit null on an unqueued failed try-acquire. */
+  position?: number | null;
+  /** Absolute replicated queue deadline when queued; explicit null on an unqueued failed try-acquire. */
+  wait_expires_ms?: number | null;
+  revision: number;
+};
+
+/** Token-bound body of POST /v1/semaphores/renew. */
+export type SemaphoreRenewRequest = {
+  key: string;
+  holder: string;
+  fencing_token: number;
+  /** Renewal TTL measured from the committed command time; defaults to 30000. */
+  ttl_ms?: number;
+};
+
+/** Exact operation output of POST /v1/semaphores/renew. */
+export type SemaphoreRenewResponse = {
+  renewed: boolean;
+  reason?: "not_found" | "not_holder";
+  key?: string;
+  holder?: string;
+  fencing_token?: number;
+  lease_expires_ms?: number;
+  revision: number;
+};
+
+/** Token-bound body of POST /v1/semaphores/release. */
+export type SemaphoreReleaseRequest = {
+  key: string;
+  holder: string;
+  fencing_token: number;
+};
+
+/** Exact operation output of POST /v1/semaphores/release. */
+export type SemaphoreReleaseResponse = {
+  released: boolean;
+  reason?: "not_found" | "not_holder";
+  key?: string;
+  promoted?: SemaphorePromotedGrant[];
+  revision: number;
+};
+
+/** Body of idempotent POST /v1/semaphores/cancel for one exact key/holder queue identity. */
+export type SemaphoreCancelRequest = {
+  key: string;
+  holder: string;
+  /** Attempt identity from the acquire being cancelled. When present, cancellation is durable and scoped to that exact attempt; omitting it preserves legacy behavior. */
+  request_id?: string;
+};
+
+/** Exact operation output of POST /v1/semaphores/cancel. A promotion race returns acquired:true with authority fields so the client can release safely. */
+export type SemaphoreCancelResponse = {
+  cancelled: boolean;
+  acquired: boolean;
+  /** cancellation_capacity means no durable attempt tombstone was installed; callers must surface failure. */
+  reason?: "not_found" | "cancellation_capacity";
+  key: string;
+  holder: string;
+  /** Present when acquired is true after a promotion race. */
+  fencing_token?: number;
+  /** Present when acquired is true after a promotion race. */
+  lease_expires_ms?: number;
+  promoted: SemaphorePromotedGrant[];
+  revision: number;
 };
 
 /** Bridge-to-control-plane request to atomically lease repository-relative file paths. */
 export type FileLeaseAcquireRequest = {
+  /** Canonical GitHub owner/repo identity. A legacy bare repo may be accepted only by a server migration path and must not be emitted by new clients. */
   repository: string;
   /** Repository-relative paths. Absolute paths, traversal, backslashes, and empty components are rejected. */
   paths: string[];
@@ -772,8 +1000,20 @@ export type FileLeaseReleaseRequest = {
   fencing_token: number;
 };
 
+/** Bridge-to-control-plane request to renew one exact repository-path union lease without changing its fencing token. */
+export type FileLeaseRenewRequest = {
+  /** Canonical GitHub owner/repo identity. */
+  repository: string;
+  /** The complete canonical repository-relative path set from the acquired union lease. */
+  paths: string[];
+  agent_key: string;
+  fencing_token: number;
+  ttl_ms?: number;
+};
+
 /** Query parameters used to find the bot or agent holding a repository file lease. */
 export type FileLeaseQuery = {
+  /** Canonical GitHub owner/repo identity. Legacy bare values are migration input only. */
   repository: string;
   path: string;
 };

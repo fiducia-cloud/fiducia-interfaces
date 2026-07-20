@@ -32,7 +32,7 @@
       "properties": {
         "key": { "type": "string", "description": "Idempotency key to complete." },
         "owner": { "type": "string", "description": "Owner that claimed the key." },
-        "fencing_token": { "type": "integer", "minimum": 0, "description": "Token returned by the winning claim." },
+        "fencing_token": { "type": "integer", "minimum": 0, "maximum": 9007199254740991, "description": "Token returned by the winning claim." },
         "result": { "type": "object", "description": "Optional small JSON result duplicate callers can replay." }
       }
     },
@@ -45,7 +45,7 @@
       "properties": {
         "key": { "type": "string", "description": "Idempotency key." },
         "owner": { "type": "string", "description": "Owner of the first claim." },
-        "fencing_token": { "type": "integer", "minimum": 0, "description": "Monotonic token guarding completion." },
+        "fencing_token": { "type": "integer", "minimum": 0, "maximum": 9007199254740991, "description": "Monotonic token guarding completion." },
         "status": {
           "type": "string",
           "enum": ["claimed", "completed"],

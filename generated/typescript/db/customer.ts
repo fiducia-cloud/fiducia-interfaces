@@ -158,3 +158,90 @@ export type SyncIdempotencyKeysRow = {
   committed_version: number | null;
   created_at: string;
 };
+
+export type BillingCustomersRow = {
+  id: string;
+  org_id: string;
+  provider: string;
+  provider_customer_id: string;
+  email: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PaymentMethodsRow = {
+  id: string;
+  org_id: string;
+  billing_customer_id: string;
+  provider: string;
+  provider_payment_method_id: string;
+  kind: string;
+  brand: string | null;
+  last4: string | null;
+  exp_month: number | null;
+  exp_year: number | null;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BillingSubscriptionsRow = {
+  id: string;
+  org_id: string;
+  billing_customer_id: string;
+  provider: string;
+  provider_subscription_id: string;
+  plan: string;
+  status: string;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+  canceled_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type InvoicesRow = {
+  id: string;
+  org_id: string;
+  billing_customer_id: string | null;
+  subscription_id: string | null;
+  provider: string;
+  provider_invoice_id: string;
+  status: string;
+  amount_due_cents: number;
+  amount_paid_cents: number;
+  currency: string;
+  period_start: string | null;
+  period_end: string | null;
+  hosted_invoice_url: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PaymentsRow = {
+  id: string;
+  org_id: string;
+  invoice_id: string | null;
+  payment_method_id: string | null;
+  provider: string;
+  provider_payment_id: string;
+  status: string;
+  amount_cents: number;
+  currency: string;
+  failure_code: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type BillingWebhookEventsRow = {
+  id: string;
+  provider: string;
+  provider_event_id: string;
+  event_type: string;
+  signature_verified: boolean;
+  payload_sha256: string;
+  received_at: string;
+  processed_at: string | null;
+  process_error: string | null;
+};

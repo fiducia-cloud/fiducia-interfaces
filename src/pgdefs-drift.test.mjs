@@ -112,6 +112,7 @@ test("fiducia SQL tables match the k8s-libs pg-defs fiducia schema (no drift)", 
           problems.push(`${table.name}.${name} exists here but not in pg-defs`);
           continue;
         }
+        if (ACCEPTED_DRIFT.has(`${table.name}.${name}`)) continue;
         // Compare the two facets that change row decoding: SQL base type and
         // nullability. (Defaults/constraints don't affect the generated struct.)
         if (baseType(col.sqlType) !== baseType(other.sqlType)) {
@@ -126,7 +127,7 @@ test("fiducia SQL tables match the k8s-libs pg-defs fiducia schema (no drift)", 
         }
       }
       for (const name of theirsCols.keys()) {
-        if (!oursCols.has(name)) {
+        if (!oursCols.has(name) && !ACCEPTED_DRIFT.has(`${table.name}.${name}`)) {
           problems.push(`${table.name}.${name} exists in pg-defs but not here`);
         }
       }

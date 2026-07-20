@@ -810,9 +810,7 @@ create table if not exists payments (
   created_at timestamptz default now() not null,
   updated_at timestamptz default now() not null,
   constraint payments_provider_chk check (provider in ('stripe', 'paypal')),
-  constraint payments_status_chk check (status in (
-    'pending', 'processing', 'succeeded', 'failed', 'canceled', 'refunded', 'partially_refunded'
-  )),
+  constraint payments_status_chk check (status in ('pending', 'processing', 'succeeded', 'failed', 'canceled', 'refunded', 'partially_refunded')),
   constraint payments_currency_chk check (currency ~ '^[a-z]{3}$'),
   constraint payments_amount_chk check (amount_cents >= 0)
 );

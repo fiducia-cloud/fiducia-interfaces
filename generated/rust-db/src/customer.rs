@@ -172,3 +172,96 @@ pub struct SyncIdempotencyKeysRow {
     pub committed_version: Option<i64>,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
+
+#[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
+pub struct BillingCustomersRow {
+    pub id: uuid::Uuid,
+    pub org_id: uuid::Uuid,
+    pub provider: String,
+    pub provider_customer_id: String,
+    pub email: Option<String>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
+pub struct PaymentMethodsRow {
+    pub id: uuid::Uuid,
+    pub org_id: uuid::Uuid,
+    pub billing_customer_id: uuid::Uuid,
+    pub provider: String,
+    pub provider_payment_method_id: String,
+    pub kind: String,
+    pub brand: Option<String>,
+    pub last4: Option<String>,
+    pub exp_month: Option<i16>,
+    pub exp_year: Option<i16>,
+    pub is_default: bool,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
+pub struct BillingSubscriptionsRow {
+    pub id: uuid::Uuid,
+    pub org_id: uuid::Uuid,
+    pub billing_customer_id: uuid::Uuid,
+    pub provider: String,
+    pub provider_subscription_id: String,
+    pub plan: String,
+    pub status: String,
+    pub current_period_start: Option<chrono::DateTime<chrono::Utc>>,
+    pub current_period_end: Option<chrono::DateTime<chrono::Utc>>,
+    pub cancel_at_period_end: bool,
+    pub canceled_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
+pub struct InvoicesRow {
+    pub id: uuid::Uuid,
+    pub org_id: uuid::Uuid,
+    pub billing_customer_id: Option<uuid::Uuid>,
+    pub subscription_id: Option<uuid::Uuid>,
+    pub provider: String,
+    pub provider_invoice_id: String,
+    pub status: String,
+    pub amount_due_cents: i64,
+    pub amount_paid_cents: i64,
+    pub currency: String,
+    pub period_start: Option<chrono::DateTime<chrono::Utc>>,
+    pub period_end: Option<chrono::DateTime<chrono::Utc>>,
+    pub hosted_invoice_url: Option<String>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
+pub struct PaymentsRow {
+    pub id: uuid::Uuid,
+    pub org_id: uuid::Uuid,
+    pub invoice_id: Option<uuid::Uuid>,
+    pub payment_method_id: Option<uuid::Uuid>,
+    pub provider: String,
+    pub provider_payment_id: String,
+    pub status: String,
+    pub amount_cents: i64,
+    pub currency: String,
+    pub failure_code: Option<String>,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
+pub struct BillingWebhookEventsRow {
+    pub id: uuid::Uuid,
+    pub provider: String,
+    pub provider_event_id: String,
+    pub event_type: String,
+    pub signature_verified: bool,
+    pub payload_sha256: String,
+    pub received_at: chrono::DateTime<chrono::Utc>,
+    pub processed_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub process_error: Option<String>,
+}

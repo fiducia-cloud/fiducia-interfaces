@@ -3,6 +3,8 @@
 //
 //   node src/generate.mjs          # write generated/<lang>/...
 //   node src/generate.mjs --check  # verify generated files are up to date (CI)
+//   node src/generate.mjs --only=typescript/index.ts
+//                                  # write one generated file
 //
 // JSON Schema (schema/*.schema.json) is the source of truth. Generated files are
 // adapters only — never hand-edit them. Adding a language is one entry in
@@ -423,14 +425,20 @@ export { loadTypes, pascal, oneLine, refName, isStringEnum, enumTypeName, collec
 
 function main() {
   const check = process.argv.includes("--check") || /^(1|true|yes|on)$/i.test(process.env.FIDUCIA_GENERATE_CHECK ?? "");
+  const only = process.argv.find((arg) => arg.startsWith("--only="))?.slice("--only=".length);
   let files;
   try { files = build(); }
   catch (e) {
     if (e instanceof GenError) { console.error(`error: ${e.message}`); process.exit(2); }
     throw e;
   }
+  if (only && !Object.hasOwn(files, only)) {
+    console.error(`error: unknown generated file for --only: ${only}`);
+    process.exit(2);
+  }
+  const selectedFiles = only ? { [only]: files[only] } : files;
   let drift = 0;
-  for (const [rel, content] of Object.entries(files)) {
+  for (const [rel, content] of Object.entries(selectedFiles)) {
     const abs = path.join(genDir, rel);
     if (check) {
       const cur = fs.existsSync(abs) ? fs.readFileSync(abs, "utf8") : null;

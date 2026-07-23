@@ -180,6 +180,19 @@ test("idempotency output is generated for every supported language", () => {
   assert.match(output["go/interfaces.go"], /type IdempotencyClaimRequest struct \{/);
 });
 
+test("sync envelopes are generated consistently for every supported language", () => {
+  const output = build();
+
+  assert.match(output["rust/src/lib.rs"], /pub struct SyncChangeEvent \{/);
+  assert.match(output["rust/src/lib.rs"], /pub struct SyncPullPage \{/);
+  assert.match(output["typescript/index.ts"], /export type SyncQueuedWrite = \{/);
+  assert.match(output["typescript/index.ts"], /export type SyncWriteAcknowledgement = \{/);
+  assert.match(output["python/fiducia_interfaces.py"], /class SyncChangeEvent:/);
+  assert.match(output["python/fiducia_interfaces.py"], /class SyncPullPage:/);
+  assert.match(output["go/interfaces.go"], /type SyncQueuedWrite struct \{/);
+  assert.match(output["go/interfaces.go"], /type SyncWriteAcknowledgement struct \{/);
+});
+
 test("idempotency completion result remains optional JSON in generated clients", () => {
   const output = build();
 

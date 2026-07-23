@@ -20,6 +20,10 @@ import type {
   SemaphoreReleaseResponse,
   SemaphoreRenewRequest,
   SemaphoreRenewResponse,
+  SyncChangeEvent,
+  SyncPullPage,
+  SyncQueuedWrite,
+  SyncWriteAcknowledgement,
 } from "../generated/typescript/index";
 import lockFixtures from "../fixtures/lock-payloads.json" with { type: "json" };
 
@@ -84,6 +88,34 @@ const semaphoreCancel: SemaphoreCancelRequest = {
   request_id: "attempt-semaphore-queued-5e6f7a8b",
 };
 
+const syncWrite: SyncQueuedWrite = {
+  id: "api-key-1",
+  table: "api_keys",
+  op: "upsert",
+  payload: { id: "api-key-1", version: 1 },
+  base_version: 0,
+  key: "write-api-key-1",
+};
+const syncChange: SyncChangeEvent = {
+  table: syncWrite.table,
+  op: syncWrite.op,
+  id: syncWrite.id,
+  version: 1,
+  row: syncWrite.payload,
+  at_ms: 1_767_225_600_000,
+  write_key: syncWrite.key,
+  sync_sequence: 42,
+};
+const syncAcknowledgement: SyncWriteAcknowledgement = {
+  id: syncWrite.id,
+  committed_version: syncChange.version,
+};
+const syncPage: SyncPullPage = {
+  changes: [syncChange],
+  next_cursor: syncChange.sync_sequence ?? 0,
+  has_more: false,
+};
+
 // Every valid fixture remains assignable to its generated type.
 const fixtureLockAcquire: LockAcquireRequest[] = lockFixtures.valid.LockAcquireRequest;
 const fixtureLockAcquireMany: LockAcquireManyRequest[] = lockFixtures.valid.LockAcquireManyRequest;
@@ -132,6 +164,10 @@ void [
   cancel,
   semaphoreRelease,
   semaphoreCancel,
+  syncWrite,
+  syncChange,
+  syncAcknowledgement,
+  syncPage,
   fixtureLockAcquire,
   fixtureLockAcquireMany,
   fixtureLockAcquireResponse,

@@ -16,6 +16,7 @@
     "locks.schema.json",
     "rate_limits.schema.json",
     "schedules.schema.json",
+    "sync.schema.json",
     "tasks.schema.json"
   ]
 }

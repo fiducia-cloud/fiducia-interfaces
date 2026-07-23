@@ -834,6 +834,41 @@ class ScheduleHistoryResponse:
     history: List[ScheduleRun]
 
 @dataclass
+class SyncChangeEvent:
+    """One authoritative committed row change. Row version orders reconciliation; sync_sequence is an optional plane-wide catch-up cursor."""
+    table: str
+    op: Literal["upsert", "delete"]
+    id: str
+    version: int
+    row: Optional[dict]
+    at_ms: int
+    write_key: Optional[str] = None
+    sync_sequence: Optional[int] = None
+
+@dataclass
+class SyncQueuedWrite:
+    """One durable optimistic write sent by browser or mobile clients."""
+    id: str
+    table: str
+    op: Literal["upsert", "delete"]
+    payload: Optional[dict]
+    base_version: int
+    key: str
+
+@dataclass
+class SyncWriteAcknowledgement:
+    """Server acknowledgement returned after a sync write commits."""
+    id: str
+    committed_version: int
+
+@dataclass
+class SyncPullPage:
+    """Globally ordered catch-up page. Persist next_cursor only after every change has reconciled."""
+    changes: List[SyncChangeEvent]
+    next_cursor: int
+    has_more: bool
+
+@dataclass
 class TaskCreateRequest:
     """Body of POST /v1/tasks/create. Idempotent: a repeat create returns the existing task."""
     name: str

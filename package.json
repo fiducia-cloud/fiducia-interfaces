@@ -11,6 +11,7 @@
   },
   "exports": {
     "./schema": "./schema/index.json",
+    "./schema/sync": "./schema/sync.schema.json",
     "./sql/customer": "./sql/customer.sql",
     "./sql/admin": "./sql/admin.sql",
     "./sql/ai-agent-control-plane": "./sql/ai_agent_control_plane.sql",

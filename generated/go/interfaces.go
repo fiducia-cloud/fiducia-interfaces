@@ -1156,6 +1156,60 @@ type ScheduleHistoryResponse struct {
 	History []ScheduleRun `json:"history"`
 }
 
+// SyncChangeEvent: One authoritative committed row change. Row version orders reconciliation; sync_sequence is an optional plane-wide catch-up cursor.
+type SyncChangeEvent struct {
+	// Logical table name from the generated database interface.
+	Table string `json:"table"`
+	// Whether the committed row is present or deleted. (one of: upsert, delete)
+	Op string `json:"op"`
+	// Canonical string form of the row primary key.
+	Id string `json:"id"`
+	// Per-row monotonic conflict and reconciliation version.
+	Version int64 `json:"version"`
+	// Authoritative whole row for upsert; null for delete.
+	Row *map[string]any `json:"row"`
+	// Commit time in Unix milliseconds.
+	AtMs int64 `json:"at_ms"`
+	// Client-minted identity echoed for exact own-write recognition.
+	WriteKey *string `json:"write_key,omitempty"`
+	// Optional plane-wide catch-up cursor; never use it for row reconciliation.
+	SyncSequence *int64 `json:"sync_sequence,omitempty"`
+}
+
+// SyncQueuedWrite: One durable optimistic write sent by browser or mobile clients.
+type SyncQueuedWrite struct {
+	// Target row id.
+	Id string `json:"id"`
+	// Target logical table.
+	Table string `json:"table"`
+	// Optimistic mutation kind. (one of: upsert, delete)
+	Op string `json:"op"`
+	// Whole-row upsert payload or null for delete.
+	Payload *map[string]any `json:"payload"`
+	// Row version the mutation was based on.
+	BaseVersion int64 `json:"base_version"`
+	// Stable idempotency and exact-echo identity for this logical write.
+	Key string `json:"key"`
+}
+
+// SyncWriteAcknowledgement: Server acknowledgement returned after a sync write commits.
+type SyncWriteAcknowledgement struct {
+	// Committed row id; must equal the queued write id.
+	Id string `json:"id"`
+	// Authoritative row version after commit.
+	CommittedVersion int64 `json:"committed_version"`
+}
+
+// SyncPullPage: Globally ordered catch-up page. Persist next_cursor only after every change has reconciled.
+type SyncPullPage struct {
+	// Committed changes in ascending sync_sequence order.
+	Changes []SyncChangeEvent `json:"changes"`
+	// Last sequence represented by this page.
+	NextCursor int64 `json:"next_cursor"`
+	// Whether another page should be requested immediately.
+	HasMore bool `json:"has_more"`
+}
+
 // TaskCreateRequest: Body of POST /v1/tasks/create. Idempotent: a repeat create returns the existing task.
 type TaskCreateRequest struct {
 	// Slash-safe task name, such as repo/acme/api/issue/482.

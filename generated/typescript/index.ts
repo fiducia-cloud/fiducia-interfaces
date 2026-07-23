@@ -1152,6 +1152,60 @@ export type ScheduleHistoryResponse = {
   history: ScheduleRun[];
 };
 
+/** One authoritative committed row change. Row version orders reconciliation; sync_sequence is an optional plane-wide catch-up cursor. */
+export type SyncChangeEvent = {
+  /** Logical table name from the generated database interface. */
+  table: string;
+  /** Whether the committed row is present or deleted. */
+  op: "upsert" | "delete";
+  /** Canonical string form of the row primary key. */
+  id: string;
+  /** Per-row monotonic conflict and reconciliation version. */
+  version: number;
+  /** Authoritative whole row for upsert; null for delete. */
+  row: Record<string, unknown> | null;
+  /** Commit time in Unix milliseconds. */
+  at_ms: number;
+  /** Client-minted identity echoed for exact own-write recognition. */
+  write_key?: string;
+  /** Optional plane-wide catch-up cursor; never use it for row reconciliation. */
+  sync_sequence?: number;
+};
+
+/** One durable optimistic write sent by browser or mobile clients. */
+export type SyncQueuedWrite = {
+  /** Target row id. */
+  id: string;
+  /** Target logical table. */
+  table: string;
+  /** Optimistic mutation kind. */
+  op: "upsert" | "delete";
+  /** Whole-row upsert payload or null for delete. */
+  payload: Record<string, unknown> | null;
+  /** Row version the mutation was based on. */
+  base_version: number;
+  /** Stable idempotency and exact-echo identity for this logical write. */
+  key: string;
+};
+
+/** Server acknowledgement returned after a sync write commits. */
+export type SyncWriteAcknowledgement = {
+  /** Committed row id; must equal the queued write id. */
+  id: string;
+  /** Authoritative row version after commit. */
+  committed_version: number;
+};
+
+/** Globally ordered catch-up page. Persist next_cursor only after every change has reconciled. */
+export type SyncPullPage = {
+  /** Committed changes in ascending sync_sequence order. */
+  changes: SyncChangeEvent[];
+  /** Last sequence represented by this page. */
+  next_cursor: number;
+  /** Whether another page should be requested immediately. */
+  has_more: boolean;
+};
+
 /** Body of POST /v1/tasks/create. Idempotent: a repeat create returns the existing task. */
 export type TaskCreateRequest = {
   /** Slash-safe task name, such as repo/acme/api/issue/482. */

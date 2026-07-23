@@ -273,6 +273,24 @@ pub enum ScheduleDelivery {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
 #[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub enum SyncChangeEventOp {
+    #[serde(rename = "upsert")]
+    Upsert,
+    #[serde(rename = "delete")]
+    Delete,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub enum SyncQueuedWriteOp {
+    #[serde(rename = "upsert")]
+    Upsert,
+    #[serde(rename = "delete")]
+    Delete,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
 pub enum TaskStateStatus {
     #[serde(rename = "pending")]
     Pending,
@@ -1809,6 +1827,72 @@ pub struct ScheduleHistoryResponse {
     pub name: String,
     /// Durable run history.
     pub history: Vec<ScheduleRun>,
+}
+
+/// One authoritative committed row change. Row version orders reconciliation; sync_sequence is an optional plane-wide catch-up cursor.
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub struct SyncChangeEvent {
+    /// Logical table name from the generated database interface.
+    pub table: String,
+    /// Whether the committed row is present or deleted.
+    pub op: SyncChangeEventOp,
+    /// Canonical string form of the row primary key.
+    pub id: String,
+    /// Per-row monotonic conflict and reconciliation version.
+    pub version: i64,
+    /// Authoritative whole row for upsert; null for delete.
+    #[tsify(type = "Record<string, unknown> | null")]
+    pub row: Option<serde_json::Value>,
+    /// Commit time in Unix milliseconds.
+    pub at_ms: i64,
+    /// Client-minted identity echoed for exact own-write recognition.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub write_key: Option<String>,
+    /// Optional plane-wide catch-up cursor; never use it for row reconciliation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sync_sequence: Option<i64>,
+}
+
+/// One durable optimistic write sent by browser or mobile clients.
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub struct SyncQueuedWrite {
+    /// Target row id.
+    pub id: String,
+    /// Target logical table.
+    pub table: String,
+    /// Optimistic mutation kind.
+    pub op: SyncQueuedWriteOp,
+    /// Whole-row upsert payload or null for delete.
+    #[tsify(type = "Record<string, unknown> | null")]
+    pub payload: Option<serde_json::Value>,
+    /// Row version the mutation was based on.
+    pub base_version: i64,
+    /// Stable idempotency and exact-echo identity for this logical write.
+    pub key: String,
+}
+
+/// Server acknowledgement returned after a sync write commits.
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub struct SyncWriteAcknowledgement {
+    /// Committed row id; must equal the queued write id.
+    pub id: String,
+    /// Authoritative row version after commit.
+    pub committed_version: i64,
+}
+
+/// Globally ordered catch-up page. Persist next_cursor only after every change has reconciled.
+#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub struct SyncPullPage {
+    /// Committed changes in ascending sync_sequence order.
+    pub changes: Vec<SyncChangeEvent>,
+    /// Last sequence represented by this page.
+    pub next_cursor: i64,
+    /// Whether another page should be requested immediately.
+    pub has_more: bool,
 }
 
 /// Body of POST /v1/tasks/create. Idempotent: a repeat create returns the existing task.

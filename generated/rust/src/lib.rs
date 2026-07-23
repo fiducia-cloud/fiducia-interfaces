@@ -261,6 +261,72 @@ pub enum SyncQueuedWriteOp {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SyncWritePolicyStrategy {
+    #[serde(rename = "local_queue")]
+    LocalQueue,
+    #[serde(rename = "optimistic")]
+    Optimistic,
+    #[serde(rename = "pessimistic")]
+    Pessimistic,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SyncWritePolicyFailureMode {
+    #[serde(rename = "return_result")]
+    ReturnResult,
+    #[serde(rename = "throw_error")]
+    ThrowError,
+    #[serde(rename = "emit_only")]
+    EmitOnly,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SyncWritePolicyTelemetry {
+    #[serde(rename = "off")]
+    Off,
+    #[serde(rename = "errors")]
+    Errors,
+    #[serde(rename = "lifecycle")]
+    Lifecycle,
+    #[serde(rename = "verbose")]
+    Verbose,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SyncTelemetryEventPhase {
+    #[serde(rename = "local_queued")]
+    LocalQueued,
+    #[serde(rename = "send_started")]
+    SendStarted,
+    #[serde(rename = "acknowledged")]
+    Acknowledged,
+    #[serde(rename = "retry_scheduled")]
+    RetryScheduled,
+    #[serde(rename = "failed")]
+    Failed,
+    #[serde(rename = "conflict_resolved")]
+    ConflictResolved,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SyncTelemetryEventStrategy {
+    #[serde(rename = "local_queue")]
+    LocalQueue,
+    #[serde(rename = "optimistic")]
+    Optimistic,
+    #[serde(rename = "pessimistic")]
+    Pessimistic,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SyncTelemetryEventOp {
+    #[serde(rename = "upsert")]
+    Upsert,
+    #[serde(rename = "delete")]
+    Delete,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TaskStateStatus {
     #[serde(rename = "pending")]
     Pending,
@@ -1747,6 +1813,54 @@ pub struct SyncPullPage {
     pub has_more: bool,
 }
 
+/// Per-write client behavior. Strategy controls when local state becomes visible; failure_mode controls whether durable send failures are returned, thrown, or emitted; telemetry controls lifecycle detail.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncWritePolicy {
+    /// local_queue commits locally and leaves transport to background flush; optimistic commits locally before awaiting the server; pessimistic keeps the old local value until acknowledgement or an authoritative echo.
+    pub strategy: SyncWritePolicyStrategy,
+    /// How a durable send failure is surfaced after retry intent is safely persisted.
+    pub failure_mode: SyncWritePolicyFailureMode,
+    /// Maximum sync lifecycle detail emitted to the configured telemetry adapter.
+    pub telemetry: SyncWritePolicyTelemetry,
+}
+
+/// Replica-local durable metadata. created_at_ms and updated_at_ms describe this local copy; synced_at_ms is when authoritative server state was last applied. None of these timestamps participate in conflict ordering.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncReplicaMetadata {
+    /// Authoritative per-row version the local mutation is based on.
+    pub version: i64,
+    /// Whether an unacknowledged durable local write exists.
+    pub dirty: bool,
+    /// When this replica first stored the row.
+    pub created_at_ms: i64,
+    /// When this replica last changed row data or sync metadata.
+    pub updated_at_ms: i64,
+    /// When this replica last durably applied authoritative server state.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub synced_at_ms: Option<i64>,
+}
+
+/// Low-cardinality write lifecycle event suitable for an OpenTelemetry adapter. Payloads, row ids, and idempotency keys are deliberately excluded.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyncTelemetryEvent {
+    /// Lifecycle transition being observed.
+    pub phase: SyncTelemetryEventPhase,
+    /// Write strategy selected for this operation.
+    pub strategy: SyncTelemetryEventStrategy,
+    /// Logical collection name; maps to db.collection.name.
+    pub table: String,
+    /// Low-cardinality database operation.
+    pub op: SyncTelemetryEventOp,
+    /// Local event time in Unix milliseconds.
+    pub at_ms: i64,
+    /// Durable retry count after this transition.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attempts: Option<i64>,
+    /// Stable exception or failure class; maps to error.type.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error_type: Option<String>,
+}
+
 /// Body of POST /v1/tasks/create. Idempotent: a repeat create returns the existing task.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskCreateRequest {
@@ -1853,3 +1967,5 @@ pub struct TaskState {
     /// Monotonic state version, bumped on every mutation.
     pub generation: i64,
 }
+
+pub mod validation;

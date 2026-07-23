@@ -131,7 +131,10 @@ test("rust-wasm output: callable Tsify ABI with JSON-compatible maps", () => {
 
 test("rust and rust-wasm never diverge in data shape (same structs + fields)", () => {
   const out = build();
-  const pubLines = (s) => s.split("\n").map((l) => l.trim()).filter((l) => l.startsWith("pub "));
+  const pubLines = (s) => s
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("pub ") && !line.startsWith("pub mod "));
   // Same `pub struct`, `pub enum`, and `pub field: Type` lines in both crates —
   // only attributes/derives differ. Guarantees the wasm build stays in lockstep.
   assert.deepEqual(pubLines(out["rust-wasm/src/lib.rs"]), pubLines(out["rust/src/lib.rs"]));
@@ -191,6 +194,10 @@ test("sync envelopes are generated consistently for every supported language", (
   assert.match(output["python/fiducia_interfaces.py"], /class SyncPullPage:/);
   assert.match(output["go/interfaces.go"], /type SyncQueuedWrite struct \{/);
   assert.match(output["go/interfaces.go"], /type SyncWriteAcknowledgement struct \{/);
+  assert.match(output["dart/lib/fiducia_interfaces.dart"], /final class SyncChangeEvent \{/);
+  assert.match(output["dart/lib/fiducia_interfaces.dart"], /final class SyncWritePolicy \{/);
+  assert.match(output["typescript/zod.ts"], /export const SyncWritePolicySchema/);
+  assert.match(output["rust/src/validation.rs"], /impl ValidatedJson for crate::SyncWritePolicy/);
 });
 
 test("idempotency completion result remains optional JSON in generated clients", () => {

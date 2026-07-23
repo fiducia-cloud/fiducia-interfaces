@@ -1206,6 +1206,48 @@ export type SyncPullPage = {
   has_more: boolean;
 };
 
+/** Per-write client behavior. Strategy controls when local state becomes visible; failure_mode controls whether durable send failures are returned, thrown, or emitted; telemetry controls lifecycle detail. */
+export type SyncWritePolicy = {
+  /** local_queue commits locally and leaves transport to background flush; optimistic commits locally before awaiting the server; pessimistic keeps the old local value until acknowledgement or an authoritative echo. */
+  strategy: "local_queue" | "optimistic" | "pessimistic";
+  /** How a durable send failure is surfaced after retry intent is safely persisted. */
+  failure_mode: "return_result" | "throw_error" | "emit_only";
+  /** Maximum sync lifecycle detail emitted to the configured telemetry adapter. */
+  telemetry: "off" | "errors" | "lifecycle" | "verbose";
+};
+
+/** Replica-local durable metadata. created_at_ms and updated_at_ms describe this local copy; synced_at_ms is when authoritative server state was last applied. None of these timestamps participate in conflict ordering. */
+export type SyncReplicaMetadata = {
+  /** Authoritative per-row version the local mutation is based on. */
+  version: number;
+  /** Whether an unacknowledged durable local write exists. */
+  dirty: boolean;
+  /** When this replica first stored the row. */
+  created_at_ms: number;
+  /** When this replica last changed row data or sync metadata. */
+  updated_at_ms: number;
+  /** When this replica last durably applied authoritative server state. */
+  synced_at_ms?: number;
+};
+
+/** Low-cardinality write lifecycle event suitable for an OpenTelemetry adapter. Payloads, row ids, and idempotency keys are deliberately excluded. */
+export type SyncTelemetryEvent = {
+  /** Lifecycle transition being observed. */
+  phase: "local_queued" | "send_started" | "acknowledged" | "retry_scheduled" | "failed" | "conflict_resolved";
+  /** Write strategy selected for this operation. */
+  strategy: "local_queue" | "optimistic" | "pessimistic";
+  /** Logical collection name; maps to db.collection.name. */
+  table: string;
+  /** Low-cardinality database operation. */
+  op: "upsert" | "delete";
+  /** Local event time in Unix milliseconds. */
+  at_ms: number;
+  /** Durable retry count after this transition. */
+  attempts?: number;
+  /** Stable exception or failure class; maps to error.type. */
+  error_type?: string;
+};
+
 /** Body of POST /v1/tasks/create. Idempotent: a repeat create returns the existing task. */
 export type TaskCreateRequest = {
   /** Slash-safe task name, such as repo/acme/api/issue/482. */

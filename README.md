@@ -3,10 +3,10 @@
 Shared interfaces + definitions for [fiducia.cloud](https://fiducia.cloud), on two
 sources of truth:
 
-1. **JSON Schema** (`schema/*.schema.json`, Draft 2020-12) — typed-IO for the
+1. **JSON Schema** (`schema/*.schema.json`, Draft 2020-12) — typed I/O for the
    API payloads (KV, locks/semaphores/RW, rate limiting, scheduling, elections,
-   discovery, common envelopes). The generator emits idiomatic types per
-   language.
+   discovery, sync policies/events, common envelopes). The generator emits
+   idiomatic types and validators per language.
 2. **SQL** (`sql/customer.sql` + `sql/admin.sql`) — canonical Postgres schemas,
    split **by plane**: the customer plane (orgs, projects, users, API keys, mTLS
    identities, preferences, trusted sessions, audit) and the admin plane
@@ -18,8 +18,10 @@ sources of truth:
    transactionally allocated `sync_sequence` for stable catch-up pagination.
    Durable, scoped tombstones carry deletes through the same global cursor.
 
-Same spirit as `remote/libs/interfaces` (JSON Schema → types) and
-`remote/libs/pg-defs` (canonical SQL).
+The JSON-Schema-to-types organization was informed by
+`ORESoftware/k8s-libs-and-shared-defs`, but this repository is completely
+independent: it imports no schema, generator, package, runtime, or build artifact
+from that project.
 
 > Coordination data (locks/KV/rate limits/schedules/elections/discovery state)
 > does **not** live in Postgres — it's the per-node Raft state machine backed by
@@ -38,7 +40,8 @@ fiducia-interfaces/
 │   ├── rate_limits.schema.json # RateLimitCheck/Snapshot/GetResponse
 │   ├── schedules.schema.json   # ScheduleTarget/Upsert/Run/History
 │   ├── elections.schema.json   # Campaign/Hold, Leadership, ElectionGet
-│   └── discovery.schema.json   # ServiceRegister/Instance/List
+│   ├── discovery.schema.json   # ServiceRegister/Instance/List
+│   └── sync.schema.json        # sync envelopes, write policy, replica metadata
 ├── sql/customer.sql            # customer-plane Postgres schema (own DB instance)
 ├── sql/admin.sql               # admin-plane Postgres schema (separate DB instance)
 ├── sql/ai_agent_control_plane.sql      # additional planes (own DB instances)
@@ -50,10 +53,11 @@ fiducia-interfaces/
 ├── scripts/with-flags2env.sh   # apply .cli-flags.toml flags as env, then exec
 ├── vendor/flags-2-env/         # pinned submodule (do not hand-edit)
 └── generated/                  # check-in artifacts — never hand-edit
-    ├── rust/{Cargo.toml,src/lib.rs}        # payload types (dependency-free serde)
+    ├── rust/{Cargo.toml,src/*.rs}           # serde payload types + JSON Schema validation
     ├── rust-wasm/{Cargo.toml,src/lib.rs}   # Rust compiled to WebAssembly (tsify boundary)
     ├── rust-db/{Cargo.toml,src/*.rs}       # sqlx::FromRow row types, one module per plane
-    ├── typescript/{index.ts,db/*.ts}       # payload types + per-plane DB row types
+    ├── typescript/{index.ts,zod.ts,db/*.ts} # payload types + Zod facade + DB row types
+    ├── dart/{lib,test}                     # typed payloads + canonical validator
     ├── python/fiducia_interfaces.py
     └── go/interfaces.go
 ```
@@ -64,7 +68,7 @@ fiducia-interfaces/
 node src/generate.mjs          # JSON Schema → generated/<lang>/...
 node src/generate-db.mjs       # SQL DDL → generated/rust-db + generated/typescript/db
 node src/generate.mjs --check  # CI: fail if generated files are stale
-node --test src/*.test.mjs     # generator self-tests
+npm test                      # drift, validator parity, generated crates/types
 ```
 
 Two generators, two sources of truth: `generate.mjs` turns the JSON Schema into
@@ -83,7 +87,22 @@ keyword fields (`from_`, documented with its JSON name), and emits typed enums
 for string `enum`s (Rust enum · TS union · Python `Literal` · Go
 string + allowed-values doc). Explicit JSON `null` unions remain nullable in
 every generated language instead of degrading to an untyped value. CI runs the
-self-tests and `--check` on every push.
+self-tests and `--check` on every push. It also exercises the same canonical
+valid/invalid samples through the TypeScript/Zod, Rust, and Dart validators.
+
+The generated TypeScript Zod facade delegates exact Draft 2020-12 evaluation to
+AJV 2020 and presents the result as typed `ZodType<T>` schemas. It does not
+depend on Zod's experimental JSON Schema importer. Rust validates untrusted
+values with `jsonschema` and external reference resolution disabled. Dart embeds
+the canonical bundle and uses a generated validator for every JSON Schema
+keyword present in these schemas; it does not claim that the third-party
+Draft-7-only `json_schema` package provides Draft 2020-12 parity.
+
+The boundary is deliberate: validate untrusted REST, realtime, queue, and stored
+JSON blobs against the JSON Schema artifacts at I/O ingress and egress. Use
+`generated/rust-db` and `generated/typescript/db` for trusted ORM/database row
+shapes generated from SQL. A database row and a public wire projection are not
+implicitly interchangeable.
 
 Customer and admin sync idempotency keys are bound to a canonical SHA-256 request
 fingerprint. Writers claim the key, perform the version-CAS mutation, and persist
@@ -98,7 +117,8 @@ builds the wasm target with an exact tool version, and audits every npm/Cargo
 lockfile. Action SHAs, Node, Rust, wasm-pack, and cargo-audit are immutable pins.
 
 The root Dockerfile is a contract **test image**, not a long-running service. It
-copies `package-lock.json` and every generated Rust `Cargo.lock`, installs npm
+uses pinned Node and Dart SDKs, copies `package-lock.json`, the root workspace
+`Cargo.lock`, and every standalone generated Rust dependency lock, installs npm
 dependencies with `npm ci --ignore-scripts`, and relies on the `--locked` Cargo
 commands in `npm test`. Build and test execution run as numeric UID/GID
 `65532:65532`; the image exposes no port and starts no daemon. TypeScript comes
@@ -106,14 +126,15 @@ from the npm lockfile rather than a mutable global install.
 
 ## Languages
 
-First-class today: **Rust**, **Rust→WebAssembly**, **TypeScript**, **Python**,
-**Go**. Adding a language is one render function in `src/generate.mjs` (see the
-`EMITTERS` map).
+First-class today: **Rust**, **Rust→WebAssembly**, **TypeScript/Zod**, **Dart**,
+**Python**, and **Go**. Adding a language is one render function in
+`src/generate.mjs` (see the `EMITTERS` map).
 
 The `rust-wasm` target is the same serde types as `rust`, plus
 [`tsify`](https://github.com/madonoharu/tsify) + `wasm-bindgen` so payloads cross
 the JS/wasm boundary as real objects (and a `.d.ts` is emitted). It is a separate
-crate so the plain `rust` crate stays dependency-free. Build it with:
+crate so the browser target does not inherit the native validation runtime.
+Build it with:
 
 ```sh
 wasm-pack build generated/rust-wasm --target web -- --locked
@@ -121,10 +142,9 @@ wasm-pack build generated/rust-wasm --target web -- --locked
 ```
 
 The roadmap is the rest of the **client languages** in
-[`fiducia-clients`](https://github.com/fiducia-cloud/fiducia-clients) — dart,
-ruby, java, csharp, php, elixir — so each HTTP client ships typed payloads
-generated from this single source. (Shell/PowerShell are untyped and consume the
-JSON directly.)
+[`fiducia-clients`](https://github.com/fiducia-cloud/fiducia-clients), so each
+HTTP client ships typed payloads generated from this single source.
+(Shell/PowerShell are untyped and consume the JSON directly.)
 
 ## Use as a dependency
 
@@ -135,15 +155,29 @@ fiducia-interfaces = { git = "https://github.com/fiducia-cloud/fiducia-interface
 ```ts
 // TypeScript
 import type { LockGrant } from "@fiducia/interfaces/typescript";
+import { SyncWritePolicySchema } from "@fiducia/interfaces/zod";
+```
+
+```dart
+// Dart (generated package)
+import 'package:fiducia_interfaces/fiducia_interfaces.dart';
 ```
 
 ## Consumers
 
-Servers (`fiducia-node`/`auth`/...) and every client in `fiducia-clients`
-validate their request/response shapes against these types. The customer portal
+Servers (`fiducia-node`/`auth`/...) and clients in `fiducia-clients` consume
+these request/response types and validators. The customer portal
 (`fiducia-customer.rs`) uses `sql/customer.sql` and the admin dashboard
 (`fiducia-admin.rs`) uses `sql/admin.sql`, each against its own isolated Postgres
 instance.
+
+For customer/admin sync, Supabase is the authoritative Postgres service and
+Realtime is a transport for commits from that same authority. A separate
+bidirectional Postgres writer is unsupported unless it implements an explicitly
+causal multi-primary protocol with origin identity, globally unique change ids,
+causal revisions, tombstones, and a declared conflict policy. `created_at` is
+preserved, `updated_at` advances strictly, and replica-local `synced_at` metadata
+must never be used as the conflict clock; the per-row `version` is authoritative.
 
 ## Lock, semaphore, and file-lease wire contract
 

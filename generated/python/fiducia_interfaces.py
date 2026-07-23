@@ -869,6 +869,33 @@ class SyncPullPage:
     has_more: bool
 
 @dataclass
+class SyncWritePolicy:
+    """Per-write client behavior. Strategy controls when local state becomes visible; failure_mode controls whether durable send failures are returned, thrown, or emitted; telemetry controls lifecycle detail."""
+    strategy: Literal["local_queue", "optimistic", "pessimistic"]
+    failure_mode: Literal["return_result", "throw_error", "emit_only"]
+    telemetry: Literal["off", "errors", "lifecycle", "verbose"]
+
+@dataclass
+class SyncReplicaMetadata:
+    """Replica-local durable metadata. created_at_ms and updated_at_ms describe this local copy; synced_at_ms is when authoritative server state was last applied. None of these timestamps participate in conflict ordering."""
+    version: int
+    dirty: bool
+    created_at_ms: int
+    updated_at_ms: int
+    synced_at_ms: Optional[int] = None
+
+@dataclass
+class SyncTelemetryEvent:
+    """Low-cardinality write lifecycle event suitable for an OpenTelemetry adapter. Payloads, row ids, and idempotency keys are deliberately excluded."""
+    phase: Literal["local_queued", "send_started", "acknowledged", "retry_scheduled", "failed", "conflict_resolved"]
+    strategy: Literal["local_queue", "optimistic", "pessimistic"]
+    table: str
+    op: Literal["upsert", "delete"]
+    at_ms: int
+    attempts: Optional[int] = None
+    error_type: Optional[str] = None
+
+@dataclass
 class TaskCreateRequest:
     """Body of POST /v1/tasks/create. Idempotent: a repeat create returns the existing task."""
     name: str

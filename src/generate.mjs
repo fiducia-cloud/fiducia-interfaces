@@ -197,6 +197,27 @@ function goType(s) {
     default: return "map[string]any";
   }
 }
+function dartType(s) {
+  s = nonNullSchema(s);
+  const r = refName(s); if (r) return r;
+  const mapValue = mapValueSchema(s); if (mapValue) return `Map<String, ${dartType(mapValue)}>`;
+  switch (s.type) {
+    case "string": return "String";
+    case "integer": return "int";
+    case "number": return "num";
+    case "boolean": return "bool";
+    case "array": return `List<${dartType(s.items || {})}>`;
+    default: return "Map<String, Object?>";
+  }
+}
+
+function schemaBundle(types) {
+  return {
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    $id: "https://fiducia.cloud/schemas/generated.bundle.schema.json",
+    $defs: Object.fromEntries(types.map((type) => [type.name, type.schema])),
+  };
+}
 
 // --- emitters: type[] -> { relpath: content } --------------------------------
 
@@ -277,10 +298,122 @@ edition = "2021"
 description = "Generated typed payloads for fiducia.cloud (see fiducia-interfaces)."
 
 [dependencies]
+jsonschema = { version = "0.48.5", default-features = false }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 `;
-  return { "rust/src/lib.rs": renderRustBody(types, { wasm: false }), "rust/Cargo.toml": cargo };
+  const body = `${renderRustBody(types, { wasm: false })}\npub mod validation;\n`;
+  const bundle = JSON.stringify(schemaBundle(types));
+  const validation = [
+    `// ${BANNER}`,
+    "",
+    "use serde::{de::DeserializeOwned, Serialize};",
+    "use serde_json::Value;",
+    "use std::{error::Error, fmt};",
+    "",
+    `const SCHEMA_BUNDLE: &str = ${JSON.stringify(bundle)};`,
+    "",
+    "#[derive(Debug, Clone, PartialEq, Eq)]",
+    "pub struct SchemaValidationError {",
+    "    pub schema: String,",
+    "    pub message: String,",
+    "}",
+    "",
+    "impl fmt::Display for SchemaValidationError {",
+    "    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {",
+    '        write!(formatter, "{}: {}", self.schema, self.message)',
+    "    }",
+    "}",
+    "",
+    "impl Error for SchemaValidationError {}",
+    "",
+    "pub fn validate_json(schema_name: &str, value: &Value) -> Result<(), SchemaValidationError> {",
+    "    let mut schema: Value =",
+    "        serde_json::from_str(SCHEMA_BUNDLE).map_err(|error| SchemaValidationError {",
+    "            schema: schema_name.to_owned(),",
+    '            message: format!("generated schema bundle is invalid: {error}"),',
+    "        })?;",
+    '    schema["$ref"] = Value::String(format!("#/$defs/{schema_name}"));',
+    "    jsonschema::draft202012::validate(&schema, value).map_err(|error| SchemaValidationError {",
+    "        schema: schema_name.to_owned(),",
+    "        message: error.to_string(),",
+    "    })",
+    "}",
+    "",
+    "pub fn decode_json<T: DeserializeOwned>(",
+    "    schema_name: &str,",
+    "    value: Value,",
+    ") -> Result<T, SchemaValidationError> {",
+    "    validate_json(schema_name, &value)?;",
+    "    serde_json::from_value(value).map_err(|error| SchemaValidationError {",
+    "        schema: schema_name.to_owned(),",
+    '        message: format!("typed decode failed after schema validation: {error}"),',
+    "    })",
+    "}",
+    "",
+    "pub trait ValidatedJson: Sized + Serialize + DeserializeOwned {",
+    "    const SCHEMA_NAME: &'static str;",
+    "",
+    "    fn from_json(value: Value) -> Result<Self, SchemaValidationError> {",
+    "        decode_json(Self::SCHEMA_NAME, value)",
+    "    }",
+    "",
+    "    fn validate(&self) -> Result<(), SchemaValidationError> {",
+    "        let value = serde_json::to_value(self).map_err(|error| SchemaValidationError {",
+    "            schema: Self::SCHEMA_NAME.to_owned(),",
+    '            message: format!("typed encode failed before validation: {error}"),',
+    "        })?;",
+    "        validate_json(Self::SCHEMA_NAME, &value)",
+    "    }",
+    "}",
+    "",
+    ...types.flatMap((type) => [
+      `impl ValidatedJson for crate::${type.name} {`,
+      `    const SCHEMA_NAME: &'static str = "${type.name}";`,
+      "}",
+      "",
+    ]),
+  ].join("\n");
+  return {
+    "rust/src/lib.rs": body,
+    "rust/src/validation.rs": validation,
+    "rust/Cargo.toml": cargo,
+    "rust/tests/schema_validation.rs": [
+      `// ${BANNER}`,
+      "",
+      "use fiducia_interfaces::{",
+      "    validation::ValidatedJson, SyncWritePolicy, SyncWritePolicyFailureMode,",
+      "    SyncWritePolicyStrategy, SyncWritePolicyTelemetry,",
+      "};",
+      "use serde_json::json;",
+      "",
+      "#[test]",
+      "fn typed_values_and_untrusted_json_share_the_canonical_schema() {",
+      "    let policy = SyncWritePolicy {",
+      "        strategy: SyncWritePolicyStrategy::Optimistic,",
+      "        failure_mode: SyncWritePolicyFailureMode::ThrowError,",
+      "        telemetry: SyncWritePolicyTelemetry::Lifecycle,",
+      "    };",
+      "    policy.validate().expect(\"typed policy validates\");",
+      "",
+      "    let decoded = SyncWritePolicy::from_json(json!({",
+      '        "strategy": "pessimistic",',
+      '        "failure_mode": "return_result",',
+      '        "telemetry": "errors"',
+      "    }))",
+      '    .expect("wire policy validates and decodes");',
+      "    assert_eq!(decoded.strategy, SyncWritePolicyStrategy::Pessimistic);",
+      "",
+      "    assert!(SyncWritePolicy::from_json(json!({",
+      '        "strategy": "sometimes_optimistic",',
+      '        "failure_mode": "return_result",',
+      '        "telemetry": "errors"',
+      "    }))",
+      "    .is_err());",
+      "}",
+      "",
+    ].join("\n"),
+  };
 }
 
 // Wasm build of the Rust types: same serde structs, plus tsify + wasm-bindgen so
@@ -328,7 +461,58 @@ function emitTs(types) {
     }
     out.push("};", "");
   }
-  return { "typescript/index.ts": out.join("\n") };
+  const bundle = JSON.stringify(schemaBundle(types), null, 2);
+  const zod = [
+    `// ${BANNER}`,
+    "",
+    'import Ajv2020, { type ErrorObject } from "ajv/dist/2020.js";',
+    'import { z } from "zod";',
+    'import type * as types from "./index.js";',
+    "",
+    `const schemaBundle = ${bundle} as const;`,
+    "const ajv = new Ajv2020({",
+    "  allErrors: true,",
+    "  strict: true,",
+    "  // Draft 2020-12 permits required in a subschema to reference properties",
+    "  // declared by its enclosing object; several canonical oneOf/anyOf rules do.",
+    "  strictRequired: false,",
+    "});",
+    "ajv.addSchema(schemaBundle, schemaBundle.$id);",
+    "",
+    "function formatIssue(error: ErrorObject): string {",
+    '  const path = error.instancePath || "/";',
+    '  return `${path} ${error.message ?? "does not match the canonical schema"}`;',
+    "}",
+    "",
+    "function schemaFor<T>(name: string): z.ZodType<T> {",
+    "  const validate = ajv.compile({",
+    "    $schema: schemaBundle.$schema,",
+    "    $ref: `${schemaBundle.$id}#/$defs/${name}`,",
+    "  });",
+    "  return z.unknown().superRefine((value, context) => {",
+    "    if (validate(value)) return;",
+    "    for (const error of validate.errors ?? []) {",
+    "      context.addIssue({",
+    '        code: "custom",',
+    "        message: formatIssue(error),",
+    "        path: error.instancePath",
+    '          .split("/")',
+    "          .slice(1)",
+    "          .map((part) => part.replaceAll(\"~1\", \"/\").replaceAll(\"~0\", \"~\")),",
+    "      });",
+    "    }",
+    "  }) as z.ZodType<T>;",
+    "}",
+    "",
+    ...types.flatMap((type) => [
+      `export const ${type.name}Schema = schemaFor<types.${type.name}>("${type.name}");`,
+      "",
+    ]),
+  ].join("\n");
+  return {
+    "typescript/index.ts": out.join("\n"),
+    "typescript/zod.ts": zod,
+  };
 }
 
 function emitPython(types) {
@@ -404,13 +588,413 @@ function emitGo(types) {
   return { "go/interfaces.go": out.join("\n") };
 }
 
+function dartFieldType(typeName, property) {
+  const raw = isStringEnum(property.schema)
+    ? enumTypeName(typeName, property.name)
+    : dartType(property.schema);
+  return property.required && !isNullable(property.schema) ? raw : `${raw}?`;
+}
+
+function dartDecode(schema, expression, at, enumName = null) {
+  const nullable = isNullable(schema);
+  const inner = nonNullSchema(schema);
+  const ref = refName(inner);
+  let decoded;
+  if (enumName) {
+    decoded = `${enumName}.fromWire(_string(${expression}, ${JSON.stringify(at)}))`;
+  } else if (ref) {
+    decoded = `${ref}.fromJson(_map(${expression}, ${JSON.stringify(at)}))`;
+  } else {
+    const mapValue = mapValueSchema(inner);
+    if (mapValue) {
+      decoded =
+        `Map<String, ${dartType(mapValue)}>.fromEntries(` +
+        `_map(${expression}, ${JSON.stringify(at)}).entries.map((entry) => ` +
+        `MapEntry(entry.key, ${dartDecode(mapValue, "entry.value", `${at} value`)})))`;
+    } else {
+      switch (inner.type) {
+        case "string": decoded = `_string(${expression}, ${JSON.stringify(at)})`; break;
+        case "integer": decoded = `_integer(${expression}, ${JSON.stringify(at)})`; break;
+        case "number": decoded = `_number(${expression}, ${JSON.stringify(at)})`; break;
+        case "boolean": decoded = `_boolean(${expression}, ${JSON.stringify(at)})`; break;
+        case "array":
+          decoded =
+            `_list(${expression}, ${JSON.stringify(at)}).map((value) => ` +
+            `${dartDecode(inner.items || {}, "value", `${at} item`)}).toList(growable: false)`;
+          break;
+        default: decoded = `_map(${expression}, ${JSON.stringify(at)})`;
+      }
+    }
+  }
+  return nullable ? `${expression} == null ? null : ${decoded}` : decoded;
+}
+
+function dartEncode(schema, expression, enumName = null, optional = false) {
+  const inner = nonNullSchema(schema);
+  const ref = refName(inner);
+  const nullAware = optional || isNullable(schema) ? "?" : "";
+  let encoded;
+  if (enumName) {
+    encoded = `${expression}${nullAware}.wireValue`;
+  } else if (ref) {
+    encoded = `${expression}${nullAware}.toJson()`;
+  } else {
+    const mapValue = mapValueSchema(inner);
+    if (mapValue) {
+      encoded =
+        `${expression}${nullAware}.map((key, value) => MapEntry(key, ` +
+        `${dartEncode(mapValue, "value")}))`;
+    } else if (inner.type === "array") {
+      encoded =
+        `${expression}${nullAware}.map((value) => ${dartEncode(inner.items || {}, "value")}).toList(growable: false)`;
+    } else {
+      encoded = expression;
+    }
+  }
+  return encoded;
+}
+
+function emitDart(types) {
+  const encodedBundle = Buffer.from(JSON.stringify(schemaBundle(types)), "utf8").toString("base64");
+  const out = [
+    `// ${BANNER}`,
+    "",
+    "import 'dart:convert';",
+    "",
+    `const _schemaBundleBase64 = '${encodedBundle}';`,
+    "late final Map<String, Object?> _schemaBundle = Map<String, Object?>.from(",
+    "  jsonDecode(utf8.decode(base64Decode(_schemaBundleBase64))) as Map,",
+    ");",
+    "",
+    "Map<String, Object?> _schemaMap(Object? value, String at) {",
+    "  if (value is! Map) throw FormatException('$at must be an object');",
+    "  return Map<String, Object?>.from(value);",
+    "}",
+    "",
+    "Map<String, Object?> _map(Object? value, String at) => _schemaMap(value, at);",
+    "List<Object?> _list(Object? value, String at) {",
+    "  if (value is! List) throw FormatException('$at must be an array');",
+    "  return List<Object?>.from(value);",
+    "}",
+    "String _string(Object? value, String at) {",
+    "  if (value is! String) throw FormatException('$at must be a string');",
+    "  return value;",
+    "}",
+    "int _integer(Object? value, String at) {",
+    "  if (value is! int) throw FormatException('$at must be an integer');",
+    "  return value;",
+    "}",
+    "num _number(Object? value, String at) {",
+    "  if (value is! num || !value.isFinite) throw FormatException('$at must be a finite number');",
+    "  return value;",
+    "}",
+    "bool _boolean(Object? value, String at) {",
+    "  if (value is! bool) throw FormatException('$at must be a boolean');",
+    "  return value;",
+    "}",
+    "",
+    "bool _deepEquals(Object? left, Object? right) {",
+    "  if (left is List && right is List) {",
+    "    if (left.length != right.length) return false;",
+    "    for (var index = 0; index < left.length; index += 1) {",
+    "      if (!_deepEquals(left[index], right[index])) return false;",
+    "    }",
+    "    return true;",
+    "  }",
+    "  if (left is Map && right is Map) {",
+    "    if (left.length != right.length) return false;",
+    "    for (final entry in left.entries) {",
+    "      if (!right.containsKey(entry.key) || !_deepEquals(entry.value, right[entry.key])) return false;",
+    "    }",
+    "    return true;",
+    "  }",
+    "  return left == right;",
+    "}",
+    "",
+    "bool _matches(Map<String, Object?> schema, Object? value, String at) {",
+    "  try {",
+    "    _validateSchema(schema, value, at);",
+    "    return true;",
+    "  } on FormatException {",
+    "    return false;",
+    "  }",
+    "}",
+    "",
+    "void _validateSchema(Map<String, Object?> schema, Object? value, String at) {",
+    "  final reference = schema[r'$ref'];",
+    "  if (reference is String) {",
+    "    final name = reference.split('/').last;",
+    "    final definitions = _schemaMap(_schemaBundle[r'$defs'], r'$defs');",
+    "    _validateSchema(_schemaMap(definitions[name], name), value, at);",
+    "    return;",
+    "  }",
+    "",
+    "  final rawType = schema['type'];",
+    "  if (rawType is List && rawType.contains('null')) {",
+    "    if (value == null) return;",
+    "    final nonNull = rawType.where((candidate) => candidate != 'null').toList();",
+    "    if (nonNull.length != 1) throw FormatException('$at has an unsupported nullable schema');",
+    "    schema = <String, Object?>{...schema, 'type': nonNull.single};",
+    "  }",
+    "  if (schema.containsKey('const') && !_deepEquals(value, schema['const'])) {",
+    "    throw FormatException('$at does not equal the required constant');",
+    "  }",
+    "",
+    "  final required = schema['required'];",
+    "  if (required is List) {",
+    "    final object = _schemaMap(value, at);",
+    "    for (final name in required) {",
+    "      if (!object.containsKey(name)) throw FormatException('$at.$name is required');",
+    "    }",
+    "  }",
+    "",
+    "  final anyOf = schema['anyOf'];",
+    "  if (anyOf is List && !anyOf.any((candidate) => _matches(_schemaMap(candidate, '$at anyOf'), value, at))) {",
+    "    throw FormatException('$at does not match any allowed schema');",
+    "  }",
+    "  final oneOf = schema['oneOf'];",
+    "  if (oneOf is List) {",
+    "    final matches = oneOf.where((candidate) => _matches(_schemaMap(candidate, '$at oneOf'), value, at)).length;",
+    "    if (matches != 1) throw FormatException('$at must match exactly one allowed schema');",
+    "  }",
+    "  final allOf = schema['allOf'];",
+    "  if (allOf is List) {",
+    "    for (final candidate in allOf) {",
+    "      _validateSchema(_schemaMap(candidate, '$at allOf'), value, at);",
+    "    }",
+    "  }",
+    "  final condition = schema['if'];",
+    "  if (condition is Map) {",
+    "    final branch = _matches(_schemaMap(condition, '$at if'), value, at) ? schema['then'] : schema['else'];",
+    "    if (branch is Map) _validateSchema(_schemaMap(branch, '$at branch'), value, at);",
+    "  }",
+    "  final forbidden = schema['not'];",
+    "  if (forbidden is Map && _matches(_schemaMap(forbidden, '$at not'), value, at)) {",
+    "    throw FormatException('$at matches a forbidden schema');",
+    "  }",
+    "",
+    "  final properties = schema['properties'];",
+    "  if (rawType != 'object' && properties is Map && value is Map) {",
+    "    for (final entry in properties.entries) {",
+    "      if (value.containsKey(entry.key)) {",
+    "        _validateSchema(_schemaMap(entry.value, '$at.${entry.key}'), value[entry.key], '$at.${entry.key}');",
+    "      }",
+    "    }",
+    "  }",
+    "",
+    "  switch (schema['type']) {",
+    "    case 'object':",
+    "      final object = _schemaMap(value, at);",
+    "      final declared = properties is Map ? properties : const <String, Object?>{};",
+    "      for (final entry in object.entries) {",
+    "        if (declared.containsKey(entry.key)) {",
+    "          _validateSchema(_schemaMap(declared[entry.key], '$at.${entry.key}'), entry.value, '$at.${entry.key}');",
+    "        } else if (schema['additionalProperties'] == false) {",
+    "          throw FormatException('$at.${entry.key} is not allowed');",
+    "        } else if (schema['additionalProperties'] is Map) {",
+    "          _validateSchema(_schemaMap(schema['additionalProperties'], '$at additionalProperties'), entry.value, '$at.${entry.key}');",
+    "        }",
+    "      }",
+    "      break;",
+    "    case 'array':",
+    "      final values = _list(value, at);",
+    "      final minItems = schema['minItems'];",
+    "      final maxItems = schema['maxItems'];",
+    "      if (minItems is int && values.length < minItems) throw FormatException('$at has too few items');",
+    "      if (maxItems is int && values.length > maxItems) throw FormatException('$at has too many items');",
+    "      if (schema['uniqueItems'] == true) {",
+    "        for (var left = 0; left < values.length; left += 1) {",
+    "          for (var right = left + 1; right < values.length; right += 1) {",
+    "            if (_deepEquals(values[left], values[right])) throw FormatException('$at items must be unique');",
+    "          }",
+    "        }",
+    "      }",
+    "      final itemSchema = schema['items'];",
+    "      if (itemSchema is Map) {",
+    "        for (var index = 0; index < values.length; index += 1) {",
+    "          _validateSchema(_schemaMap(itemSchema, '$at items'), values[index], '$at[$index]');",
+    "        }",
+    "      }",
+    "      break;",
+    "    case 'string':",
+    "      final text = _string(value, at);",
+    "      final length = text.runes.length;",
+    "      final minLength = schema['minLength'];",
+    "      final maxLength = schema['maxLength'];",
+    "      if (minLength is int && length < minLength) throw FormatException('$at is too short');",
+    "      if (maxLength is int && length > maxLength) throw FormatException('$at is too long');",
+    "      final pattern = schema['pattern'];",
+    "      if (pattern is String && !RegExp(pattern).hasMatch(text)) throw FormatException('$at has an invalid format');",
+    "      break;",
+    "    case 'integer':",
+    "      _integer(value, at);",
+    "      break;",
+    "    case 'number':",
+    "      _number(value, at);",
+    "      break;",
+    "    case 'boolean':",
+    "      _boolean(value, at);",
+    "      break;",
+    "  }",
+    "",
+    "  if (value is num) {",
+    "    final minimum = schema['minimum'];",
+    "    final maximum = schema['maximum'];",
+    "    if (minimum is num && value < minimum) throw FormatException('$at is below its minimum');",
+    "    if (maximum is num && value > maximum) throw FormatException('$at is above its maximum');",
+    "  }",
+    "  final allowed = schema['enum'];",
+    "  if (allowed is List && !allowed.any((candidate) => _deepEquals(candidate, value))) {",
+    "    throw FormatException('$at is not an allowed value');",
+    "  }",
+    "}",
+    "",
+    "void validateFiduciaJson(String schemaName, Object? value) {",
+    "  final definitions = _schemaMap(_schemaBundle[r'$defs'], r'$defs');",
+    "  final schema = definitions[schemaName];",
+    "  if (schema == null) throw ArgumentError.value(schemaName, 'schemaName', 'unknown Fiducia schema');",
+    "  _validateSchema(_schemaMap(schema, schemaName), value, schemaName);",
+    "}",
+    "",
+  ];
+
+  for (const [enumName, values] of collectEnums(types)) {
+    out.push(`enum ${enumName} {`);
+    values.forEach((value, index) => {
+      out.push(`  ${value}${index === values.length - 1 ? ";" : ","}`);
+    });
+    out.push(
+      "",
+      "  String get wireValue => name;",
+      "",
+      `  static ${enumName} fromWire(Object? value) {`,
+      "    return switch (value) {",
+      ...values.map((value) => `      '${value}' => ${enumName}.${value},`),
+      `      _ => throw FormatException('unsupported ${enumName} value: $value'),`,
+      "    };",
+      "  }",
+      "}",
+      "",
+    );
+  }
+
+  for (const type of types) {
+    out.push(`final class ${type.name} {`);
+    const ordered = [...type.props].sort((left, right) => Number(right.required) - Number(left.required));
+    if (ordered.length === 0) {
+      out.push(`  const ${type.name}();`, "");
+    } else {
+      out.push(`  const ${type.name}({`);
+      for (const property of ordered) {
+        out.push(`    ${property.required ? "required " : ""}this.${property.name},`);
+      }
+      out.push("  });", "");
+    }
+    for (const property of type.props) {
+      out.push(`  final ${dartFieldType(type.name, property)} ${property.name};`);
+    }
+    if (type.props.length > 0) out.push("");
+    out.push(
+      `  factory ${type.name}.fromJson(Map<String, Object?> json) {`,
+      `    validateFiduciaJson('${type.name}', json);`,
+      `    return ${type.name}(`,
+    );
+    for (const property of type.props) {
+      const expression = `json['${property.name}']`;
+      const enumName = isStringEnum(property.schema)
+        ? enumTypeName(type.name, property.name)
+        : null;
+      const decoded = dartDecode(property.schema, expression, `${type.name}.${property.name}`, enumName);
+      out.push(
+        `      ${property.name}: ${property.required && !isNullable(property.schema) ? decoded : `${expression} == null ? null : ${decoded}`},`,
+      );
+    }
+    out.push("    );", "  }", "", "  Map<String, Object?> toJson() => {");
+    for (const property of type.props) {
+      const enumName = isStringEnum(property.schema)
+        ? enumTypeName(type.name, property.name)
+        : null;
+      const expression = property.name;
+      const encoded = dartEncode(
+        property.schema,
+        expression,
+        enumName,
+        !property.required,
+      );
+      if (property.required) {
+        out.push(`    '${property.name}': ${encoded},`);
+      } else {
+        out.push(`    if (${property.name} != null) '${property.name}': ${encoded},`);
+      }
+    }
+    out.push("  };", "}", "");
+  }
+
+  const pubspec = [
+    "name: fiducia_interfaces",
+    "description: Generated, JSON-Schema-validated wire types for fiducia.cloud.",
+    "version: 0.1.0",
+    "repository: https://github.com/fiducia-cloud/fiducia-interfaces",
+    "",
+    "environment:",
+    '  sdk: ">=3.9.0 <4.0.0"',
+    "",
+    "dev_dependencies:",
+    "  test: ^1.26.3",
+    "",
+  ].join("\n");
+  const test = [
+    `// ${BANNER}`,
+    "",
+    "import 'package:fiducia_interfaces/fiducia_interfaces.dart';",
+    "import 'package:test/test.dart';",
+    "",
+    "void main() {",
+    "  test('typed and untrusted sync policies share canonical validation', () {",
+    "    final policy = SyncWritePolicy.fromJson(const {",
+    "      'strategy': 'optimistic',",
+    "      'failure_mode': 'throw_error',",
+    "      'telemetry': 'lifecycle',",
+    "    });",
+    "    expect(policy.strategy, SyncWritePolicyStrategy.optimistic);",
+    "    expect(policy.toJson()['failure_mode'], 'throw_error');",
+    "",
+    "    expect(",
+    "      () => SyncWritePolicy.fromJson(const {",
+    "        'strategy': 'sometimes_optimistic',",
+    "        'failure_mode': 'return_result',",
+    "        'telemetry': 'errors',",
+    "      }),",
+    "      throwsFormatException,",
+    "    );",
+    "  });",
+    "}",
+    "",
+  ].join("\n");
+  const readme = [
+    "# fiducia_interfaces",
+    "",
+    "Generated Dart types and runtime validators for the canonical Draft 2020-12",
+    "schemas in `fiducia-interfaces/schema`. Edit the JSON Schema and regenerate;",
+    "never hand-edit `lib/fiducia_interfaces.dart`.",
+    "",
+  ].join("\n");
+  return {
+    "dart/lib/fiducia_interfaces.dart": out.join("\n"),
+    "dart/pubspec.yaml": pubspec,
+    "dart/test/schema_validation_test.dart": test,
+    "dart/README.md": readme,
+  };
+}
+
 const EMITTERS = {
   rust: emitRust,
   "rust-wasm": emitRustWasm,
   typescript: emitTs,
   python: emitPython,
   go: emitGo,
-  // Future client emitters can add dart, ruby, java, csharp, php, or elixir here.
+  dart: emitDart,
+  // Future client emitters can add ruby, java, csharp, php, or elixir here.
 };
 
 // --- run ---------------------------------------------------------------------

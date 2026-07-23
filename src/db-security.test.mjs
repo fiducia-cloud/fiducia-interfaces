@@ -28,6 +28,17 @@ test('customer SQL keeps verifier hashes and backend-only tables off browser rol
   assert.match(sql, /create table if not exists sync_tombstones/);
   assert.match(sql, /tenant_id uuid,[\s\S]*owner_user_id uuid/);
   assert.match(sql, /create trigger orgs_bump before insert or update/);
+  assert.match(
+    sql,
+    /new := jsonb_populate_record\([\s\S]*to_jsonb\(old\) -> 'created_at'/,
+    'sync updates preserve server-owned created_at',
+  );
+  assert.match(
+    sql,
+    /new\.updated_at := greatest\([\s\S]*old\.updated_at \+ interval '1 microsecond'/,
+    'sync updates advance updated_at strictly even inside one transaction',
+  );
+  assert.match(sql, /else\s+new\.version := 1;/);
   assert.match(sql, /create trigger orgs_sync_clock_guard before insert or update or delete/);
   assert.match(sql, /create trigger users_sync_clock_guard before delete on users/);
   assert.match(sql, /create trigger customer_preferences_tombstone after delete/);
@@ -92,6 +103,16 @@ test('admin SQL denies browser roles access to internal ledgers', async () => {
   assert.match(sql, /create table if not exists sync_clock/);
   assert.match(sql, /create table if not exists sync_tombstones/);
   assert.match(sql, /create trigger infra_operations_bump before insert or update/);
+  assert.match(
+    sql,
+    /new := jsonb_populate_record\([\s\S]*to_jsonb\(old\) -> 'created_at'/,
+    'admin sync updates preserve server-owned created_at',
+  );
+  assert.match(
+    sql,
+    /new\.updated_at := greatest\([\s\S]*old\.updated_at \+ interval '1 microsecond'/,
+    'admin sync updates advance updated_at strictly',
+  );
   assert.match(
     sql,
     /create trigger infra_operations_sync_clock_guard before insert or update or delete/,

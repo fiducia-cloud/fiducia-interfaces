@@ -1,5 +1,8 @@
 node_modules
-generated/rust/target
+target
+**/target
+**/.dart_tool
+tmp
 .git
 .github
 .env

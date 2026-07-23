@@ -1,10 +1,17 @@
 # syntax=docker/dockerfile:1
 # CI/test image for generated interface contracts.
+FROM dart:3.12.1@sha256:6440c7d5fd8713b0706d0b6190eb2be7ad896101e225fc9d7657034b23ab0592 AS dart-sdk
+FROM node:22.22.1-bookworm-slim@sha256:4f77a690f2f8946ab16fe1e791a3ac0667ae1c3575c3e4d0d4589e9ed5bfaf3d AS node-sdk
 FROM rust:1.97.1-bookworm@sha256:77fac8b98f9f46062bb680b6d25d5bcaabfc400143952ebc572e924bcbedc3fa
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends nodejs npm
+COPY --from=dart-sdk /usr/lib/dart /usr/lib/dart
+COPY --from=node-sdk /usr/local/bin/node /usr/local/bin/node
+COPY --from=node-sdk /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 ENV HOME=/tmp \
-    CARGO_HOME=/tmp/cargo
+    CARGO_HOME=/tmp/cargo \
+    DART_SDK=/usr/lib/dart \
+    PATH=/usr/lib/dart/bin:$PATH
 WORKDIR /app
 RUN install -d -o 65532 -g 65532 /tmp/cargo \
     && chown 65532:65532 /app

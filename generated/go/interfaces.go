@@ -1210,6 +1210,48 @@ type SyncPullPage struct {
 	HasMore bool `json:"has_more"`
 }
 
+// SyncWritePolicy: Per-write client behavior. Strategy controls when local state becomes visible; failure_mode controls whether durable send failures are returned, thrown, or emitted; telemetry controls lifecycle detail.
+type SyncWritePolicy struct {
+	// local_queue commits locally and leaves transport to background flush; optimistic commits locally before awaiting the server; pessimistic keeps the old local value until acknowledgement or an authoritative echo. (one of: local_queue, optimistic, pessimistic)
+	Strategy string `json:"strategy"`
+	// How a durable send failure is surfaced after retry intent is safely persisted. (one of: return_result, throw_error, emit_only)
+	FailureMode string `json:"failure_mode"`
+	// Maximum sync lifecycle detail emitted to the configured telemetry adapter. (one of: off, errors, lifecycle, verbose)
+	Telemetry string `json:"telemetry"`
+}
+
+// SyncReplicaMetadata: Replica-local durable metadata. created_at_ms and updated_at_ms describe this local copy; synced_at_ms is when authoritative server state was last applied. None of these timestamps participate in conflict ordering.
+type SyncReplicaMetadata struct {
+	// Authoritative per-row version the local mutation is based on.
+	Version int64 `json:"version"`
+	// Whether an unacknowledged durable local write exists.
+	Dirty bool `json:"dirty"`
+	// When this replica first stored the row.
+	CreatedAtMs int64 `json:"created_at_ms"`
+	// When this replica last changed row data or sync metadata.
+	UpdatedAtMs int64 `json:"updated_at_ms"`
+	// When this replica last durably applied authoritative server state.
+	SyncedAtMs *int64 `json:"synced_at_ms,omitempty"`
+}
+
+// SyncTelemetryEvent: Low-cardinality write lifecycle event suitable for an OpenTelemetry adapter. Payloads, row ids, and idempotency keys are deliberately excluded.
+type SyncTelemetryEvent struct {
+	// Lifecycle transition being observed. (one of: local_queued, send_started, acknowledged, retry_scheduled, failed, conflict_resolved)
+	Phase string `json:"phase"`
+	// Write strategy selected for this operation. (one of: local_queue, optimistic, pessimistic)
+	Strategy string `json:"strategy"`
+	// Logical collection name; maps to db.collection.name.
+	Table string `json:"table"`
+	// Low-cardinality database operation. (one of: upsert, delete)
+	Op string `json:"op"`
+	// Local event time in Unix milliseconds.
+	AtMs int64 `json:"at_ms"`
+	// Durable retry count after this transition.
+	Attempts *int64 `json:"attempts,omitempty"`
+	// Stable exception or failure class; maps to error.type.
+	ErrorType *string `json:"error_type,omitempty"`
+}
+
 // TaskCreateRequest: Body of POST /v1/tasks/create. Idempotent: a repeat create returns the existing task.
 type TaskCreateRequest struct {
 	// Slash-safe task name, such as repo/acme/api/issue/482.

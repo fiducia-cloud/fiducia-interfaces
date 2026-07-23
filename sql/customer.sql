@@ -88,8 +88,30 @@ create or replace function bump_row_version() returns trigger as $$
 begin
   if tg_op = 'UPDATE' then
     new.version := old.version + 1;
+    -- created_at is server-owned history. A REST/ORM payload may contain it,
+    -- but an update can never rewrite when the row was created.
+    if to_jsonb(old) ? 'created_at' then
+      new := jsonb_populate_record(
+        new,
+        jsonb_build_object('created_at', to_jsonb(old) -> 'created_at')
+      );
+    end if;
+    -- clock_timestamp() advances within a transaction; greatest() also makes
+    -- this strictly monotonic if two writes land inside one clock tick.
+    new.updated_at := greatest(
+      clock_timestamp(),
+      old.updated_at + interval '1 microsecond'
+    );
+  else
+    new.version := 1;
+    new.updated_at := clock_timestamp();
+    if to_jsonb(new) ? 'created_at' then
+      new := jsonb_populate_record(
+        new,
+        jsonb_build_object('created_at', to_jsonb(new) -> 'updated_at')
+      );
+    end if;
   end if;
-  new.updated_at := now();
   new.sync_sequence := public.allocate_sync_sequence();
   return new;
 end;

@@ -189,6 +189,7 @@ export const TRANSITION_RULES = Object.freeze([
     to: "active_deadlock",
     minimum_approvals: 2,
     required_roles: ["founder"],
+    required_participant_ids: ["founder-a", "founder-b"],
     required_notice_ids: ["founder-a", "founder-b"],
     minimum_evidence: 1,
     cooldown_ms: 0,
@@ -200,6 +201,7 @@ export const TRANSITION_RULES = Object.freeze([
     to: "restored",
     minimum_approvals: 2,
     required_roles: ["founder"],
+    required_participant_ids: ["founder-a", "founder-b"],
     required_notice_ids: ["founder-a", "founder-b"],
     minimum_evidence: 1,
     cooldown_ms: 0,
@@ -442,6 +444,7 @@ export function authorizeTransition({
   if (!authorized) return false;
   if (authorized.length < rule.minimum_approvals) return false;
   if (!hasAllRoles(authorized, rule.required_roles)) return false;
+  if (!hasAllParticipants(authorized, rule.required_participant_ids)) return false;
 
   if (rule.subject_must_approve && !hasParticipant(authorized, request.subject_participant_id)) {
     return false;

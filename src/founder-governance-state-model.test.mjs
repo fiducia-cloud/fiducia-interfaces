@@ -259,6 +259,39 @@ test("transition requests fail closed on stale generation, missing guardian, evi
   }
 });
 
+test("active deadlock requires both protected founders, not founder plus operator", () => {
+  const createdAt = 1_000_000;
+  const request = transitionRequest({
+    to_state: "active_deadlock",
+    approver_ids: ["founder-a", "operator-1"],
+    notice_recipient_ids: ["founder-a", "founder-b"],
+    mediation_completed: true,
+    created_at_ms: createdAt,
+    expires_at_ms: createdAt + DAY,
+  });
+
+  assert.equal(
+    authorizeTransition({
+      current_state: "normal",
+      current_generation: 7,
+      request,
+      now_ms: createdAt,
+    }),
+    false,
+  );
+
+  request.approver_ids = ["founder-a", "founder-b"];
+  assert.equal(
+    authorizeTransition({
+      current_state: "normal",
+      current_generation: 7,
+      request,
+      now_ms: createdAt,
+    }),
+    true,
+  );
+});
+
 test("voluntary exit requires the subject founder's own approval", () => {
   const rule = transitionRule("normal", "voluntary_exit");
   assert.ok(rule?.subject_must_approve);

@@ -1,6 +1,8 @@
 // Non-canonical executable semantics for DEN-158/DEN-176 discovery.
 // This module is intentionally outside the generated schema surface.
 // It provides conservative safety checks; production authorization must fail closed.
+// Production hashing must use a conforming RFC 8785 implementation and production
+// approval evaluation must verify the actual cryptographic assertion.
 
 import { createHash } from "node:crypto";
 
@@ -15,6 +17,37 @@ function isSubset(subset, superset) {
 
 function valueOr(value, fallback) {
   return value === undefined ? fallback : value;
+}
+
+function hasUniqueStateRules(policy) {
+  const states = policy.state_rules.map((rule) => rule.state);
+  return new Set(states).size === states.length;
+}
+
+function participantMap(participants) {
+  const result = new Map();
+  for (const participant of participants) {
+    if (result.has(participant.participant_id)) return null;
+    result.set(participant.participant_id, participant);
+  }
+  return result;
+}
+
+function approvalIdentityIsAuthorized(proposal, approval, participant, nowMs) {
+  if (!participant) return false;
+  if (participant.tenant_id !== proposal.tenant_id) return false;
+  if (participant.status !== "active") return false;
+  if (participant.valid_from_ms > approval.approved_at_ms) return false;
+  if (
+    participant.valid_until_ms !== undefined &&
+    participant.valid_until_ms <= approval.approved_at_ms
+  ) {
+    return false;
+  }
+  if (!participant.roles.includes(approval.participant_role)) return false;
+  if (!participant.credential_ids.includes(approval.credential_id)) return false;
+  if (approval.approved_at_ms > nowMs) return false;
+  return true;
 }
 
 export function canonicalJson(value) {
@@ -35,11 +68,17 @@ export function sha256Urn(value) {
 }
 
 export function proposalPayloadHash(proposal) {
+  if (proposal.canonicalization !== "jcs_rfc8785") {
+    throw new Error("unsupported proposal canonicalization");
+  }
   const { canonical_payload_hash: _ignored, ...payload } = proposal;
+  // This deterministic subset is sufficient for the draft's integer/string/array/object
+  // proposal envelope, but production code must use a tested RFC 8785 implementation.
   return sha256Urn(canonicalJson(payload));
 }
 
 export function ruleForState(policy, state) {
+  if (!hasUniqueStateRules(policy)) return undefined;
   return policy.state_rules.find((rule) => rule.state === state);
 }
 
@@ -94,6 +133,15 @@ export function isRuleAtLeastAsStrong(current, candidate) {
     return false;
   }
 
+  if (
+    !isSubset(
+      sortedUnique(current.notice_participant_ids),
+      sortedUnique(candidate.notice_participant_ids),
+    )
+  ) {
+    return false;
+  }
+
   const oldConstraints = current.constraints;
   const nextConstraints = candidate.constraints;
 
@@ -135,6 +183,7 @@ export function isRuleAtLeastAsStrong(current, candidate) {
 }
 
 export function isPolicyReplacementNonWeakening(current, candidate) {
+  if (!hasUniqueStateRules(current) || !hasUniqueStateRules(candidate)) return false;
   if (candidate.tenant_id !== current.tenant_id) return false;
   if (candidate.policy_id !== current.policy_id) return false;
   if (candidate.action_kind !== current.action_kind) return false;
@@ -157,7 +206,14 @@ export function isPolicyReplacementNonWeakening(current, candidate) {
   return true;
 }
 
-export function approvalsSatisfyProposal(policy, proposal, approvals, nowMs) {
+export function approvalsSatisfyProposal(
+  policy,
+  proposal,
+  approvals,
+  participants,
+  nowMs,
+) {
+  if (!hasUniqueStateRules(policy)) return false;
   if (proposal.policy_id !== policy.policy_id) return false;
   if (proposal.policy_version !== policy.version) return false;
   if (proposal.policy_hash !== policy.policy_hash) return false;
@@ -174,11 +230,15 @@ export function approvalsSatisfyProposal(policy, proposal, approvals, nowMs) {
     Math.max(valueOr(rule.cooldown_ms, 0), valueOr(rule.challenge_window_ms, 0));
   if (nowMs < earliestExecutionMs) return false;
 
+  const directory = participantMap(participants);
+  if (!directory) return false;
+
   const uniqueByParticipant = new Map();
   for (const approval of approvals) {
     if (!approvalMatchesProposal(proposal, approval)) continue;
     if (approval.approved_at_ms < proposal.created_at_ms) continue;
-    if (approval.approved_at_ms > nowMs) continue;
+    const participant = directory.get(approval.participant_id);
+    if (!approvalIdentityIsAuthorized(proposal, approval, participant, nowMs)) continue;
     uniqueByParticipant.set(approval.participant_id, approval);
   }
 

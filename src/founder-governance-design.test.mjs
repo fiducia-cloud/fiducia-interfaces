@@ -38,9 +38,10 @@ function materializeProposalAndApprovals() {
 }
 
 test("draft governance examples validate against Draft 2020-12", () => {
-  const { policy, receipt } = examples.valid;
+  const { participants, policy, receipt } = examples.valid;
   const { proposal, approvals } = materializeProposalAndApprovals();
 
+  for (const participant of participants) validateDef("GovernanceParticipant", participant);
   validateDef("GovernancePolicy", policy);
   validateDef("GovernanceProposal", proposal);
   for (const approval of approvals) validateDef("GovernanceApproval", approval);
@@ -74,7 +75,7 @@ test("proposal hash commits to every proposal field except the hash itself", () 
   assert.notEqual(proposalPayloadHash(relabeled), originalHash);
 });
 
-test("policy replacement cannot reduce quorum or loosen self-dealing constraints", () => {
+test("policy replacement cannot reduce quorum, notice, or self-dealing constraints", () => {
   const current = examples.valid.policy;
 
   const stronger = structuredClone(current);
@@ -90,39 +91,66 @@ test("policy replacement cannot reduce quorum or loosen self-dealing constraints
   weakerQuorum.state_rules[0].quorum.minimum_approvals = 1;
   assert.equal(isPolicyReplacementNonWeakening(current, weakerQuorum), false);
 
+  const reducedNotice = structuredClone(stronger);
+  reducedNotice.state_rules[0].notice_participant_ids = ["founder-a"];
+  assert.equal(isPolicyReplacementNonWeakening(current, reducedNotice), false);
+
   const selfDealing = structuredClone(stronger);
   selfDealing.state_rules[0].constraints.ownership_changes_allowed = true;
   assert.equal(isPolicyReplacementNonWeakening(current, selfDealing), false);
 });
 
-test("normal execution requires two unique matching founder approvals after the delay", () => {
-  const policy = examples.valid.policy;
+test("duplicate continuity-state rules fail closed", () => {
+  const current = examples.valid.policy;
+  const duplicate = structuredClone(current);
+  duplicate.version = 2;
+  duplicate.replaces_policy_hash = current.policy_hash;
+  duplicate.policy_hash = `sha256:${"8".repeat(64)}`;
+  duplicate.state_rules.push(structuredClone(duplicate.state_rules[0]));
+
+  assert.equal(isPolicyReplacementNonWeakening(current, duplicate), false);
+});
+
+test("normal execution requires two unique matching authorized founder approvals", () => {
+  const { participants, policy } = examples.valid;
   const { proposal, approvals } = materializeProposalAndApprovals();
   const readyAt = proposal.created_at_ms + 86_400_000;
 
   assert.equal(
-    approvalsSatisfyProposal(policy, proposal, [approvals[0]], readyAt),
+    approvalsSatisfyProposal(policy, proposal, [approvals[0]], participants, readyAt),
     false,
   );
   assert.equal(
-    approvalsSatisfyProposal(policy, proposal, [approvals[0], approvals[0]], readyAt),
+    approvalsSatisfyProposal(
+      policy,
+      proposal,
+      [approvals[0], approvals[0]],
+      participants,
+      readyAt,
+    ),
     false,
   );
   assert.equal(
-    approvalsSatisfyProposal(policy, proposal, approvals, readyAt),
+    approvalsSatisfyProposal(policy, proposal, approvals, participants, readyAt),
     true,
   );
 
   const mutatedApproval = structuredClone(approvals[1]);
   mutatedApproval.canonical_payload_hash = `sha256:${"0".repeat(64)}`;
   assert.equal(
-    approvalsSatisfyProposal(policy, proposal, [approvals[0], mutatedApproval], readyAt),
+    approvalsSatisfyProposal(
+      policy,
+      proposal,
+      [approvals[0], mutatedApproval],
+      participants,
+      readyAt,
+    ),
     false,
   );
 });
 
-test("continuity execution requires both founder and guardian roles", () => {
-  const policy = examples.valid.policy;
+test("a founder cannot self-declare the guardian role", () => {
+  const { participants, policy } = examples.valid;
   const { proposal } = materializeProposalAndApprovals();
   proposal.continuity_state = "temporarily_unavailable";
   proposal.canonical_payload_hash = proposalPayloadHash(proposal);
@@ -132,31 +160,81 @@ test("continuity execution requires both founder and guardian roles", () => {
     canonical_payload_hash: proposal.canonical_payload_hash,
     approved_at_ms: proposal.created_at_ms + 259_200_000,
   };
-  const secondFounder = {
+  const forgedGuardianApproval = {
     ...examples.valid.approvals[1],
+    participant_role: "guardian",
     canonical_payload_hash: proposal.canonical_payload_hash,
     approved_at_ms: proposal.created_at_ms + 259_200_000,
-  };
-  const guardianApproval = {
-    ...secondFounder,
-    participant_id: "guardian-1",
-    participant_role: "guardian",
-    credential_id: "webauthn-guardian-1",
   };
   const readyAt = proposal.created_at_ms + 259_200_000;
 
   assert.equal(
-    approvalsSatisfyProposal(policy, proposal, [founderApproval, secondFounder], readyAt),
+    approvalsSatisfyProposal(
+      policy,
+      proposal,
+      [founderApproval, forgedGuardianApproval],
+      participants,
+      readyAt,
+    ),
     false,
   );
+});
+
+test("continuity execution requires an authorized founder and guardian credential", () => {
+  const { participants, policy } = examples.valid;
+  const { proposal } = materializeProposalAndApprovals();
+  proposal.continuity_state = "temporarily_unavailable";
+  proposal.canonical_payload_hash = proposalPayloadHash(proposal);
+
+  const founderApproval = {
+    ...examples.valid.approvals[0],
+    canonical_payload_hash: proposal.canonical_payload_hash,
+    approved_at_ms: proposal.created_at_ms + 259_200_000,
+  };
+  const guardianApproval = {
+    ...examples.valid.approvals[1],
+    participant_id: "guardian-1",
+    participant_role: "guardian",
+    credential_id: "webauthn-guardian-1",
+    canonical_payload_hash: proposal.canonical_payload_hash,
+    approved_at_ms: proposal.created_at_ms + 259_200_000,
+  };
+  const readyAt = proposal.created_at_ms + 259_200_000;
+
   assert.equal(
-    approvalsSatisfyProposal(policy, proposal, [founderApproval, guardianApproval], readyAt),
+    approvalsSatisfyProposal(
+      policy,
+      proposal,
+      [founderApproval, guardianApproval],
+      participants,
+      readyAt,
+    ),
     true,
   );
 });
 
+test("revoked participants and unregistered credentials do not count", () => {
+  const { policy } = examples.valid;
+  const { proposal, approvals } = materializeProposalAndApprovals();
+  const participants = structuredClone(examples.valid.participants);
+  participants[1].status = "revoked";
+  const readyAt = proposal.created_at_ms + 86_400_000;
+
+  assert.equal(
+    approvalsSatisfyProposal(policy, proposal, approvals, participants, readyAt),
+    false,
+  );
+
+  participants[1].status = "active";
+  approvals[1].credential_id = "unregistered-credential";
+  assert.equal(
+    approvalsSatisfyProposal(policy, proposal, approvals, participants, readyAt),
+    false,
+  );
+});
+
 test("a prohibited continuity state remains non-executable regardless of approvals", () => {
-  const policy = examples.valid.policy;
+  const { participants, policy } = examples.valid;
   const { proposal, approvals } = materializeProposalAndApprovals();
   proposal.continuity_state = "confirmed_long_term_incapacity";
   proposal.canonical_payload_hash = proposalPayloadHash(proposal);
@@ -169,6 +247,7 @@ test("a prohibited continuity state remains non-executable regardless of approva
       policy,
       proposal,
       approvals,
+      participants,
       proposal.created_at_ms + 300_000_000,
     ),
     false,

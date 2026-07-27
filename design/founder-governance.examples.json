@@ -119,7 +119,8 @@
       "canonical_payload_hash": "TO_BE_COMPUTED_BY_TEST",
       "nonce": "abcdefghijklmnopqrstuvwxYZ012345",
       "created_at_ms": 1785177600000,
-      "expires_at_ms": 1785523200000
+      "expires_at_ms": 1785523200000,
+      "canonicalization": "jcs_rfc8785"
     },
     "approvals": [
       {
@@ -157,6 +158,44 @@
       "provider_result_hash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "receipt_hash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "executed_at_ms": 1785264000000
-    }
+    },
+    "participants": [
+      {
+        "tenant_id": "company-123",
+        "participant_id": "founder-a",
+        "roles": [
+          "founder"
+        ],
+        "credential_ids": [
+          "webauthn-credential-a"
+        ],
+        "status": "active",
+        "valid_from_ms": 1785000000000
+      },
+      {
+        "tenant_id": "company-123",
+        "participant_id": "founder-b",
+        "roles": [
+          "founder"
+        ],
+        "credential_ids": [
+          "webauthn-credential-b"
+        ],
+        "status": "active",
+        "valid_from_ms": 1785000000000
+      },
+      {
+        "tenant_id": "company-123",
+        "participant_id": "guardian-1",
+        "roles": [
+          "guardian"
+        ],
+        "credential_ids": [
+          "webauthn-guardian-1"
+        ],
+        "status": "active",
+        "valid_from_ms": 1785000000000
+      }
+    ]
   }
 }

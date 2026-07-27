@@ -43,6 +43,68 @@
         "restored"
       ]
     },
+    "GovernanceParticipant": {
+      "title": "GovernanceParticipant",
+      "description": "Tenant-controlled participant and credential registry entry. Approval roles are assertions that must be checked against this record; they are never trusted from the approval payload alone.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tenant_id",
+        "participant_id",
+        "roles",
+        "credential_ids",
+        "status",
+        "valid_from_ms"
+      ],
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "participant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "roles": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/ParticipantRole"
+          }
+        },
+        "credential_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "suspended",
+            "revoked"
+          ]
+        },
+        "valid_from_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_until_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
     "QuorumRequirement": {
       "title": "QuorumRequirement",
       "description": "Required approvals for an action. Semantic validation must additionally reject duplicate participant ids and enforce role and participant membership against tenant state.",
@@ -259,6 +321,7 @@
         "policy_hash",
         "proposer_participant_id",
         "continuity_state",
+        "canonicalization",
         "canonical_payload_hash",
         "nonce",
         "created_at_ms",
@@ -308,6 +371,13 @@
         "continuity_state": {
           "$ref": "#/$defs/ContinuityState"
         },
+        "canonicalization": {
+          "type": "string",
+          "enum": [
+            "jcs_rfc8785"
+          ],
+          "description": "Canonicalization algorithm used before hashing. The reference implementation is illustrative; production implementations must use a conforming RFC 8785 implementation."
+        },
         "canonical_payload_hash": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
@@ -328,7 +398,7 @@
     },
     "GovernanceApproval": {
       "title": "GovernanceApproval",
-      "description": "One participant's signature over the proposal canonical_payload_hash.",
+      "description": "One participant's signature over the proposal canonical_payload_hash. participant_role is a claimed role and must be authorized by the tenant-controlled GovernanceParticipant record and credential binding.",
       "type": "object",
       "additionalProperties": false,
       "required": [

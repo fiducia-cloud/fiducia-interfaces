@@ -1,0 +1,165 @@
+{
+  "valid": {
+    "transition": {
+      "tenant_id": "company-123",
+      "transition_id": "transition-001",
+      "subject_participant_id": "founder-b",
+      "requested_by_participant_id": "founder-a",
+      "from_state": "normal",
+      "to_state": "temporarily_unavailable",
+      "expected_generation": 7,
+      "policy_id": "continuity-transition",
+      "policy_version": 1,
+      "policy_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "evidence": [
+        {
+          "evidence_id": "evidence-unreachable-1",
+          "kind": "other",
+          "content_hash": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+          "external_ref": "case:unavailability:001",
+          "issuer": "fiducia-notice-service",
+          "issued_at_ms": 1785177600000,
+          "confidentiality": "restricted"
+        }
+      ],
+      "required_notice_participant_ids": [
+        "founder-a",
+        "founder-b",
+        "guardian-1"
+      ],
+      "notices": [
+        {
+          "notice_id": "notice-a",
+          "recipient_participant_id": "founder-a",
+          "channel": "in_app",
+          "payload_hash": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+          "status": "acknowledged",
+          "sent_at_ms": 1785177600000,
+          "delivered_at_ms": 1785177601000,
+          "acknowledged_at_ms": 1785177602000
+        },
+        {
+          "notice_id": "notice-b",
+          "recipient_participant_id": "founder-b",
+          "channel": "email",
+          "payload_hash": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+          "status": "delivered",
+          "sent_at_ms": 1785177600000,
+          "delivered_at_ms": 1785177602000
+        },
+        {
+          "notice_id": "notice-guardian",
+          "recipient_participant_id": "guardian-1",
+          "channel": "in_app",
+          "payload_hash": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+          "status": "acknowledged",
+          "sent_at_ms": 1785177600000,
+          "delivered_at_ms": 1785177601000,
+          "acknowledged_at_ms": 1785177603000
+        }
+      ],
+      "process_assertions": [
+        "notice_completed"
+      ],
+      "requested_authority": {
+        "grantee_participant_id": "founder-a",
+        "allowed_action_kinds": [
+          "routine.deploy",
+          "routine.pay_existing_vendor"
+        ],
+        "constraints": {
+          "equivalent_access_only": true,
+          "ownership_changes_allowed": false,
+          "policy_weakening_allowed": false,
+          "audit_deletion_allowed": false,
+          "related_party_transfers_allowed": false,
+          "allowed_action_kinds": [
+            "routine.deploy",
+            "routine.pay_existing_vendor"
+          ],
+          "denied_action_kinds": [
+            "equity.issue",
+            "governance.weaken_policy",
+            "ip.transfer"
+          ]
+        },
+        "authority_ttl_ms": 3600000
+      },
+      "canonicalization": "jcs_rfc8785",
+      "canonical_transition_hash": "TO_BE_COMPUTED_BY_TEST",
+      "nonce": "transitionNonceabcdefghijklmnop01",
+      "created_at_ms": 1785177600000,
+      "earliest_effective_at_ms": 1785436800000,
+      "expires_at_ms": 1786041600000
+    },
+    "transition_approvals": [
+      {
+        "tenant_id": "company-123",
+        "transition_id": "transition-001",
+        "canonical_transition_hash": "TO_BE_COMPUTED_BY_TEST",
+        "participant_id": "founder-a",
+        "participant_role": "founder",
+        "credential_id": "webauthn-credential-a",
+        "signature_algorithm": "webauthn_es256",
+        "signature": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+        "approved_at_ms": 1785436800000
+      },
+      {
+        "tenant_id": "company-123",
+        "transition_id": "transition-001",
+        "canonical_transition_hash": "TO_BE_COMPUTED_BY_TEST",
+        "participant_id": "guardian-1",
+        "participant_role": "guardian",
+        "credential_id": "webauthn-guardian-1",
+        "signature_algorithm": "webauthn_es256",
+        "signature": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+        "approved_at_ms": 1785436800000
+      }
+    ],
+    "transition_receipt": {
+      "tenant_id": "company-123",
+      "transition_id": "transition-001",
+      "canonical_transition_hash": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "from_state": "normal",
+      "to_state": "temporarily_unavailable",
+      "previous_generation": 7,
+      "new_generation": 8,
+      "outcome": "applied",
+      "receipt_hash": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+      "effective_at_ms": 1785436800000,
+      "recorded_at_ms": 1785436800000
+    },
+    "delegated_authority": {
+      "tenant_id": "company-123",
+      "authority_id": "authority-001",
+      "transition_id": "transition-001",
+      "canonical_transition_hash": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "grantee_participant_id": "founder-a",
+      "state_generation": 8,
+      "allowed_action_kinds": [
+        "routine.deploy",
+        "routine.pay_existing_vendor"
+      ],
+      "constraints": {
+        "equivalent_access_only": true,
+        "ownership_changes_allowed": false,
+        "policy_weakening_allowed": false,
+        "audit_deletion_allowed": false,
+        "related_party_transfers_allowed": false,
+        "allowed_action_kinds": [
+          "routine.deploy",
+          "routine.pay_existing_vendor"
+        ],
+        "denied_action_kinds": [
+          "equity.issue",
+          "governance.weaken_policy",
+          "ip.transfer"
+        ]
+      },
+      "issued_at_ms": 1785436800000,
+      "expires_at_ms": 1785440400000,
+      "status": "active",
+      "authority_hash": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "status": "draft",
+  "promotion_issue": "DEN-283",
+  "parent_issue": "DEN-158",
+  "canonicalization": {
+    "identifier": "jcs_rfc8785",
+    "reference_implementation_status": "restricted_discovery_subset",
+    "promotion_requires_cross_language_golden_vectors": true
+  },
+  "draft_schema_files": [
+    "design/founder-governance.schema.json",
+    "design/founder-governance-transition.schema.json"
+  ],
+  "design_files": [
+    "design/founder-governance.schema.json",
+    "design/founder-governance.examples.json",
+    "design/founder-governance-reference.mjs",
+    "design/founder-governance-state-model.mjs",
+    "design/founder-governance-transition.schema.json",
+    "design/founder-governance-transition.examples.json",
+    "design/founder-governance-transition-reference.mjs",
+    "design/founder-governance-executor-model.mjs",
+    "design/founder-governance-death-succession-model.mjs"
+  ],
+  "test_files": [
+    "src/founder-governance-design.test.mjs",
+    "src/founder-governance-state-model.test.mjs",
+    "src/founder-governance-transition-design.test.mjs",
+    "src/founder-governance-executor-model.test.mjs",
+    "src/founder-governance-death-succession-model.test.mjs",
+    "src/founder-governance-promotion.test.mjs"
+  ],
+  "constitutional_manual_only_actions": [
+    "github.change_org_owner",
+    "cloudflare.change_super_admin",
+    "cloudflare.registrar_transfer",
+    "equity.issue",
+    "governance.weaken_policy",
+    "audit.delete",
+    "ip.transfer"
+  ],
+  "canonical_schema_files": [],
+  "promotion_marker": null,
+  "promotion_requirements": [
+    "hosted_ci_green",
+    "rfc8785_cross_language_vectors_green",
+    "schema_versioning_and_migration_documented",
+    "security_review_complete",
+    "generated_artifacts_current",
+    "legal_claims_remain_out_of_scope"
+  ]
+}

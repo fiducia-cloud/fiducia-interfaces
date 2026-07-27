@@ -2,10 +2,10 @@
   "valid": {
     "policy": {
       "tenant_id": "company-123",
-      "policy_id": "github-org-owner",
+      "policy_id": "github-ruleset-evaluate",
       "version": 1,
-      "policy_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "action_kind": "github.change_org_owner",
+      "policy_hash": "sha256:4c5752b24fd1b69cadd7d43a3e5f3d7f8e6c3dd95698262fa9b594cee461a253",
+      "action_kind": "github.ruleset.update_evaluate",
       "action_class": "sensitive",
       "state_rules": [
         {
@@ -36,12 +36,16 @@
             "audit_deletion_allowed": false,
             "related_party_transfers_allowed": false,
             "allowed_action_kinds": [
-              "github.change_org_owner"
+              "github.ruleset.update_evaluate"
             ],
             "denied_action_kinds": [
+              "github.change_org_owner",
+              "cloudflare.change_super_admin",
+              "cloudflare.registrar_transfer",
               "equity.issue",
               "governance.weaken_policy",
-              "audit.delete"
+              "audit.delete",
+              "ip.transfer"
             ]
           }
         },
@@ -70,9 +74,12 @@
             "audit_deletion_allowed": false,
             "related_party_transfers_allowed": false,
             "allowed_action_kinds": [
-              "github.change_org_owner"
+              "github.ruleset.update_evaluate"
             ],
             "denied_action_kinds": [
+              "github.change_org_owner",
+              "cloudflare.change_super_admin",
+              "cloudflare.registrar_transfer",
               "equity.issue",
               "governance.weaken_policy",
               "audit.delete",
@@ -98,6 +105,7 @@
             "audit_deletion_allowed": false,
             "related_party_transfers_allowed": false,
             "denied_action_kinds": [
+              "github.ruleset.update_evaluate",
               "github.change_org_owner"
             ]
           }
@@ -108,12 +116,12 @@
     "proposal": {
       "tenant_id": "company-123",
       "proposal_id": "proposal-001",
-      "action_kind": "github.change_org_owner",
+      "action_kind": "github.ruleset.update_evaluate",
       "action_class": "sensitive",
       "parameters_hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      "policy_id": "github-org-owner",
+      "policy_id": "github-ruleset-evaluate",
       "policy_version": 1,
-      "policy_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "policy_hash": "sha256:4c5752b24fd1b69cadd7d43a3e5f3d7f8e6c3dd95698262fa9b594cee461a253",
       "proposer_participant_id": "founder-a",
       "continuity_state": "normal",
       "canonical_payload_hash": "TO_BE_COMPUTED_BY_TEST",
@@ -150,7 +158,7 @@
       "tenant_id": "company-123",
       "proposal_id": "proposal-001",
       "canonical_payload_hash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-      "policy_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "policy_hash": "sha256:4c5752b24fd1b69cadd7d43a3e5f3d7f8e6c3dd95698262fa9b594cee461a253",
       "executor_id": "fiducia-executor-1",
       "fencing_token": 42,
       "provider_request_id": "github-request-123",

@@ -1,0 +1,162 @@
+{
+  "valid": {
+    "policy": {
+      "tenant_id": "company-123",
+      "policy_id": "github-org-owner",
+      "version": 1,
+      "policy_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "action_kind": "github.change_org_owner",
+      "action_class": "sensitive",
+      "state_rules": [
+        {
+          "state": "normal",
+          "permitted": true,
+          "quorum": {
+            "minimum_approvals": 2,
+            "required_participant_ids": [
+              "founder-a",
+              "founder-b"
+            ],
+            "required_roles": [
+              "founder"
+            ]
+          },
+          "cooldown_ms": 86400000,
+          "challenge_window_ms": 86400000,
+          "authority_ttl_ms": 3600000,
+          "notice_participant_ids": [
+            "founder-a",
+            "founder-b",
+            "guardian-1"
+          ],
+          "constraints": {
+            "equivalent_access_only": false,
+            "ownership_changes_allowed": false,
+            "policy_weakening_allowed": false,
+            "audit_deletion_allowed": false,
+            "related_party_transfers_allowed": false,
+            "allowed_action_kinds": [
+              "github.change_org_owner"
+            ],
+            "denied_action_kinds": [
+              "equity.issue",
+              "governance.weaken_policy",
+              "audit.delete"
+            ]
+          }
+        },
+        {
+          "state": "temporarily_unavailable",
+          "permitted": true,
+          "quorum": {
+            "minimum_approvals": 2,
+            "required_roles": [
+              "founder",
+              "guardian"
+            ]
+          },
+          "cooldown_ms": 259200000,
+          "challenge_window_ms": 259200000,
+          "authority_ttl_ms": 3600000,
+          "notice_participant_ids": [
+            "founder-a",
+            "founder-b",
+            "guardian-1"
+          ],
+          "constraints": {
+            "equivalent_access_only": true,
+            "ownership_changes_allowed": false,
+            "policy_weakening_allowed": false,
+            "audit_deletion_allowed": false,
+            "related_party_transfers_allowed": false,
+            "allowed_action_kinds": [
+              "github.change_org_owner"
+            ],
+            "denied_action_kinds": [
+              "equity.issue",
+              "governance.weaken_policy",
+              "audit.delete",
+              "ip.transfer"
+            ]
+          }
+        },
+        {
+          "state": "confirmed_long_term_incapacity",
+          "permitted": false,
+          "quorum": {
+            "minimum_approvals": 3,
+            "required_roles": [
+              "founder",
+              "guardian",
+              "estate_representative"
+            ]
+          },
+          "constraints": {
+            "equivalent_access_only": true,
+            "ownership_changes_allowed": false,
+            "policy_weakening_allowed": false,
+            "audit_deletion_allowed": false,
+            "related_party_transfers_allowed": false,
+            "denied_action_kinds": [
+              "github.change_org_owner"
+            ]
+          }
+        }
+      ],
+      "created_at_ms": 1785177600000
+    },
+    "proposal": {
+      "tenant_id": "company-123",
+      "proposal_id": "proposal-001",
+      "action_kind": "github.change_org_owner",
+      "action_class": "sensitive",
+      "parameters_hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "policy_id": "github-org-owner",
+      "policy_version": 1,
+      "policy_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "proposer_participant_id": "founder-a",
+      "continuity_state": "normal",
+      "canonical_payload_hash": "TO_BE_COMPUTED_BY_TEST",
+      "nonce": "abcdefghijklmnopqrstuvwxYZ012345",
+      "created_at_ms": 1785177600000,
+      "expires_at_ms": 1785523200000
+    },
+    "approvals": [
+      {
+        "tenant_id": "company-123",
+        "proposal_id": "proposal-001",
+        "canonical_payload_hash": "TO_BE_COMPUTED_BY_TEST",
+        "participant_id": "founder-a",
+        "participant_role": "founder",
+        "credential_id": "webauthn-credential-a",
+        "signature_algorithm": "webauthn_es256",
+        "signature": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "approved_at_ms": 1785264000000
+      },
+      {
+        "tenant_id": "company-123",
+        "proposal_id": "proposal-001",
+        "canonical_payload_hash": "TO_BE_COMPUTED_BY_TEST",
+        "participant_id": "founder-b",
+        "participant_role": "founder",
+        "credential_id": "webauthn-credential-b",
+        "signature_algorithm": "webauthn_es256",
+        "signature": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+        "approved_at_ms": 1785264000000
+      }
+    ],
+    "receipt": {
+      "tenant_id": "company-123",
+      "proposal_id": "proposal-001",
+      "canonical_payload_hash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "policy_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "executor_id": "fiducia-executor-1",
+      "fencing_token": 42,
+      "provider_request_id": "github-request-123",
+      "outcome": "succeeded",
+      "provider_result_hash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "receipt_hash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "executed_at_ms": 1785264000000
+    }
+  }
+}

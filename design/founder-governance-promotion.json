@@ -20,7 +20,8 @@
     "design/founder-governance-transition.examples.json",
     "design/founder-governance-transition-reference.mjs",
     "design/founder-governance-executor-model.mjs",
-    "design/founder-governance-death-succession-model.mjs"
+    "design/founder-governance-death-succession-model.mjs",
+    "design/founder-governance-versioning.md"
   ],
   "test_files": [
     "src/founder-governance-design.test.mjs",

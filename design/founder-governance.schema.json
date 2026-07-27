@@ -1,0 +1,522 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fiducia.cloud/design/founder-governance.schema.json",
+  "title": "FiduciaFounderGovernanceDraft",
+  "description": "Non-canonical discovery schema for founder partnership joint control, continuity transitions, approvals, and execution receipts. DEN-158/DEN-176. Do not treat this draft as a legal ownership record.",
+  "type": "object",
+  "$defs": {
+    "ParticipantRole": {
+      "title": "ParticipantRole",
+      "type": "string",
+      "enum": [
+        "founder",
+        "guardian",
+        "estate_representative",
+        "successor",
+        "operator",
+        "service_executor"
+      ]
+    },
+    "ActionClass": {
+      "title": "ActionClass",
+      "type": "string",
+      "enum": [
+        "routine",
+        "sensitive",
+        "constitutional",
+        "recovery",
+        "emergency"
+      ]
+    },
+    "ContinuityState": {
+      "title": "ContinuityState",
+      "type": "string",
+      "enum": [
+        "normal",
+        "temporarily_unavailable",
+        "provisional_incapacity",
+        "confirmed_long_term_incapacity",
+        "voluntary_exit",
+        "nonparticipation",
+        "active_deadlock",
+        "succession",
+        "restored"
+      ]
+    },
+    "QuorumRequirement": {
+      "title": "QuorumRequirement",
+      "description": "Required approvals for an action. Semantic validation must additionally reject duplicate participant ids and enforce role and participant membership against tenant state.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_approvals"
+      ],
+      "properties": {
+        "minimum_approvals": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32
+        },
+        "required_participant_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 32,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required_roles": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/ParticipantRole"
+          }
+        }
+      }
+    },
+    "DelegationConstraints": {
+      "title": "DelegationConstraints",
+      "description": "Constraints applied to continuity or emergency authority. Business logic must fail closed when an action cannot be classified.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "equivalent_access_only",
+        "ownership_changes_allowed",
+        "policy_weakening_allowed",
+        "audit_deletion_allowed",
+        "related_party_transfers_allowed"
+      ],
+      "properties": {
+        "equivalent_access_only": {
+          "type": "boolean"
+        },
+        "ownership_changes_allowed": {
+          "type": "boolean"
+        },
+        "policy_weakening_allowed": {
+          "type": "boolean"
+        },
+        "audit_deletion_allowed": {
+          "type": "boolean"
+        },
+        "related_party_transfers_allowed": {
+          "type": "boolean"
+        },
+        "maximum_amount_minor_units": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Optional monetary limit in the action's declared currency minor units."
+        },
+        "allowed_action_kinds": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 128,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        },
+        "denied_action_kinds": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 128,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        }
+      }
+    },
+    "StateRule": {
+      "title": "StateRule",
+      "description": "Authorization and timing rule for one continuity state.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "permitted",
+        "quorum",
+        "constraints"
+      ],
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/ContinuityState"
+        },
+        "permitted": {
+          "type": "boolean"
+        },
+        "quorum": {
+          "$ref": "#/$defs/QuorumRequirement"
+        },
+        "cooldown_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2592000000
+        },
+        "challenge_window_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2592000000
+        },
+        "authority_ttl_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2592000000
+        },
+        "notice_participant_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 64,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "constraints": {
+          "$ref": "#/$defs/DelegationConstraints"
+        }
+      }
+    },
+    "GovernancePolicy": {
+      "title": "GovernancePolicy",
+      "description": "Versioned action policy. Implementations must ensure a replacement policy is approved by the current rule or a stronger rule.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tenant_id",
+        "policy_id",
+        "version",
+        "policy_hash",
+        "action_kind",
+        "action_class",
+        "state_rules",
+        "created_at_ms"
+      ],
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "policy_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "policy_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "replaces_policy_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "action_kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "action_class": {
+          "$ref": "#/$defs/ActionClass"
+        },
+        "state_rules": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/StateRule"
+          }
+        },
+        "created_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "GovernanceProposal": {
+      "title": "GovernanceProposal",
+      "description": "Immutable proposal envelope. Approvals sign canonical_payload_hash, which commits to every field and the canonicalized action parameters.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tenant_id",
+        "proposal_id",
+        "action_kind",
+        "action_class",
+        "parameters_hash",
+        "policy_id",
+        "policy_version",
+        "policy_hash",
+        "proposer_participant_id",
+        "continuity_state",
+        "canonical_payload_hash",
+        "nonce",
+        "created_at_ms",
+        "expires_at_ms"
+      ],
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "proposal_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "action_kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "action_class": {
+          "$ref": "#/$defs/ActionClass"
+        },
+        "parameters_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "policy_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "policy_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "policy_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "proposer_participant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "continuity_state": {
+          "$ref": "#/$defs/ContinuityState"
+        },
+        "canonical_payload_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "nonce": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{32,128}$"
+        },
+        "created_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expires_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "GovernanceApproval": {
+      "title": "GovernanceApproval",
+      "description": "One participant's signature over the proposal canonical_payload_hash.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tenant_id",
+        "proposal_id",
+        "canonical_payload_hash",
+        "participant_id",
+        "participant_role",
+        "credential_id",
+        "signature_algorithm",
+        "signature",
+        "approved_at_ms"
+      ],
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "proposal_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "canonical_payload_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "participant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "participant_role": {
+          "$ref": "#/$defs/ParticipantRole"
+        },
+        "credential_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "signature_algorithm": {
+          "type": "string",
+          "enum": [
+            "webauthn_es256",
+            "webauthn_ed25519",
+            "threshold_ed25519"
+          ]
+        },
+        "signature": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{32,4096}$"
+        },
+        "approved_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "ContinuityTransitionRequest": {
+      "title": "ContinuityTransitionRequest",
+      "description": "Request to move between continuity states. Evidence references are immutable digests or external record identifiers; the schema does not declare legal sufficiency.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tenant_id",
+        "transition_id",
+        "from_state",
+        "to_state",
+        "requested_by_participant_id",
+        "evidence_refs",
+        "created_at_ms",
+        "expires_at_ms"
+      ],
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "transition_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "from_state": {
+          "$ref": "#/$defs/ContinuityState"
+        },
+        "to_state": {
+          "$ref": "#/$defs/ContinuityState"
+        },
+        "requested_by_participant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          }
+        },
+        "created_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expires_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "GovernanceExecutionReceipt": {
+      "title": "GovernanceExecutionReceipt",
+      "description": "Signed record of a policy-gated execution attempt.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tenant_id",
+        "proposal_id",
+        "canonical_payload_hash",
+        "policy_hash",
+        "executor_id",
+        "fencing_token",
+        "outcome",
+        "receipt_hash",
+        "executed_at_ms"
+      ],
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "proposal_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "canonical_payload_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "policy_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "executor_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "fencing_token": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "provider_request_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "succeeded",
+            "rejected",
+            "failed",
+            "unknown"
+          ]
+        },
+        "provider_result_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "receipt_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "executed_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

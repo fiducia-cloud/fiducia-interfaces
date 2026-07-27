@@ -28,38 +28,60 @@ export function executionIdempotencyKey(proposal) {
 
 export class ExecutionLedger {
   constructor() {
-    this.highestFencingTokenByTenant = new Map();
+    this.highestFencingTokenByScope = new Map();
     this.receiptByIdempotencyKey = new Map();
     this.pendingByIdempotencyKey = new Map();
   }
 
-  highestFencingToken(tenantId) {
-    return this.highestFencingTokenByTenant.get(tenantId) ?? 0;
+  highestFencingToken(fencingScope) {
+    return this.highestFencingTokenByScope.get(fencingScope) ?? 0;
   }
 
-  claim({ tenantId, idempotencyKey, fencingToken, proposalHash }) {
+  claim({ tenantId, fencingScope, idempotencyKey, fencingToken, proposalHash }) {
+    if (typeof fencingScope !== "string" || fencingScope.trim() === "") {
+      return { kind: "rejected", reason: "fencing_scope_invalid" };
+    }
+    if (!Number.isSafeInteger(fencingToken) || fencingToken <= 0) {
+      return { kind: "rejected", reason: "fencing_token_invalid" };
+    }
+
     const existingReceipt = this.receiptByIdempotencyKey.get(idempotencyKey);
     if (existingReceipt) return { kind: "receipt", receipt: existingReceipt };
 
-    const pending = this.pendingByIdempotencyKey.get(idempotencyKey);
-    if (pending) {
-      if (
-        pending.fencing_token !== fencingToken ||
-        pending.canonical_payload_hash !== proposalHash
-      ) {
-        return { kind: "rejected", reason: "idempotency_conflict" };
-      }
-      return { kind: "pending", pending };
-    }
-
-    const highWater = this.highestFencingToken(tenantId);
+    const highWater = this.highestFencingToken(fencingScope);
     if (fencingToken < highWater) {
       return { kind: "rejected", reason: "stale_fencing_token" };
     }
 
-    this.highestFencingTokenByTenant.set(tenantId, Math.max(highWater, fencingToken));
+    const pending = this.pendingByIdempotencyKey.get(idempotencyKey);
+    if (pending) {
+      if (
+        pending.tenant_id !== tenantId ||
+        pending.fencing_scope !== fencingScope ||
+        pending.canonical_payload_hash !== proposalHash
+      ) {
+        return { kind: "rejected", reason: "idempotency_conflict" };
+      }
+      if (fencingToken < pending.fencing_token) {
+        return { kind: "rejected", reason: "stale_fencing_token" };
+      }
+
+      this.highestFencingTokenByScope.set(fencingScope, Math.max(highWater, fencingToken));
+      if (fencingToken > pending.fencing_token) {
+        const takenOver = Object.freeze({
+          ...pending,
+          fencing_token: fencingToken,
+        });
+        this.pendingByIdempotencyKey.set(idempotencyKey, takenOver);
+        return { kind: "pending", pending: takenOver, taken_over: true };
+      }
+      return { kind: "pending", pending };
+    }
+
+    this.highestFencingTokenByScope.set(fencingScope, Math.max(highWater, fencingToken));
     const record = Object.freeze({
       tenant_id: tenantId,
+      fencing_scope: fencingScope,
       idempotency_key: idempotencyKey,
       fencing_token: fencingToken,
       canonical_payload_hash: proposalHash,
@@ -76,8 +98,8 @@ export class ExecutionLedger {
 }
 
 export class SimulatedProvider {
-  constructor(initialState = {}) {
-    this.state = structuredClone(initialState);
+  constructor() {
+    this.state = {};
     this.applyCount = 0;
     this.behaviorByActionKind = new Map();
     this.requestLog = [];
@@ -92,13 +114,25 @@ export class SimulatedProvider {
     if (prior) return structuredClone(prior.result);
 
     this.applyCount += 1;
-    const behavior = this.behaviorByActionKind.get(actionKind) ?? "succeed";
+    const behavior = this.behaviorByActionKind.get(actionKind) ?? "succeeded";
     let result;
 
+    if (behavior === "throw_before_apply") {
+      throw new Error("simulated provider transport failure");
+    }
     if (behavior === "fail_before_apply") {
       result = { outcome: "failed", provider_request_id: `req-${this.applyCount}` };
     } else {
       applyProviderMutation(this.state, actionKind, parameters);
+      if (behavior === "throw_after_apply") {
+        this.requestLog.push({
+          idempotency_key: idempotencyKey,
+          action_kind: actionKind,
+          parameters: structuredClone(parameters),
+          result: { outcome: "unknown", provider_request_id: `req-${this.applyCount}` },
+        });
+        throw new Error("simulated provider response loss after apply");
+      }
       if (behavior === "apply_then_timeout") {
         result = { outcome: "unknown", provider_request_id: `req-${this.applyCount}` };
       } else {
@@ -172,12 +206,15 @@ function providerStateMatches(state, actionKind, parameters) {
   }
 }
 
-function capabilityAllows({ capability, proposal, currentGeneration, nowMs }) {
+function capabilityAllows({ capability, proposal, authorization, currentGeneration, nowMs }) {
   if (!capability) return false;
   if (capability.tenant_id !== proposal.tenant_id) return false;
   if (capability.status !== "active") return false;
+  if (capability.issued_at_ms > nowMs) return false;
+  if (capability.expires_at_ms <= capability.issued_at_ms) return false;
   if (capability.expires_at_ms <= nowMs) return false;
   if (capability.state_generation !== currentGeneration) return false;
+  if (authorization.participant_id !== capability.grantee_participant_id) return false;
   if (!capability.allowed_action_kinds.includes(proposal.action_kind)) return false;
 
   const actionClass = classifyAction(proposal.action_kind);
@@ -204,13 +241,16 @@ function capabilityAllows({ capability, proposal, currentGeneration, nowMs }) {
 }
 
 function proposalIsInternallyConsistent(proposal, parameters) {
-  if (!classifyAction(proposal.action_kind)) return false;
+  const actionClass = classifyAction(proposal.action_kind);
+  if (!actionClass) return false;
+  if (proposal.action_class !== actionClass) return false;
   if (proposal.parameters_hash !== actionParametersHash(parameters)) return false;
   return true;
 }
 
 function buildReceipt({
   proposal,
+  fencingScope,
   fencingToken,
   providerResult,
   idempotencyKey,
@@ -222,17 +262,34 @@ function buildReceipt({
     canonical_payload_hash: proposal.canonical_payload_hash,
     policy_hash: proposal.policy_hash,
     executor_id: "founder-control-plane-simulated-executor",
+    fencing_scope: fencingScope,
     fencing_token: fencingToken,
     idempotency_key: idempotencyKey,
-    provider_request_id: providerResult.provider_request_id,
     outcome: providerResult.outcome,
     reconciled: providerResult.reconciled === true,
     executed_at_ms: executedAtMs,
   };
+  if (providerResult.provider_request_id !== undefined) {
+    unsigned.provider_request_id = providerResult.provider_request_id;
+  }
+  if (providerResult.safe_reason_code !== undefined) {
+    unsigned.safe_reason_code = providerResult.safe_reason_code;
+  }
   return {
     ...unsigned,
     receipt_hash: sha256Urn(canonicalJson(unsigned)),
   };
+}
+
+function authorizationMatchesProposal({ authorization, proposal, currentGeneration }) {
+  return (
+    authorization?.authorized === true &&
+    authorization.tenant_id === proposal.tenant_id &&
+    authorization.proposal_hash === proposal.canonical_payload_hash &&
+    authorization.policy_hash === proposal.policy_hash &&
+    authorization.policy_version === proposal.policy_version &&
+    authorization.state_generation === currentGeneration
+  );
 }
 
 export function executeProtectedAction({
@@ -241,7 +298,9 @@ export function executeProtectedAction({
   authorization,
   capability,
   currentGeneration,
+  fencingScope,
   fencingToken,
+  activeFencingToken,
   ledger,
   provider,
   nowMs,
@@ -252,12 +311,26 @@ export function executeProtectedAction({
   if (authorization?.authorized !== true) {
     return { outcome: "rejected", safe_reason_code: "approval_quorum_unsatisfied" };
   }
+  if (!authorizationMatchesProposal({ authorization, proposal, currentGeneration })) {
+    return { outcome: "rejected", safe_reason_code: "authorization_context_mismatch" };
+  }
   if (!proposalIsInternallyConsistent(proposal, parameters)) {
     return { outcome: "rejected", safe_reason_code: "proposal_parameters_mismatch" };
   }
+  if (fencingToken !== activeFencingToken) {
+    return { outcome: "rejected", safe_reason_code: "stale_fencing_token" };
+  }
 
   if (authorization.mode === "delegated_authority") {
-    if (!capabilityAllows({ capability, proposal, currentGeneration, nowMs })) {
+    if (
+      !capabilityAllows({
+        capability,
+        proposal,
+        authorization,
+        currentGeneration,
+        nowMs,
+      })
+    ) {
       return { outcome: "rejected", safe_reason_code: "delegated_authority_invalid" };
     }
   } else if (authorization.mode !== "direct_quorum") {
@@ -267,6 +340,7 @@ export function executeProtectedAction({
   const idempotencyKey = executionIdempotencyKey(proposal);
   const claim = ledger.claim({
     tenantId: proposal.tenant_id,
+    fencingScope,
     idempotencyKey,
     fencingToken,
     proposalHash: proposal.canonical_payload_hash,
@@ -285,12 +359,29 @@ export function executeProtectedAction({
       idempotencyKey,
     });
   } else {
-    providerResult = provider.apply({
-      actionKind: proposal.action_kind,
-      parameters,
-      idempotencyKey,
-    });
-    if (providerResult.outcome === "unknown") {
+    try {
+      providerResult = provider.apply({
+        actionKind: proposal.action_kind,
+        parameters,
+        idempotencyKey,
+      });
+    } catch {
+      providerResult = provider.reconcile({
+        actionKind: proposal.action_kind,
+        parameters,
+        idempotencyKey,
+      });
+      if (providerResult.outcome === "unknown") {
+        providerResult = {
+          ...providerResult,
+          safe_reason_code: "provider_result_unknown",
+        };
+      }
+    }
+    if (
+      providerResult.outcome === "unknown" &&
+      providerResult.safe_reason_code === undefined
+    ) {
       providerResult = provider.reconcile({
         actionKind: proposal.action_kind,
         parameters,
@@ -299,8 +390,19 @@ export function executeProtectedAction({
     }
   }
 
+  if (
+    providerResult.outcome === "unknown" &&
+    providerResult.safe_reason_code === undefined
+  ) {
+    providerResult = {
+      ...providerResult,
+      safe_reason_code: "provider_result_unknown",
+    };
+  }
+
   const receipt = buildReceipt({
     proposal,
+    fencingScope,
     fencingToken,
     providerResult,
     idempotencyKey,
@@ -314,15 +416,24 @@ export function executeProtectedAction({
   return ledger.recordReceipt(idempotencyKey, receipt);
 }
 
+function driftValue(state, field) {
+  if (Object.prototype.hasOwnProperty.call(state, field)) {
+    return { present: true, value: state[field] };
+  }
+  return { present: false };
+}
+
 export function detectProviderDrift({ expectedState, actualState, protectedFields }) {
   const alerts = [];
   for (const field of protectedFields) {
-    if (canonicalJson(expectedState[field]) === canonicalJson(actualState[field])) continue;
+    const expected = driftValue(expectedState, field);
+    const actual = driftValue(actualState, field);
+    if (canonicalJson(expected) === canonicalJson(actual)) continue;
     alerts.push(
       Object.freeze({
         field,
-        expected_hash: sha256Urn(canonicalJson(expectedState[field])),
-        actual_hash: sha256Urn(canonicalJson(actualState[field])),
+        expected_hash: sha256Urn(canonicalJson(expected)),
+        actual_hash: sha256Urn(canonicalJson(actual)),
         severity: "critical",
         recommended_action: "freeze_and_reconcile",
       }),

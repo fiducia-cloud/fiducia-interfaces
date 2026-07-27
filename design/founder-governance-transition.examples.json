@@ -34,6 +34,7 @@
           "channel": "in_app",
           "payload_hash": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
           "status": "acknowledged",
+          "provider_reference": "in-app-delivery:notice-a",
           "sent_at_ms": 1785177600000,
           "delivered_at_ms": 1785177601000,
           "acknowledged_at_ms": 1785177602000
@@ -44,6 +45,7 @@
           "channel": "email",
           "payload_hash": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
           "status": "delivered",
+          "provider_reference": "email-delivery:notice-b",
           "sent_at_ms": 1785177600000,
           "delivered_at_ms": 1785177602000
         },
@@ -53,6 +55,7 @@
           "channel": "in_app",
           "payload_hash": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
           "status": "acknowledged",
+          "provider_reference": "in-app-delivery:notice-guardian",
           "sent_at_ms": 1785177600000,
           "delivered_at_ms": 1785177601000,
           "acknowledged_at_ms": 1785177603000
@@ -78,9 +81,9 @@
             "routine.pay_existing_vendor"
           ],
           "denied_action_kinds": [
-            "equity.issue",
-            "governance.weaken_policy",
-            "ip.transfer"
+            "constitutional.issue_equity",
+            "constitutional.weaken_policy",
+            "constitutional.transfer_ip"
           ]
         },
         "authority_ttl_ms": 3600000
@@ -151,9 +154,9 @@
           "routine.pay_existing_vendor"
         ],
         "denied_action_kinds": [
-          "equity.issue",
-          "governance.weaken_policy",
-          "ip.transfer"
+          "constitutional.issue_equity",
+          "constitutional.weaken_policy",
+          "constitutional.transfer_ip"
         ]
       },
       "issued_at_ms": 1785436800000,

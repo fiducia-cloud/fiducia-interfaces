@@ -20,23 +20,37 @@ function valueOr(value, fallback) {
 }
 
 function hasUniqueStateRules(policy) {
+  if (!policy || !Array.isArray(policy.state_rules)) return false;
   const states = policy.state_rules.map((rule) => rule.state);
   return new Set(states).size === states.length;
 }
 
 function participantMap(participants) {
+  if (!Array.isArray(participants)) return null;
   const result = new Map();
   for (const participant of participants) {
-    if (result.has(participant.participant_id)) return null;
+    if (!participant || result.has(participant.participant_id)) return null;
     result.set(participant.participant_id, participant);
   }
   return result;
 }
 
-function approvalIdentityIsAuthorized(proposal, approval, participant, nowMs) {
+function participantIsActiveForTenant(participant, tenantId, nowMs) {
   if (!participant) return false;
-  if (participant.tenant_id !== proposal.tenant_id) return false;
+  if (participant.tenant_id !== tenantId) return false;
   if (participant.status !== "active") return false;
+  if (participant.valid_from_ms > nowMs) return false;
+  if (
+    participant.valid_until_ms !== undefined &&
+    participant.valid_until_ms <= nowMs
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function approvalIdentityIsAuthorized(proposal, approval, participant, nowMs) {
+  if (!participantIsActiveForTenant(participant, proposal.tenant_id, nowMs)) return false;
   if (participant.valid_from_ms > approval.approved_at_ms) return false;
   if (
     participant.valid_until_ms !== undefined &&
@@ -50,21 +64,75 @@ function approvalIdentityIsAuthorized(proposal, approval, participant, nowMs) {
   return true;
 }
 
-export function canonicalJson(value) {
+function assertJsonValue(value, path = "$", ancestors = new Set()) {
+  if (value === null) return;
+
+  const kind = typeof value;
+  if (kind === "string" || kind === "boolean") return;
+  if (kind === "number") {
+    if (!Number.isFinite(value)) {
+      throw new TypeError(`non-finite JSON number at ${path}`);
+    }
+    return;
+  }
+  if (kind !== "object") {
+    throw new TypeError(`non-JSON value at ${path}: ${kind}`);
+  }
+
+  if (ancestors.has(value)) {
+    throw new TypeError(`cyclic JSON value at ${path}`);
+  }
+  ancestors.add(value);
+
+  if (Array.isArray(value)) {
+    for (let index = 0; index < value.length; index += 1) {
+      if (!(index in value)) {
+        throw new TypeError(`sparse JSON array at ${path}[${index}]`);
+      }
+      assertJsonValue(value[index], `${path}[${index}]`, ancestors);
+    }
+    ancestors.delete(value);
+    return;
+  }
+
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) {
+    throw new TypeError(`non-plain JSON object at ${path}`);
+  }
+  for (const key of Object.keys(value)) {
+    assertJsonValue(value[key], `${path}.${key}`, ancestors);
+  }
+  ancestors.delete(value);
+}
+
+function canonicalJsonUnchecked(value) {
   if (value === null || typeof value !== "object") {
     return JSON.stringify(value);
   }
   if (Array.isArray(value)) {
-    return `[${value.map(canonicalJson).join(",")}]`;
+    return `[${value.map(canonicalJsonUnchecked).join(",")}]`;
   }
   const entries = Object.keys(value)
     .sort()
-    .map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`);
+    .map((key) => `${JSON.stringify(key)}:${canonicalJsonUnchecked(value[key])}`);
   return `{${entries.join(",")}}`;
 }
 
+export function canonicalJson(value) {
+  assertJsonValue(value);
+  return canonicalJsonUnchecked(value);
+}
+
 export function sha256Urn(value) {
-  return `sha256:${createHash("sha256").update(value).digest("hex")}`;
+  if (typeof value !== "string") {
+    throw new TypeError("sha256Urn input must be a string");
+  }
+  return `sha256:${createHash("sha256").update(value, "utf8").digest("hex")}`;
+}
+
+export function policyPayloadHash(policy) {
+  const { policy_hash: _ignored, ...payload } = policy;
+  return sha256Urn(canonicalJson(payload));
 }
 
 export function proposalPayloadHash(proposal) {
@@ -72,8 +140,8 @@ export function proposalPayloadHash(proposal) {
     throw new Error("unsupported proposal canonicalization");
   }
   const { canonical_payload_hash: _ignored, ...payload } = proposal;
-  // This deterministic subset is sufficient for the draft's integer/string/array/object
-  // proposal envelope, but production code must use a tested RFC 8785 implementation.
+  // This deterministic JSON subset is intentionally fail-closed. Promotion to a
+  // canonical contract still requires cross-language RFC 8785 golden vectors.
   return sha256Urn(canonicalJson(payload));
 }
 
@@ -184,6 +252,12 @@ export function isRuleAtLeastAsStrong(current, candidate) {
 
 export function isPolicyReplacementNonWeakening(current, candidate) {
   if (!hasUniqueStateRules(current) || !hasUniqueStateRules(candidate)) return false;
+  try {
+    if (current.policy_hash !== policyPayloadHash(current)) return false;
+    if (candidate.policy_hash !== policyPayloadHash(candidate)) return false;
+  } catch {
+    return false;
+  }
   if (candidate.tenant_id !== current.tenant_id) return false;
   if (candidate.policy_id !== current.policy_id) return false;
   if (candidate.action_kind !== current.action_kind) return false;
@@ -214,12 +288,20 @@ export function approvalsSatisfyProposal(
   nowMs,
 ) {
   if (!hasUniqueStateRules(policy)) return false;
+  try {
+    if (policy.policy_hash !== policyPayloadHash(policy)) return false;
+    if (proposal.canonical_payload_hash !== proposalPayloadHash(proposal)) return false;
+  } catch {
+    return false;
+  }
+  if (proposal.tenant_id !== policy.tenant_id) return false;
   if (proposal.policy_id !== policy.policy_id) return false;
   if (proposal.policy_version !== policy.version) return false;
   if (proposal.policy_hash !== policy.policy_hash) return false;
   if (proposal.action_kind !== policy.action_kind) return false;
   if (proposal.action_class !== policy.action_class) return false;
-  if (proposal.canonical_payload_hash !== proposalPayloadHash(proposal)) return false;
+  if (proposal.created_at_ms > nowMs) return false;
+  if (proposal.expires_at_ms <= proposal.created_at_ms) return false;
   if (proposal.expires_at_ms <= nowMs) return false;
 
   const rule = ruleForState(policy, proposal.continuity_state);
@@ -232,6 +314,8 @@ export function approvalsSatisfyProposal(
 
   const directory = participantMap(participants);
   if (!directory) return false;
+  const proposer = directory.get(proposal.proposer_participant_id);
+  if (!participantIsActiveForTenant(proposer, proposal.tenant_id, nowMs)) return false;
 
   const uniqueByParticipant = new Map();
   for (const approval of approvals) {

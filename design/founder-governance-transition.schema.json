@@ -1,0 +1,555 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fiducia.cloud/design/founder-governance-transition.schema.json",
+  "title": "FiduciaFounderGovernanceTransitionDraft",
+  "description": "Non-canonical discovery contracts for generation-fenced founder continuity transitions, evidence, notices, approvals, receipts, and delegated authority. DEN-158/DEN-176.",
+  "type": "object",
+  "$defs": {
+    "EvidenceReference": {
+      "title": "EvidenceReference",
+      "description": "Immutable evidence metadata. Fiducia verifies integrity and process bindings, not the legal truth or sufficiency of the referenced evidence.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "kind",
+        "content_hash",
+        "issued_at_ms",
+        "confidentiality"
+      ],
+      "properties": {
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "notice_record",
+            "delivery_receipt",
+            "medical_attestation",
+            "death_record",
+            "estate_authority",
+            "mediation_record",
+            "voluntary_exit",
+            "deadlock_record",
+            "security_incident",
+            "identity_verification",
+            "other"
+          ]
+        },
+        "content_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "external_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "issuer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "issued_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expires_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "confidentiality": {
+          "type": "string",
+          "enum": [
+            "public",
+            "restricted",
+            "highly_restricted"
+          ]
+        }
+      }
+    },
+    "NoticeReceipt": {
+      "title": "NoticeReceipt",
+      "description": "Tamper-evident record that a particular notice payload was sent to a participant. Delivery or acknowledgment claims remain provider/process assertions that require verification.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "notice_id",
+        "recipient_participant_id",
+        "channel",
+        "payload_hash",
+        "status",
+        "sent_at_ms"
+      ],
+      "properties": {
+        "notice_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "recipient_participant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "channel": {
+          "type": "string",
+          "enum": [
+            "in_app",
+            "email",
+            "certified_mail",
+            "courier",
+            "sms",
+            "webhook",
+            "other"
+          ]
+        },
+        "payload_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "sent",
+            "delivered",
+            "acknowledged",
+            "failed"
+          ]
+        },
+        "provider_reference": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "sent_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "delivered_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "acknowledged_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "RequestedDelegatedAuthority": {
+      "title": "RequestedDelegatedAuthority",
+      "description": "Narrow authority requested as the result of a continuity transition. It is a request only and becomes usable solely through a separately issued DelegatedAuthority record.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "grantee_participant_id",
+        "allowed_action_kinds",
+        "constraints",
+        "authority_ttl_ms"
+      ],
+      "properties": {
+        "grantee_participant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "allowed_action_kinds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 128,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        },
+        "constraints": {
+          "$ref": "https://fiducia.cloud/design/founder-governance.schema.json#/$defs/DelegationConstraints"
+        },
+        "authority_ttl_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2592000000
+        }
+      }
+    },
+    "ContinuityTransitionProposal": {
+      "title": "ContinuityTransitionProposal",
+      "description": "Immutable, generation-fenced proposal to change continuity state. Every evidence reference, notice receipt, process assertion, and requested delegated capability is committed by canonical_transition_hash.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tenant_id",
+        "transition_id",
+        "subject_participant_id",
+        "requested_by_participant_id",
+        "from_state",
+        "to_state",
+        "expected_generation",
+        "policy_id",
+        "policy_version",
+        "policy_hash",
+        "evidence",
+        "required_notice_participant_ids",
+        "notices",
+        "process_assertions",
+        "canonicalization",
+        "canonical_transition_hash",
+        "nonce",
+        "created_at_ms",
+        "earliest_effective_at_ms",
+        "expires_at_ms"
+      ],
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "transition_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "subject_participant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "requested_by_participant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "from_state": {
+          "$ref": "https://fiducia.cloud/design/founder-governance.schema.json#/$defs/ContinuityState"
+        },
+        "to_state": {
+          "$ref": "https://fiducia.cloud/design/founder-governance.schema.json#/$defs/ContinuityState"
+        },
+        "expected_generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "policy_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "policy_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "policy_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/EvidenceReference"
+          }
+        },
+        "required_notice_participant_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "notices": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 128,
+          "items": {
+            "$ref": "#/$defs/NoticeReceipt"
+          }
+        },
+        "process_assertions": {
+          "type": "array",
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "notice_completed",
+              "cure_period_completed",
+              "mediation_completed",
+              "external_attestation_received",
+              "legal_authority_attested",
+              "subject_consented"
+            ]
+          }
+        },
+        "requested_authority": {
+          "$ref": "#/$defs/RequestedDelegatedAuthority"
+        },
+        "canonicalization": {
+          "type": "string",
+          "enum": [
+            "jcs_rfc8785"
+          ]
+        },
+        "canonical_transition_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "nonce": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{32,128}$"
+        },
+        "created_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "earliest_effective_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expires_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "ContinuityTransitionApproval": {
+      "title": "ContinuityTransitionApproval",
+      "description": "Participant signature over one exact canonical continuity-transition proposal. Claimed participant_role and credential_id must be checked against the tenant participant registry.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tenant_id",
+        "transition_id",
+        "canonical_transition_hash",
+        "participant_id",
+        "participant_role",
+        "credential_id",
+        "signature_algorithm",
+        "signature",
+        "approved_at_ms"
+      ],
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "transition_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "canonical_transition_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "participant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "participant_role": {
+          "$ref": "https://fiducia.cloud/design/founder-governance.schema.json#/$defs/ParticipantRole"
+        },
+        "credential_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "signature_algorithm": {
+          "type": "string",
+          "enum": [
+            "webauthn_es256",
+            "webauthn_ed25519",
+            "threshold_ed25519"
+          ]
+        },
+        "signature": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{32,4096}$"
+        },
+        "approved_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "ContinuityTransitionReceipt": {
+      "title": "ContinuityTransitionReceipt",
+      "description": "Tamper-evident result of evaluating and, when authorized, applying one continuity transition.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tenant_id",
+        "transition_id",
+        "canonical_transition_hash",
+        "from_state",
+        "to_state",
+        "previous_generation",
+        "outcome",
+        "receipt_hash",
+        "recorded_at_ms"
+      ],
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "transition_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "canonical_transition_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "from_state": {
+          "$ref": "https://fiducia.cloud/design/founder-governance.schema.json#/$defs/ContinuityState"
+        },
+        "to_state": {
+          "$ref": "https://fiducia.cloud/design/founder-governance.schema.json#/$defs/ContinuityState"
+        },
+        "previous_generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "new_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "applied",
+            "rejected",
+            "challenged",
+            "canceled",
+            "expired"
+          ]
+        },
+        "safe_reason_code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "receipt_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "effective_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "recorded_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "DelegatedAuthority": {
+      "title": "DelegatedAuthority",
+      "description": "Issued, scoped, expiring capability created by an applied continuity transition. Executors must bind it to tenant, transition hash, and state generation and must reject it after revocation or generation change.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tenant_id",
+        "authority_id",
+        "transition_id",
+        "canonical_transition_hash",
+        "grantee_participant_id",
+        "state_generation",
+        "allowed_action_kinds",
+        "constraints",
+        "issued_at_ms",
+        "expires_at_ms",
+        "status",
+        "authority_hash"
+      ],
+      "properties": {
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "authority_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "transition_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "canonical_transition_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "grantee_participant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "state_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "allowed_action_kinds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 128,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          }
+        },
+        "constraints": {
+          "$ref": "https://fiducia.cloud/design/founder-governance.schema.json#/$defs/DelegationConstraints"
+        },
+        "issued_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expires_at_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "revoked",
+            "expired"
+          ]
+        },
+        "revocation_generation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "authority_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}

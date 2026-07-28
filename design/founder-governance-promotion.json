@@ -21,7 +21,9 @@
     "design/founder-governance-transition-reference.mjs",
     "design/founder-governance-executor-model.mjs",
     "design/founder-governance-death-succession-model.mjs",
-    "design/founder-governance-versioning.md"
+    "design/founder-governance-versioning.md",
+    "design/founder-governance-adversarial-explorer.mjs",
+    "design/founder-governance-residual-assumptions.md"
   ],
   "test_files": [
     "src/founder-governance-design.test.mjs",
@@ -29,6 +31,7 @@
     "src/founder-governance-transition-design.test.mjs",
     "src/founder-governance-executor-model.test.mjs",
     "src/founder-governance-death-succession-model.test.mjs",
+    "src/founder-governance-adversarial-explorer.test.mjs",
     "src/founder-governance-promotion.test.mjs"
   ],
   "constitutional_manual_only_actions": [
@@ -44,6 +47,7 @@
   "promotion_marker": null,
   "promotion_requirements": [
     "hosted_ci_green",
+    "adversarial_state_space_green",
     "rfc8785_cross_language_vectors_green",
     "schema_versioning_and_migration_documented",
     "security_review_complete",

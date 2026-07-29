@@ -298,7 +298,7 @@ edition = "2021"
 description = "Generated typed payloads for fiducia.cloud (see fiducia-interfaces)."
 
 [dependencies]
-jsonschema = { version = "0.48.5", default-features = false }
+jsonschema = { version = "0.49.2", default-features = false }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 `;

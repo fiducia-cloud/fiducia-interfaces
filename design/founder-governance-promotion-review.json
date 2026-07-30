@@ -1,0 +1,104 @@
+{
+  "contract_version": "1.0",
+  "object_kind": "founder_governance_promotion_review",
+  "review_issue": "DEN-474",
+  "parent_issue": "DEN-283",
+  "reviewed_pr": "fiducia-cloud/fiducia-interfaces#24",
+  "reviewed_merge_commit": "08c99aa5933236a0e0ebe584f7b2e861f5b3d1ac",
+  "decision": "revise_and_retain_draft",
+  "canonical_promotion_approved": false,
+  "decision_reason": "The executable safety and liveness evidence is strong enough to retain as a mandatory CI gate, but the wire/storage contracts are still changing around real WebAuthn state, credential lifecycle, verified assertion receipts, exactly-once approval append, and provider-specific execution. Promoting now would freeze an incomplete boundary.",
+  "artifact_dispositions": [
+    {
+      "path": "design/founder-governance.schema.json",
+      "disposition": "revise_and_retain_draft",
+      "reason": "Add explicit governance credential lifecycle and verified assertion receipt boundaries after DEN-493, DEN-494, and DEN-496."
+    },
+    {
+      "path": "design/founder-governance.examples.json",
+      "disposition": "revise_and_retain_draft",
+      "reason": "Update fixtures only after the revised credential and verified-receipt contracts stabilize."
+    },
+    {
+      "path": "design/founder-governance-reference.mjs",
+      "disposition": "retain_noncanonical_executable_specification",
+      "reason": "Reference authorization semantics are valuable as a fail-closed oracle but should not become generated SDK runtime code."
+    },
+    {
+      "path": "design/founder-governance-state-model.mjs",
+      "disposition": "retain_noncanonical_executable_specification",
+      "reason": "The bounded state model is verification evidence, not a wire contract."
+    },
+    {
+      "path": "design/founder-governance-transition.schema.json",
+      "disposition": "revise_and_retain_draft",
+      "reason": "Keep transition wire fields draft until evidence, notice, recovery, and legal-attestation boundaries are reviewed end to end."
+    },
+    {
+      "path": "design/founder-governance-transition.examples.json",
+      "disposition": "revise_and_retain_draft",
+      "reason": "Regenerate examples after the final transition and recovery schema disposition."
+    },
+    {
+      "path": "design/founder-governance-transition-reference.mjs",
+      "disposition": "retain_noncanonical_executable_specification",
+      "reason": "Transition semantics remain a CI oracle and counterexample surface."
+    },
+    {
+      "path": "design/founder-governance-executor-model.mjs",
+      "disposition": "retain_noncanonical_executable_specification",
+      "reason": "Provider-neutral fencing, idempotency, reconciliation, and drift semantics remain mandatory test evidence."
+    },
+    {
+      "path": "design/founder-governance-death-succession-model.mjs",
+      "disposition": "retain_noncanonical_executable_specification",
+      "reason": "Death and succession paths model technical process only and must not become an SDK claim about legal authority."
+    },
+    {
+      "path": "design/founder-governance-versioning.md",
+      "disposition": "retain_noncanonical_documentation",
+      "reason": "Version-domain and migration rules govern future promotion and rollback."
+    },
+    {
+      "path": "design/founder-governance-adversarial-explorer.mjs",
+      "disposition": "retain_noncanonical_executable_specification",
+      "reason": "The bounded explorer is permanent promotion evidence and should remain in CI."
+    },
+    {
+      "path": "design/founder-governance-residual-assumptions.md",
+      "disposition": "retain_noncanonical_documentation",
+      "reason": "The assumptions and exclusions must remain visible beside every future promotion decision."
+    }
+  ],
+  "security_review": {
+    "fail_closed_unknown_version_and_canonicalization": "pass_at_executable_model_level",
+    "policy_non_weakening": "pass_at_executable_model_level",
+    "participant_and_role_binding": "pass_at_executable_model_level",
+    "notice_and_evidence_integrity": "pass_at_executable_model_level",
+    "continuity_anti_self_dealing": "pass_at_executable_model_level",
+    "stale_generation_and_fencing": "pass_at_executable_model_level",
+    "ambiguous_execution_reconciliation": "pass_at_executable_model_level",
+    "secret_free_receipts_and_telemetry": "deferred_to_DEN_493_DEN_494_DEN_495",
+    "verified_assertion_to_approval_boundary": "deferred_to_DEN_496",
+    "provider_specific_bypass_review": "deferred_to_DEN_207_DEN_209"
+  },
+  "blocking_requirements": [
+    "authoritative_main_branch_ci_evidence",
+    "DEN-493_webauthn_adapter_and_protected_state",
+    "DEN-494_credential_lifecycle",
+    "DEN-495_browser_replica_failure_matrix",
+    "DEN-496_verified_receipt_approval_append",
+    "generated_artifact_review",
+    "rollback_drill"
+  ],
+  "rollback_policy": {
+    "status": "planned_not_executed",
+    "requirements": [
+      "retain the previous schema index and generated outputs",
+      "dual-read before any new write format is enabled",
+      "do not rewrite signed historical objects",
+      "disable new writes before reader rollback",
+      "verify historical receipts under their original contract version"
+    ]
+  }
+}

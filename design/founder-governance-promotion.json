@@ -2,6 +2,10 @@
   "status": "draft",
   "promotion_issue": "DEN-283",
   "parent_issue": "DEN-158",
+  "promotion_review_issue": "DEN-474",
+  "promotion_review_file": "design/founder-governance-promotion-review.json",
+  "promotion_review_report": "design/founder-governance-promotion-review.md",
+  "promotion_decision": "revise_and_retain_draft",
   "canonicalization": {
     "identifier": "jcs_rfc8785",
     "reference_implementation_status": "restricted_discovery_subset",
@@ -23,7 +27,9 @@
     "design/founder-governance-death-succession-model.mjs",
     "design/founder-governance-versioning.md",
     "design/founder-governance-adversarial-explorer.mjs",
-    "design/founder-governance-residual-assumptions.md"
+    "design/founder-governance-residual-assumptions.md",
+    "design/founder-governance-promotion-review.json",
+    "design/founder-governance-promotion-review.md"
   ],
   "test_files": [
     "src/founder-governance-design.test.mjs",
@@ -32,7 +38,8 @@
     "src/founder-governance-executor-model.test.mjs",
     "src/founder-governance-death-succession-model.test.mjs",
     "src/founder-governance-adversarial-explorer.test.mjs",
-    "src/founder-governance-promotion.test.mjs"
+    "src/founder-governance-promotion.test.mjs",
+    "src/founder-governance-promotion-review.test.mjs"
   ],
   "constitutional_manual_only_actions": [
     "github.change_org_owner",
@@ -52,6 +59,16 @@
     "schema_versioning_and_migration_documented",
     "security_review_complete",
     "generated_artifacts_current",
+    "rollback_drill_complete",
     "legal_claims_remain_out_of_scope"
+  ],
+  "blocking_requirements": [
+    "authoritative_main_branch_ci_evidence",
+    "DEN-493",
+    "DEN-494",
+    "DEN-495",
+    "DEN-496",
+    "generated_artifact_review",
+    "rollback_drill"
   ]
 }

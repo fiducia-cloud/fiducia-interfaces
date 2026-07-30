@@ -586,7 +586,8 @@ const schemaBundle = {
       "required": [
         "shard",
         "log_index",
-        "revision"
+        "revision",
+        "output"
       ],
       "properties": {
         "shard": {
@@ -603,6 +604,9 @@ const schemaBundle = {
           "type": "integer",
           "minimum": 0,
           "description": "State-machine revision produced by applying the command."
+        },
+        "output": {
+          "description": "Domain-specific output from the committed state-machine command."
         }
       }
     },
@@ -631,7 +635,11 @@ const schemaBundle = {
         },
         "leader": {
           "type": "string",
-          "description": "Current leader to retry against, when known (not_leader)."
+          "description": "Current leader hint for trusted infrastructure, when known (not_leader)."
+        },
+        "retryable": {
+          "type": "boolean",
+          "description": "Whether the request was rejected before application and may be retried against the configured endpoint."
         }
       }
     },

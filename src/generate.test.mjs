@@ -25,7 +25,7 @@ test("loadTypes parses the real schemas without error", () => {
     assert.ok(names.includes(expected), `missing ${expected}`);
   }
   const outcome = types.find((t) => t.name === "ProposeOutcome");
-  assert.deepEqual(outcome.props.map((p) => p.name).sort(), ["log_index", "revision", "shard"]);
+  assert.deepEqual(outcome.props.map((p) => p.name).sort(), ["log_index", "output", "revision", "shard"]);
 });
 
 test("lock and semaphore contracts expose durable waits and token-bound lifecycle operations", () => {

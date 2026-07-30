@@ -213,6 +213,8 @@ export type ProposeOutcome = {
   log_index: number;
   /** State-machine revision produced by applying the command. */
   revision: number;
+  /** Domain-specific output from the committed state-machine command. */
+  output: Record<string, unknown>;
 };
 
 /** Why a write could not be committed. */
@@ -221,8 +223,10 @@ export type ProposeError = {
   reason: "not_leader" | "unavailable";
   /** Target shard. */
   shard: number;
-  /** Current leader to retry against, when known (not_leader). */
+  /** Current leader hint for trusted infrastructure, when known (not_leader). */
   leader?: string;
+  /** Whether the request was rejected before application and may be retried against the configured endpoint. */
+  retryable?: boolean;
 };
 
 /** One server-sent event emitted on a watch stream (KV, election, or service). */

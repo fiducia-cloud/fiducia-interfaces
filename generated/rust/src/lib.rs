@@ -590,6 +590,8 @@ pub struct ProposeOutcome {
     pub log_index: i64,
     /// State-machine revision produced by applying the command.
     pub revision: i64,
+    /// Domain-specific output from the committed state-machine command.
+    pub output: serde_json::Value,
 }
 
 /// Why a write could not be committed.
@@ -599,9 +601,12 @@ pub struct ProposeError {
     pub reason: ProposeErrorReason,
     /// Target shard.
     pub shard: i64,
-    /// Current leader to retry against, when known (not_leader).
+    /// Current leader hint for trusted infrastructure, when known (not_leader).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub leader: Option<String>,
+    /// Whether the request was rejected before application and may be retried against the configured endpoint.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retryable: Option<bool>,
 }
 
 /// One server-sent event emitted on a watch stream (KV, election, or service).

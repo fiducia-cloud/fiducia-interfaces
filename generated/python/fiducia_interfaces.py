@@ -167,6 +167,7 @@ class ProposeOutcome:
     shard: int
     log_index: int
     revision: int
+    output: dict
 
 @dataclass
 class ProposeError:
@@ -174,6 +175,7 @@ class ProposeError:
     reason: Literal["not_leader", "unavailable"]
     shard: int
     leader: Optional[str] = None
+    retryable: Optional[bool] = None
 
 @dataclass
 class ChangeEvent:

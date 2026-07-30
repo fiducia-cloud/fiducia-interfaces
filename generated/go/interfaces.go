@@ -215,6 +215,8 @@ type ProposeOutcome struct {
 	LogIndex int64 `json:"log_index"`
 	// State-machine revision produced by applying the command.
 	Revision int64 `json:"revision"`
+	// Domain-specific output from the committed state-machine command.
+	Output map[string]any `json:"output"`
 }
 
 // ProposeError: Why a write could not be committed.
@@ -223,8 +225,10 @@ type ProposeError struct {
 	Reason string `json:"reason"`
 	// Target shard.
 	Shard int64 `json:"shard"`
-	// Current leader to retry against, when known (not_leader).
+	// Current leader hint for trusted infrastructure, when known (not_leader).
 	Leader *string `json:"leader,omitempty"`
+	// Whether the request was rejected before application and may be retried against the configured endpoint.
+	Retryable *bool `json:"retryable,omitempty"`
 }
 
 // ChangeEvent: One server-sent event emitted on a watch stream (KV, election, or service).

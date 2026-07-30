@@ -1,0 +1,162 @@
+{
+  "contract_version": "1.0",
+  "object_kind": "founder_governance_action_class_examples",
+  "review_issue": "DEN-176",
+  "claim_boundary": "Noncanonical executable discovery examples. These examples test the repository's bounded authorization model and make no legal-authority or external-provider claim.",
+  "examples": [
+    {
+      "id": "routine-valid-bounded-continuity",
+      "action_class": "routine",
+      "expected_authorized": true,
+      "request": {
+        "state": "temporarily_unavailable",
+        "action_kind": "routine.deploy",
+        "participant_ids": [
+          "founder-a"
+        ],
+        "context": {
+          "bounded": true
+        }
+      }
+    },
+    {
+      "id": "routine-invalid-unbounded-continuity",
+      "action_class": "routine",
+      "expected_authorized": false,
+      "request": {
+        "state": "temporarily_unavailable",
+        "action_kind": "routine.deploy",
+        "participant_ids": [
+          "founder-a"
+        ],
+        "context": {
+          "bounded": false
+        }
+      }
+    },
+    {
+      "id": "sensitive-valid-two-founders",
+      "action_class": "sensitive",
+      "expected_authorized": true,
+      "request": {
+        "state": "normal",
+        "action_kind": "sensitive.rotate_secret",
+        "participant_ids": [
+          "founder-a",
+          "founder-b"
+        ],
+        "context": {}
+      }
+    },
+    {
+      "id": "sensitive-invalid-single-founder",
+      "action_class": "sensitive",
+      "expected_authorized": false,
+      "request": {
+        "state": "normal",
+        "action_kind": "sensitive.rotate_secret",
+        "participant_ids": [
+          "founder-a"
+        ],
+        "context": {}
+      }
+    },
+    {
+      "id": "constitutional-valid-two-founders-normal",
+      "action_class": "constitutional",
+      "expected_authorized": true,
+      "request": {
+        "state": "normal",
+        "action_kind": "constitutional.weaken_policy",
+        "participant_ids": [
+          "founder-a",
+          "founder-b"
+        ],
+        "context": {}
+      }
+    },
+    {
+      "id": "constitutional-invalid-continuity-mode",
+      "action_class": "constitutional",
+      "expected_authorized": false,
+      "request": {
+        "state": "temporarily_unavailable",
+        "action_kind": "constitutional.weaken_policy",
+        "participant_ids": [
+          "founder-a",
+          "founder-b",
+          "guardian-1"
+        ],
+        "context": {
+          "bounded": true,
+          "equivalent_access_only": true,
+          "legal_authority_attested": true
+        }
+      }
+    },
+    {
+      "id": "recovery-valid-equivalent-access",
+      "action_class": "recovery",
+      "expected_authorized": true,
+      "request": {
+        "state": "provisional_incapacity",
+        "action_kind": "recovery.replace_credential",
+        "participant_ids": [
+          "founder-a",
+          "guardian-1"
+        ],
+        "context": {
+          "equivalent_access_only": true
+        }
+      }
+    },
+    {
+      "id": "recovery-invalid-expanded-authority",
+      "action_class": "recovery",
+      "expected_authorized": false,
+      "request": {
+        "state": "provisional_incapacity",
+        "action_kind": "recovery.replace_credential",
+        "participant_ids": [
+          "founder-a",
+          "guardian-1"
+        ],
+        "context": {
+          "equivalent_access_only": false
+        }
+      }
+    },
+    {
+      "id": "emergency-valid-defensive-scope",
+      "action_class": "emergency",
+      "expected_authorized": true,
+      "request": {
+        "state": "nonparticipation",
+        "action_kind": "emergency.freeze_external_transfers",
+        "participant_ids": [
+          "founder-a",
+          "guardian-1"
+        ],
+        "context": {
+          "defensive_only": true
+        }
+      }
+    },
+    {
+      "id": "emergency-invalid-offensive-scope",
+      "action_class": "emergency",
+      "expected_authorized": false,
+      "request": {
+        "state": "nonparticipation",
+        "action_kind": "emergency.freeze_external_transfers",
+        "participant_ids": [
+          "founder-a",
+          "guardian-1"
+        ],
+        "context": {
+          "defensive_only": false
+        }
+      }
+    }
+  ]
+}

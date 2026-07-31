@@ -35,20 +35,28 @@ export type AiMemoryRecordsRow = {
   valid_from: string;
   valid_until: string | null;
   superseded_by: string | null;
-  deleted_at: string | null;
-  deletion_generation: number | null;
   created_at: string;
   updated_at: string;
   version: number;
 };
 
-export type AiMemoryEmbeddingsRow = {
-  id: string;
-  memory_id: string;
+export type AiMemoryEmbeddingModelsRow = {
   model_provider: string;
   model_name: string;
   model_version: string;
   dimensions: number;
+  active: boolean;
+  metadata: unknown;
+  created_at: string;
+};
+
+export type AiMemoryEmbeddingsRow = {
+  id: string;
+  namespace_id: string;
+  memory_id: string;
+  model_provider: string;
+  model_name: string;
+  model_version: string;
   source_content_digest: string;
   embedding: number[];
   created_at: string;
@@ -56,6 +64,7 @@ export type AiMemoryEmbeddingsRow = {
 
 export type AiMemoryEmbeddingJobsRow = {
   id: string;
+  namespace_id: string;
   memory_id: string;
   model_provider: string;
   model_name: string;
@@ -95,6 +104,7 @@ export type AiMemoryClaimsRow = {
 
 export type AiMemoryClaimEvidenceRow = {
   id: string;
+  namespace_id: string;
   claim_id: string;
   relation: string;
   memory_id: string | null;

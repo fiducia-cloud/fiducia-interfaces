@@ -37,21 +37,30 @@ pub struct AiMemoryRecordsRow {
     pub valid_from: chrono::DateTime<chrono::Utc>,
     pub valid_until: Option<chrono::DateTime<chrono::Utc>>,
     pub superseded_by: Option<uuid::Uuid>,
-    pub deleted_at: Option<chrono::DateTime<chrono::Utc>>,
-    pub deletion_generation: Option<i64>,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
     pub version: i64,
 }
 
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
-pub struct AiMemoryEmbeddingsRow {
-    pub id: uuid::Uuid,
-    pub memory_id: uuid::Uuid,
+pub struct AiMemoryEmbeddingModelsRow {
     pub model_provider: String,
     pub model_name: String,
     pub model_version: String,
     pub dimensions: i32,
+    pub active: bool,
+    pub metadata: serde_json::Value,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
+pub struct AiMemoryEmbeddingsRow {
+    pub id: uuid::Uuid,
+    pub namespace_id: uuid::Uuid,
+    pub memory_id: uuid::Uuid,
+    pub model_provider: String,
+    pub model_name: String,
+    pub model_version: String,
     pub source_content_digest: String,
     pub embedding: pgvector::Vector,
     pub created_at: chrono::DateTime<chrono::Utc>,
@@ -60,6 +69,7 @@ pub struct AiMemoryEmbeddingsRow {
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct AiMemoryEmbeddingJobsRow {
     pub id: uuid::Uuid,
+    pub namespace_id: uuid::Uuid,
     pub memory_id: uuid::Uuid,
     pub model_provider: String,
     pub model_name: String,
@@ -101,6 +111,7 @@ pub struct AiMemoryClaimsRow {
 #[derive(Debug, Clone, sqlx::FromRow, serde::Serialize, serde::Deserialize)]
 pub struct AiMemoryClaimEvidenceRow {
     pub id: uuid::Uuid,
+    pub namespace_id: uuid::Uuid,
     pub claim_id: uuid::Uuid,
     pub relation: String,
     pub memory_id: Option<uuid::Uuid>,

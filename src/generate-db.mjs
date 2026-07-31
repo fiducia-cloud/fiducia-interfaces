@@ -25,6 +25,7 @@ const PLANES = [
   { name: "customer", file: "customer.sql" },
   { name: "admin", file: "admin.sql" },
   { name: "ai_agent_control_plane", file: "ai_agent_control_plane.sql" },
+  { name: "ai_agent_memory", file: "ai_agent_memory.sql" },
   { name: "operations_control_plane", file: "operations_control_plane.sql" },
   { name: "ai_agent_bridge", file: "ai_agent_bridge.sql" },
 ];

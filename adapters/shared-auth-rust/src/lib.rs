@@ -88,7 +88,7 @@ impl fmt::Debug for SessionUpgrade {
 pub enum Outcome {
     Anonymous,
     Authenticated {
-        identity: Identity,
+        identity: Box<Identity>,
         authority: Authority,
         elapsed_ms: u64,
     },
@@ -102,7 +102,7 @@ pub enum Outcome {
 impl Outcome {
     pub fn identity(&self) -> Option<&Identity> {
         match self {
-            Self::Authenticated { identity, .. } => Some(identity),
+            Self::Authenticated { identity, .. } => Some(identity.as_ref()),
             _ => None,
         }
     }
@@ -641,7 +641,7 @@ fn validate_config(config: &Config) -> Result<(), ConfigError> {
 fn authenticated(identity: Identity, started: Instant) -> Outcome {
     let authority = identity.authority;
     Outcome::Authenticated {
-        identity,
+        identity: Box::new(identity),
         authority,
         elapsed_ms: started.elapsed().as_millis() as u64,
     }
@@ -856,7 +856,8 @@ struct SharedClaims {
     email_verified: bool,
     #[serde(default)]
     roles: Vec<String>,
-    exp: u64,
+    #[serde(rename = "exp")]
+    _expires_at: u64,
 }
 
 #[derive(Deserialize)]

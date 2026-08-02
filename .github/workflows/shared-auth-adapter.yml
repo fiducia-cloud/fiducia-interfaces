@@ -1,0 +1,49 @@
+name: shared-auth-adapter
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "adapters/shared-auth-rust/**"
+      - ".github/workflows/shared-auth-adapter.yml"
+  pull_request:
+    paths:
+      - "adapters/shared-auth-rust/**"
+      - ".github/workflows/shared-auth-adapter.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shared-auth-adapter-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable
+        with:
+          toolchain: "1.95.0"
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          workspaces: adapters/shared-auth-rust
+      - name: Resolve the exact adapter graph
+        run: cargo generate-lockfile --manifest-path adapters/shared-auth-rust/Cargo.toml
+      - name: Format
+        run: cargo fmt --manifest-path adapters/shared-auth-rust/Cargo.toml --all -- --check
+      - name: Lint
+        run: cargo clippy --locked --manifest-path adapters/shared-auth-rust/Cargo.toml --all-targets -- -D warnings
+      - name: Test
+        run: cargo test --locked --manifest-path adapters/shared-auth-rust/Cargo.toml --all-targets
+      - uses: taiki-e/install-action@18b1216eba7f8039b0f8d131d5473787f0edce68 # v2
+        with:
+          tool: cargo-audit@0.22.2
+      - name: Audit
+        run: cargo audit --file adapters/shared-auth-rust/Cargo.lock

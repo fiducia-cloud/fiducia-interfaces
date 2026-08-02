@@ -1,6 +1,7 @@
 [workspace]
 members = ["generated/rust"]
 exclude = [
+  "adapters/shared-auth-rust",
   "generated/rust-db",
   "generated/rust-wasm",
   "vendor/flags-2-env/clients/rust",

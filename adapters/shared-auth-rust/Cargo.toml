@@ -1,0 +1,21 @@
+[package]
+name = "fiducia-shared-auth-guard"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.95"
+description = "Fiducia-specific Shared Auth dual-provider guard and browser session rotation contract."
+license = "UNLICENSED"
+publish = false
+
+[dependencies]
+base64 = "=0.22.1"
+jsonwebtoken = "=9.3.1"
+reqwest = { version = "=0.12.28", default-features = false, features = ["json", "rustls-tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["sync", "time"] }
+
+[dev-dependencies]
+axum = "0.8"
+p256 = { version = "0.13", features = ["ecdsa", "jwk", "pem", "pkcs8"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "test-util"] }

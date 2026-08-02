@@ -5,13 +5,15 @@ on:
     branches: [agent/customer-shared-session-assurance]
     paths:
       - ".github/workflows/patch-customer-shared-session-schema.yml"
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: write
 
 jobs:
   patch:
-    if: github.actor != 'github-actions[bot]'
+    if: github.actor != 'github-actions[bot]' && (github.event_name == 'push' || github.head_ref == 'agent/customer-shared-session-assurance')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

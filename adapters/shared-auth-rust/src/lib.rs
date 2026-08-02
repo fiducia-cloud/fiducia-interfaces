@@ -118,10 +118,7 @@ impl PartialEq for Outcome {
             (Self::Anonymous, Self::Anonymous)
             | (Self::Unauthenticated, Self::Unauthenticated)
             | (Self::Forbidden, Self::Forbidden) => true,
-            (
-                Self::Degraded { reason: left },
-                Self::Degraded { reason: right },
-            ) => left == right,
+            (Self::Degraded { reason: left }, Self::Degraded { reason: right }) => left == right,
             (
                 Self::Authenticated {
                     identity: left,
@@ -233,7 +230,9 @@ impl Guard {
     pub fn with_static_jwks(config: Config, jwks: JwkSet) -> Result<Self, ConfigError> {
         validate_config(&config)?;
         if jwks.keys.is_empty() {
-            return Err(ConfigError("Shared Auth JWKS must contain at least one key"));
+            return Err(ConfigError(
+                "Shared Auth JWKS must contain at least one key",
+            ));
         }
         Ok(Self {
             config,
@@ -391,9 +390,7 @@ impl Guard {
             }
 
             let outcome = match (shared_failure, direct_failure, direct_valid) {
-                (Some(Failure::Invalid), Some(Failure::Invalid), false) => {
-                    Outcome::Unauthenticated
-                }
+                (Some(Failure::Invalid), Some(Failure::Invalid), false) => Outcome::Unauthenticated,
                 (Some(Failure::Forbidden), _, _) => Outcome::Forbidden,
                 _ => Outcome::Degraded {
                     reason: "Shared Auth role authority is unavailable",
@@ -484,8 +481,7 @@ impl Guard {
     async fn cached_jwks(&self) -> Option<Arc<JwkSet>> {
         let cache = self.jwks_cache.read().await;
         cache.as_ref().and_then(|cached| {
-            (cached.fetched_at.elapsed() < self.config.jwks_ttl)
-                .then(|| Arc::clone(&cached.set))
+            (cached.fetched_at.elapsed() < self.config.jwks_ttl).then(|| Arc::clone(&cached.set))
         })
     }
 
@@ -607,7 +603,10 @@ fn validate_config(config: &Config) -> Result<(), ConfigError> {
         (&config.supabase_url, "Supabase URL is required"),
         (&config.supabase_api_key, "Supabase API key is required"),
         (&config.project, "provider project is required"),
-        (&config.introspect_secret, "introspection secret is required"),
+        (
+            &config.introspect_secret,
+            "introspection secret is required",
+        ),
     ] {
         if value.trim().is_empty() {
             return Err(ConfigError(message));
@@ -617,10 +616,7 @@ fn validate_config(config: &Config) -> Result<(), ConfigError> {
         .map_err(|_| ConfigError("Shared Auth base URL is invalid"))?;
     reqwest::Url::parse(&config.supabase_url)
         .map_err(|_| ConfigError("Supabase URL is invalid"))?;
-    if config.arm_timeout.is_zero()
-        || config.race_deadline.is_zero()
-        || config.jwks_ttl.is_zero()
-    {
+    if config.arm_timeout.is_zero() || config.race_deadline.is_zero() || config.jwks_ttl.is_zero() {
         return Err(ConfigError("authentication timeouts must be non-zero"));
     }
     if config.required_roles.is_empty()
@@ -674,9 +670,7 @@ fn decode_with_jwks(
     let key = jwks
         .find(kid)
         .ok_or(LocalVerifyFailure::UnknownKey)
-        .and_then(|jwk| {
-            DecodingKey::from_jwk(jwk).map_err(|_| LocalVerifyFailure::Invalid)
-        })?;
+        .and_then(|jwk| DecodingKey::from_jwk(jwk).map_err(|_| LocalVerifyFailure::Invalid))?;
     let mut validation = Validation::new(Algorithm::ES256);
     validation.set_issuer(&[config.issuer.as_str()]);
     validation.set_audience(&[config.audience.as_str()]);
@@ -723,7 +717,10 @@ fn identity_from_introspection(
     validate_shared_identity(identity, &project)
 }
 
-fn validate_shared_identity(identity: Identity, expected_project: &str) -> Result<Identity, Failure> {
+fn validate_shared_identity(
+    identity: Identity,
+    expected_project: &str,
+) -> Result<Identity, Failure> {
     if expected_project.is_empty()
         || identity.provider != "supabase"
         || identity.provider_tenant != expected_project
@@ -778,9 +775,7 @@ fn valid_identifier(value: &str) -> bool {
 fn valid_optional_email(email: Option<&str>) -> bool {
     email.is_none_or(|email| {
         let email = email.trim();
-        !email.is_empty()
-            && email.len() <= MAX_EMAIL_BYTES
-            && !email.chars().any(char::is_control)
+        !email.is_empty() && email.len() <= MAX_EMAIL_BYTES && !email.chars().any(char::is_control)
     })
 }
 

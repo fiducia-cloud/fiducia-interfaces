@@ -320,7 +320,10 @@ fn invalid_configuration_fails_closed() {
     let error = Guard::new(zero_timeout)
         .err()
         .expect("zero deadline is invalid");
-    assert_eq!(error.to_string(), "authentication timeouts must be non-zero");
+    assert_eq!(
+        error.to_string(),
+        "authentication timeouts must be non-zero"
+    );
 }
 
 #[test]

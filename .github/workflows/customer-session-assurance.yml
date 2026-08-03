@@ -1,0 +1,269 @@
+name: customer-session-assurance
+
+on:
+  pull_request:
+    paths:
+      - "sql/migrations/20260802_customer_shared_auth_session_assurance.sql"
+      - "docs/customer-shared-auth-session-assurance.md"
+      - ".github/workflows/customer-session-assurance.yml"
+  push:
+    branches: [main]
+    paths:
+      - "sql/migrations/20260802_customer_shared_auth_session_assurance.sql"
+      - "docs/customer-shared-auth-session-assurance.md"
+      - ".github/workflows/customer-session-assurance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: customer-session-assurance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  legacy-migration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fiducia_customer
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fiducia_customer"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/fiducia_customer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Create the pre-migration customer session shape
+        run: |
+          psql "$DATABASE_URL" --set ON_ERROR_STOP=1 <<'SQL'
+          create extension if not exists pgcrypto;
+          create table users (
+            id uuid primary key,
+            supabase_user_id uuid not null unique,
+            email varchar(320) not null,
+            created_at timestamptz default now() not null
+          );
+          create table customer_sessions (
+            id uuid primary key default gen_random_uuid(),
+            user_id uuid not null references users (id) on delete cascade,
+            device varchar(200) not null,
+            location varchar(200),
+            last_seen timestamptz default now() not null,
+            status varchar(16) default 'active' not null,
+            updated_at timestamptz default now() not null,
+            version bigint default 1 not null,
+            sync_sequence bigint not null,
+            constraint customer_sessions_status_chk
+              check (status in ('active', 'verified', 'revoked'))
+          );
+          insert into users (id, supabase_user_id, email)
+          values (
+            '11111111-1111-4111-8111-111111111111',
+            '22222222-2222-4222-8222-222222222222',
+            'customer@example.invalid'
+          );
+          insert into customer_sessions
+            (id, user_id, device, status, sync_sequence)
+          values (
+            '33333333-3333-4333-8333-333333333333',
+            '11111111-1111-4111-8111-111111111111',
+            'legacy browser',
+            'active',
+            1
+          );
+          SQL
+
+      - name: Apply the assurance migration
+        run: >-
+          psql "$DATABASE_URL" --set ON_ERROR_STOP=1
+          --file sql/migrations/20260802_customer_shared_auth_session_assurance.sql
+
+      - name: Seed a valid bound Shared Auth session
+        run: |
+          psql "$DATABASE_URL" --set ON_ERROR_STOP=1 <<'SQL'
+          insert into customer_sessions (
+            id,
+            user_id,
+            device,
+            status,
+            shared_auth_session_id,
+            provider_project,
+            assurance_level,
+            assurance_verified_at,
+            expires_at,
+            sync_sequence
+          ) values (
+            '44444444-4444-4444-8444-444444444444',
+            '11111111-1111-4111-8111-111111111111',
+            'verified browser',
+            'verified',
+            '55555555-5555-4555-8555-555555555555',
+            'fiducia-customer',
+            'aal2',
+            now(),
+            now() + interval '30 minutes',
+            2
+          );
+          SQL
+
+      - name: Reapply the migration with live legacy and bound rows
+        run: >-
+          psql "$DATABASE_URL" --set ON_ERROR_STOP=1
+          --file sql/migrations/20260802_customer_shared_auth_session_assurance.sql
+
+      - name: Verify fail-closed assurance invariants
+        run: |
+          psql "$DATABASE_URL" --set ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          declare
+            legacy customer_sessions%rowtype;
+            bound customer_sessions%rowtype;
+            constraint_count integer;
+            index_count integer;
+          begin
+            select * into strict legacy
+              from customer_sessions
+             where id = '33333333-3333-4333-8333-333333333333';
+            if legacy.assurance_level <> 'aal1'
+               or legacy.shared_auth_session_id is not null
+               or legacy.provider_project is not null
+               or legacy.assurance_verified_at is not null
+               or legacy.expires_at is not null then
+              raise exception 'legacy row was not preserved as an unbound aal1 observation';
+            end if;
+
+            select * into strict bound
+              from customer_sessions
+             where id = '44444444-4444-4444-8444-444444444444';
+            if bound.assurance_level <> 'aal2'
+               or bound.provider_project <> 'fiducia-customer'
+               or bound.status <> 'verified'
+               or bound.expires_at <= bound.assurance_verified_at then
+              raise exception 'valid bound row did not retain its assurance contract';
+            end if;
+
+            select count(*) into constraint_count
+              from pg_constraint
+             where conrelid = 'customer_sessions'::regclass
+               and conname in (
+                 'customer_sessions_assurance_level_chk',
+                 'customer_sessions_shared_auth_assurance_chk'
+               )
+               and convalidated;
+            if constraint_count <> 2 then
+              raise exception 'assurance constraints are missing or unvalidated';
+            end if;
+
+            select count(*) into index_count
+              from pg_indexes
+             where schemaname = 'public'
+               and tablename = 'customer_sessions'
+               and indexname in (
+                 'customer_sessions_shared_auth_sid_uq',
+                 'customer_sessions_user_assurance_idx'
+               );
+            if index_count <> 2 then
+              raise exception 'assurance indexes are missing';
+            end if;
+
+            begin
+              insert into customer_sessions (
+                user_id, device, status, shared_auth_session_id,
+                provider_project, assurance_level, assurance_verified_at,
+                expires_at, sync_sequence
+              ) values (
+                '11111111-1111-4111-8111-111111111111',
+                'wrong project', 'verified',
+                '66666666-6666-4666-8666-666666666666',
+                'fiducia-admin', 'aal2', now(), now() + interval '10 minutes', 3
+              );
+              raise exception 'wrong provider project was accepted';
+            exception when check_violation then
+              null;
+            end;
+
+            begin
+              insert into customer_sessions (
+                user_id, device, status, shared_auth_session_id,
+                provider_project, assurance_level, assurance_verified_at,
+                expires_at, sync_sequence
+              ) values (
+                '11111111-1111-4111-8111-111111111111',
+                'missing verification', 'verified',
+                '77777777-7777-4777-8777-777777777777',
+                'fiducia-customer', 'aal2', null, now() + interval '10 minutes', 4
+              );
+              raise exception 'session without verification time was accepted';
+            exception when check_violation then
+              null;
+            end;
+
+            begin
+              insert into customer_sessions (
+                user_id, device, status, shared_auth_session_id,
+                provider_project, assurance_level, assurance_verified_at,
+                expires_at, sync_sequence
+              ) values (
+                '11111111-1111-4111-8111-111111111111',
+                'expired at verification', 'verified',
+                '88888888-8888-4888-8888-888888888888',
+                'fiducia-customer', 'aal2', now(), now(), 5
+              );
+              raise exception 'non-positive assurance lifetime was accepted';
+            exception when check_violation then
+              null;
+            end;
+
+            begin
+              insert into customer_sessions (
+                user_id, device, status, shared_auth_session_id,
+                provider_project, assurance_level, assurance_verified_at,
+                expires_at, sync_sequence
+              ) values (
+                '11111111-1111-4111-8111-111111111111',
+                'active bound row', 'active',
+                '99999999-9999-4999-8999-999999999999',
+                'fiducia-customer', 'aal2', now(), now() + interval '10 minutes', 6
+              );
+              raise exception 'active bound row was accepted before verification';
+            exception when check_violation then
+              null;
+            end;
+
+            begin
+              insert into customer_sessions (
+                user_id, device, status, shared_auth_session_id,
+                provider_project, assurance_level, assurance_verified_at,
+                expires_at, sync_sequence
+              ) values (
+                '11111111-1111-4111-8111-111111111111',
+                'duplicate sid', 'verified',
+                '55555555-5555-4555-8555-555555555555',
+                'fiducia-customer', 'aal2', now(), now() + interval '10 minutes', 7
+              );
+              raise exception 'duplicate Shared Auth sid was accepted';
+            exception when unique_violation then
+              null;
+            end;
+
+            update customer_sessions
+               set status = 'revoked'
+             where id = '44444444-4444-4444-8444-444444444444';
+            if not found then
+              raise exception 'valid bound session could not be revoked';
+            end if;
+          end $$;
+          SQL

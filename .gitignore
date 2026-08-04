@@ -31,3 +31,7 @@ coverage/
 generated/dart/pubspec.lock
 pkg-node/
 *-debug.log*
+
+# zed-pkg local state
+/zed_modules/
+/.zed/pack/

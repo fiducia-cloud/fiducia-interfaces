@@ -1,0 +1,24 @@
+name: zed-package
+
+on:
+  pull_request:
+    paths:
+      - ".zpkg.toml"
+      - ".zpkg.lock"
+      - ".gitignore"
+      - ".github/workflows/zed-package.yml"
+  push:
+    branches: [main]
+    paths:
+      - ".zpkg.toml"
+      - ".zpkg.lock"
+      - ".gitignore"
+      - ".github/workflows/zed-package.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    uses: zed-pkg/zed-interfaces/.github/workflows/validate-zed-package.yml@55bd987e626fe14121e4fe99737def441bd41cc4

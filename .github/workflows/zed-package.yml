@@ -21,4 +21,4 @@ permissions:
 
 jobs:
   validate:
-    uses: zed-pkg/zed-interfaces/.github/workflows/validate-zed-package.yml@117c1a1e7aff96448fbf35da77f90f7d40dcc488
+    uses: zed-pkg/zed-interfaces/.github/workflows/validate-zed-package.yml@169e599646a75d874c3ec0351d3088b4f86aaca2

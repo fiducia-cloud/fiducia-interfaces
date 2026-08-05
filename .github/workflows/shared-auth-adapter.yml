@@ -42,7 +42,7 @@ jobs:
         run: cargo clippy --locked --manifest-path adapters/shared-auth-rust/Cargo.toml --all-targets -- -D warnings
       - name: Test
         run: cargo test --locked --manifest-path adapters/shared-auth-rust/Cargo.toml --all-targets
-      - uses: taiki-e/install-action@18b1216eba7f8039b0f8d131d5473787f0edce68 # v2
+      - uses: taiki-e/install-action@67729d5c413db75907f0ad1e39bb04b9c868ff60 # v2
         with:
           tool: cargo-audit@0.22.2
       - name: Audit

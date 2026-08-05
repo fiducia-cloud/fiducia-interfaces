@@ -57,7 +57,7 @@ jobs:
             cargo clippy --locked --manifest-path "$manifest" --all-targets -- -D warnings
           done
       - run: npm audit --audit-level=high
-      - uses: taiki-e/install-action@18b1216eba7f8039b0f8d131d5473787f0edce68 # v2
+      - uses: taiki-e/install-action@67729d5c413db75907f0ad1e39bb04b9c868ff60 # v2
         with:
           tool: cargo-audit@0.22.2
       - name: Audit every Rust lockfile
@@ -88,7 +88,7 @@ jobs:
         with:
           workspaces: generated/rust-wasm
       # Pinned, checksummed prebuilt binary — no `curl | sh`, guaranteed on PATH.
-      - uses: taiki-e/install-action@18b1216eba7f8039b0f8d131d5473787f0edce68 # v2
+      - uses: taiki-e/install-action@67729d5c413db75907f0ad1e39bb04b9c868ff60 # v2
         with:
           tool: wasm-pack@0.15.0
       # compile gate

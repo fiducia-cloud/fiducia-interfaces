@@ -3,17 +3,21 @@ org = "fiducia-cloud"
 name = "fiducia-interfaces"
 version = "0.1.0"
 description = "Canonical coordination payload schemas, SQL contracts, and generated language interfaces"
+license = "MIT"
 keywords = ["interfaces", "coordination", "json-schema", "postgres", "polyglot"]
 
 [package.repository]
 vcs = "git"
 url = "https://github.com/fiducia-cloud/fiducia-interfaces"
 
+[install]
+dir = ".vendor/.zed"
+
 [publish]
 include_readme = true
 tag_format = "v{version}"
 smoke_test = "test -f \"$ZED_PKG_TEST_TARGET/schema/index.json\" && test -f \"$ZED_PKG_TEST_TARGET/sql/customer.sql\""
-exclude = [".env", ".env.*", ".direnv/**", ".zed/**", ".zed-pack/**", "tmp/**", "**/*.log", ".DS_Store", "**/target/**", "**/node_modules/**", "**/.dart_tool/**", "**/__pycache__/**"]
+exclude = [".env", ".env.*", ".direnv/**", ".zed/**", ".zed-pack/**", ".vendor/.zed/**", "tmp/**", "**/*.log", ".DS_Store", "**/target/**", "**/node_modules/**", "**/.dart_tool/**", "**/__pycache__/**"]
 
 [targets.repository]
 dir = "."

@@ -14,3 +14,7 @@ __pycache__/
 
 # Scratch / git worktrees (tmp/worktrees/*)
 tmp/
+tmp
+temp
+tmp/worktrees
+temp/worktrees

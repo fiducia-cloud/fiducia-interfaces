@@ -29,3 +29,7 @@ coverage/
 *.tsbuildinfo
 pkg-node/
 *-debug.log*
+tmp
+temp
+tmp/worktrees
+temp/worktrees

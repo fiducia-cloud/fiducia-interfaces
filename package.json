@@ -16,7 +16,9 @@
     "check": "node src/generate.mjs --check && node src/generate-db.mjs --check",
     "test:package": "node --test src/package-contract.test.mjs",
     "test:founder-governance": "node --test src/founder-governance-*.test.mjs",
-    "test": "node --test src/*.test.mjs && node --experimental-strip-types --test src/zod-runtime.test.ts && node src/generate.mjs --check && node src/generate-db.mjs --check && cargo test --locked --manifest-path generated/rust/Cargo.toml && cargo check --locked --manifest-path generated/rust-wasm/Cargo.toml && cargo check --locked --manifest-path generated/rust-db/Cargo.toml && tsc --noEmit --strict --target es2022 --module esnext --moduleResolution bundler --allowImportingTsExtensions --types node --lib es2022,dom --resolveJsonModule src/typescript-usage.test.ts src/zod-runtime.test.ts generated/typescript/zod.ts && cd generated/dart && dart test"
+    "test": "node --test src/*.test.mjs && node --experimental-strip-types --test src/zod-runtime.test.ts && node src/generate.mjs --check && node src/generate-db.mjs --check && cargo test --locked --manifest-path generated/rust/Cargo.toml && cargo check --locked --manifest-path generated/rust-wasm/Cargo.toml && cargo check --locked --manifest-path generated/rust-db/Cargo.toml && tsc --noEmit --strict --target es2022 --module esnext --moduleResolution bundler --allowImportingTsExtensions --types node --lib es2022,dom --resolveJsonModule src/typescript-usage.test.ts src/zod-runtime.test.ts generated/typescript/zod.ts && cd generated/dart && dart test",
+    "lint:ores": "if [ -f .ores-lint/lint.sh ]; then sh .ores-lint/lint.sh; else echo 'ores-lint not installed'; fi",
+    "prepublishOnly": "npm run lint:ores"
   },
   "exports": {
     "./schema": "./schema/index.json",
@@ -46,5 +48,13 @@
   "dependencies": {
     "ajv": "^8.20.0",
     "zod": "^4.4.3"
+  },
+  "oresLint": {
+    "note": "Declared, not installed. ores-lint resolves these from a global install - see .ores-lint/README.md",
+    "requires": {
+      "eslint": ">=9",
+      "typescript-eslint": ">=8 (optional; without it .ts files are skipped)"
+    },
+    "install": "npm i -g eslint typescript-eslint"
   }
 }

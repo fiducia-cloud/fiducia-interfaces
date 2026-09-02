@@ -1,0 +1,103 @@
+name: Register AJV email format
+
+on:
+  push:
+    branches:
+      - 'alexander-mills/den-1390-commercial-intake-contracts'
+    paths:
+      - '.github/workflows/_register-ajv-email-format.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-generate-test:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out commercial-intake branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: '22.22.1'
+          cache: npm
+
+      - name: Add official format support and regression coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --save-exact --ignore-scripts ajv-formats@3.0.1
+
+          python3 <<'PY'
+          from pathlib import Path
+
+          generator = Path('src/generate.mjs')
+          text = generator.read_text(encoding='utf-8')
+          import_anchor = '    \'import Ajv2020, { type ErrorObject } from "ajv/dist/2020.js";\',\n'
+          import_replacement = import_anchor + '    \'import addFormats from "ajv-formats";\',\n'
+          if text.count(import_anchor) != 1:
+              raise SystemExit('expected one generated AJV import anchor')
+          text = text.replace(import_anchor, import_replacement)
+          add_schema_anchor = '    "});",\n    "ajv.addSchema(schemaBundle, schemaBundle.$id);",\n'
+          add_schema_replacement = '    "});",\n    \'addFormats(ajv, ["email"]);\',\n    "ajv.addSchema(schemaBundle, schemaBundle.$id);",\n'
+          if text.count(add_schema_anchor) != 1:
+              raise SystemExit('expected one generated AJV setup anchor')
+          generator.write_text(text.replace(add_schema_anchor, add_schema_replacement), encoding='utf-8')
+
+          test_file = Path('src/zod-runtime.test.ts')
+          text = test_file.read_text(encoding='utf-8')
+          import_anchor = 'import {\n  SyncChangeEventSchema,\n'
+          import_replacement = 'import {\n  ContactSchema,\n  SyncChangeEventSchema,\n'
+          if text.count(import_anchor) != 1:
+              raise SystemExit('expected one Zod import anchor')
+          text = text.replace(import_anchor, import_replacement)
+          addition = '''
+
+test("commercial contact email uses the canonical JSON Schema format", () => {
+  assert.equal(
+    ContactSchema.parse({
+      full_name: "Ada Lovelace",
+      email: "ada@example.com",
+    }).email,
+    "ada@example.com",
+  );
+  assert.throws(() =>
+    ContactSchema.parse({
+      full_name: "Ada Lovelace",
+      email: "not-an-email",
+    }),
+  );
+});
+'''
+          if 'commercial contact email uses the canonical JSON Schema format' in text:
+              raise SystemExit('email regression test already exists')
+          test_file.write_text(text.rstrip() + addition, encoding='utf-8')
+          PY
+
+          node src/generate.mjs
+          git diff --check
+
+      - name: Run complete repository validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm test
+          npm audit --audit-level=high
+
+      - name: Commit tested generated change and remove workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm -- .github/workflows/_register-ajv-email-format.yml
+          git add package.json package-lock.json src/generate.mjs src/zod-runtime.test.ts generated/typescript/zod.ts
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(validation): register canonical email format'
+          git push origin "HEAD:${GITHUB_REF_NAME}"

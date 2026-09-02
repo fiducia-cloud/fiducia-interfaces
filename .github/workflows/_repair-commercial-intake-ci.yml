@@ -1,0 +1,222 @@
+name: Repair commercial-intake CI
+
+on:
+  push:
+    branches:
+      - alexander-mills/den-1390-commercial-intake-contracts
+    paths:
+      - .github/workflows/_repair-commercial-intake-ci.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair-and-verify:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out the commercial-intake branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Use the repository Node toolchain
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: '22.22.1'
+          cache: npm
+
+      - name: Repair strict format validation and the keyless audit boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          generator_path = Path('src/generate.mjs')
+          generator = generator_path.read_text()
+          old_imports = '''    'import Ajv2020, { type ErrorObject } from "ajv/dist/2020.js";',
+              'import { z } from "zod";',
+          '''
+          new_imports = '''    'import Ajv2020, { type ErrorObject } from "ajv/dist/2020.js";',
+              'import addFormats from "ajv-formats";',
+              'import { z } from "zod";',
+          '''
+          if old_imports not in generator:
+              raise SystemExit('generator import anchor was not found')
+          generator = generator.replace(old_imports, new_imports, 1)
+
+          old_registration = '''    "});",
+              "ajv.addSchema(schemaBundle, schemaBundle.$id);",
+          '''
+          new_registration = '''    "});",
+              "addFormats(ajv);",
+              "ajv.addSchema(schemaBundle, schemaBundle.$id);",
+          '''
+          if old_registration not in generator:
+              raise SystemExit('generator format-registration anchor was not found')
+          generator = generator.replace(old_registration, new_registration, 1)
+          generator_path.write_text(generator)
+
+          runtime_test_path = Path('src/zod-runtime.test.ts')
+          runtime_test = runtime_test_path.read_text()
+          old_runtime_imports = '''import {
+            SyncChangeEventSchema,
+            SyncReplicaMetadataSchema,
+            SyncWritePolicySchema,
+          } from "../generated/typescript/zod.ts";
+          '''
+          new_runtime_imports = '''import {
+            ContactSchema,
+            OrganizationProfileSchema,
+            ProjectProfileSchema,
+            SyncChangeEventSchema,
+            SyncReplicaMetadataSchema,
+            SyncWritePolicySchema,
+          } from "../generated/typescript/zod.ts";
+          '''
+          if old_runtime_imports not in runtime_test:
+              raise SystemExit('runtime-test import anchor was not found')
+          runtime_test = runtime_test.replace(old_runtime_imports, new_runtime_imports, 1)
+          insertion = '''  assert.throws(() =>
+            ContactSchema.parse({
+              email: "not-an-email",
+              full_name: "Security Reviewer",
+              role: "reviewer",
+            }),
+          );
+          assert.throws(() =>
+            OrganizationProfileSchema.parse({
+              legal_name: "Example Corp",
+              website: "not a uri",
+              country: "US",
+              company_size: "employees_11_50",
+              industry: "software",
+            }),
+          );
+          assert.throws(() =>
+            ProjectProfileSchema.parse({
+              name: "Example rollout",
+              stage: "pilot",
+              use_case_summary: "A sufficiently detailed coordination-platform evaluation.",
+              desired_start_date: "2026-99-99",
+              decision_timeline: "within_90_days",
+            }),
+          );
+          '''
+          closing = '''  assert.throws(() =>
+            SyncReplicaMetadataSchema.parse({
+              version: 1,
+              dirty: false,
+              created_at_ms: 10,
+              updated_at_ms: 9,
+              unknown: true,
+            }),
+          );
+          });
+          '''
+          replacement = closing.replace('});\n', '});\n', 1)
+          if closing not in runtime_test:
+              raise SystemExit('runtime-test closing anchor was not found')
+          runtime_test = runtime_test.replace(closing, closing[:-4] + insertion + '});\n', 1)
+          runtime_test_path.write_text(runtime_test)
+
+          env_module_path = Path('.just/env.just')
+          env_module = env_module_path.read_text()
+          old_recipe = "[group('env')]\nenv-check: _env-dec\n"
+          new_recipe = "# This audit is deliberately keyless and must not require creation of env/dec.\n[group('env')]\nenv-check:\n"
+          if old_recipe not in env_module:
+              raise SystemExit('env-check dependency anchor was not found')
+          env_module_path.write_text(env_module.replace(old_recipe, new_recipe, 1))
+
+          Path('.github/workflows/secrets-audit.yml').write_text('''name: secrets-audit
+
+# Fail-closed, key-independent audit. No age identity is provided and no secret
+# value is decrypted or printed in pull-request CI.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  env-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install pinned just
+        env:
+          JUST_VERSION: 1.51.0
+          JUST_ARCHIVE_SHA256: c8f085ca3e885723c341d06243fc291b5abfdc8bbe3b2c076b117de490387b59
+        run: |
+          set -euo pipefail
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
+            --output /tmp/just.tar.gz \
+            "https://github.com/casey/just/releases/download/${JUST_VERSION}/just-${JUST_VERSION}-x86_64-unknown-linux-musl.tar.gz"
+          echo "${JUST_ARCHIVE_SHA256}  /tmp/just.tar.gz" | sha256sum --check --strict
+          tar -xzf /tmp/just.tar.gz -C /tmp just
+          sudo install -m 0755 /tmp/just /usr/local/bin/just
+          just --version
+
+      - name: Verify the keyless encrypted-environment policy
+        env:
+          SOPS_AGE_KEY: ''
+          SOPS_AGE_KEY_FILE: ''
+        run: just env-check
+          ''')
+          PY
+
+          npm install --save-exact --ignore-scripts ajv-formats@3.0.1
+          npm run generate
+          git diff --check
+
+      - name: Install pinned just for verification
+        env:
+          JUST_VERSION: 1.51.0
+          JUST_ARCHIVE_SHA256: c8f085ca3e885723c341d06243fc291b5abfdc8bbe3b2c076b117de490387b59
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
+            --output /tmp/just.tar.gz \
+            "https://github.com/casey/just/releases/download/${JUST_VERSION}/just-${JUST_VERSION}-x86_64-unknown-linux-musl.tar.gz"
+          echo "${JUST_ARCHIVE_SHA256}  /tmp/just.tar.gz" | sha256sum --check --strict
+          tar -xzf /tmp/just.tar.gz -C /tmp just
+          sudo install -m 0755 /tmp/just /usr/local/bin/just
+
+      - name: Verify the repaired boundaries
+        env:
+          SOPS_AGE_KEY: ''
+          SOPS_AGE_KEY_FILE: ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          just env-check
+          npm test
+          git diff --check
+
+      - name: Commit verified generated artifacts and remove this workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm -- .github/workflows/_repair-commercial-intake-ci.yml
+          git add \
+            .github/workflows/secrets-audit.yml \
+            .just/env.just \
+            package.json package-lock.json \
+            src/generate.mjs src/zod-runtime.test.ts \
+            generated
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(intake): validate standard formats and restore keyless env audit'
+          git push origin "HEAD:${GITHUB_REF_NAME}"

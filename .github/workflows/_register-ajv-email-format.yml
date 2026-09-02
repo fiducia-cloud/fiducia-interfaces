@@ -1,4 +1,4 @@
-# Retrigger after expanding AJV registration to the complete official format set.
+# Retrigger after completing the required Contact fixture used by the format regression.
 name: Repair AJV email format
 
 on:

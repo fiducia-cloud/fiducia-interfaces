@@ -1,0 +1,88 @@
+name: Temporary commercial enum repair
+
+on:
+  push:
+    branches:
+      - alexander-mills/den-1390-commercial-intake-contracts
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.ref_name }}
+          persist-credentials: true
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+        with:
+          node-version: "22.22.1"
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Inline primitive enum references for every language emitter
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const path = 'schema/commercial_intake.schema.json';
+          const document = JSON.parse(fs.readFileSync(path, 'utf8'));
+          const primitiveEnums = new Set([
+            'Capability',
+            'DeploymentModel',
+            'SupportPlan',
+            'SupportHours',
+            'RequestedAvailability',
+            'CompanySize',
+            'ProjectStage',
+            'BudgetBand',
+            'DataClass',
+            'ComplianceFramework',
+            'Integration',
+            'ClientLanguage',
+          ]);
+          const replacements = new Map();
+          for (const name of primitiveEnums) {
+            const definition = document.$defs[name];
+            if (!definition || definition.type !== 'string' || !Array.isArray(definition.enum)) {
+              throw new Error(`missing primitive enum definition: ${name}`);
+            }
+            const { title: _title, ...inlineDefinition } = definition;
+            replacements.set(`#/$defs/${name}`, inlineDefinition);
+          }
+          function expand(value) {
+            if (Array.isArray(value)) return value.map(expand);
+            if (!value || typeof value !== 'object') return value;
+            if (typeof value.$ref === 'string' && replacements.has(value.$ref)) {
+              return structuredClone(replacements.get(value.$ref));
+            }
+            const output = {};
+            for (const [key, child] of Object.entries(value)) {
+              output[key] = expand(child);
+            }
+            return output;
+          }
+          const expanded = expand(document);
+          for (const name of primitiveEnums) delete expanded.$defs[name];
+          fs.writeFileSync(path, `${JSON.stringify(expanded, null, 2)}\n`);
+          NODE
+      - run: npm run generate
+      - run: npm run check
+      - name: Reject empty generated commercial marker structs
+        run: |
+          if grep -nE '^pub struct (Capability|DeploymentModel|SupportPlan|SupportHours|RequestedAvailability|CompanySize|ProjectStage|BudgetBand|DataClass|ComplianceFramework|Integration|ClientLanguage)[[:space:]]*\{' generated/rust/src/lib.rs; then
+            echo '::error::primitive enum was emitted as an empty Rust struct'
+            exit 1
+          fi
+      - name: Commit repaired source and generated bindings
+        run: |
+          rm .github/workflows/_temporary_inline_commercial_enums.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add schema/commercial_intake.schema.json generated/
+          git add -u .github/workflows/_temporary_inline_commercial_enums.yml
+          git diff --cached --check
+          git commit -m 'fix(codegen): preserve commercial enum wire types'
+          git push origin "HEAD:${GITHUB_REF_NAME}"

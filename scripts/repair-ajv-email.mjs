@@ -40,6 +40,7 @@ test("${testName}", () => {
     ContactSchema.parse({
       full_name: "Ada Lovelace",
       email: "ada@example.com",
+      role: "Chief Technology Officer",
     }).email,
     "ada@example.com",
   );
@@ -47,6 +48,7 @@ test("${testName}", () => {
     ContactSchema.parse({
       full_name: "Ada Lovelace",
       email: "not-an-email",
+      role: "Chief Technology Officer",
     }),
   );
 });

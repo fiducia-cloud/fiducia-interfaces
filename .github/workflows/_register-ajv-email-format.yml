@@ -17,16 +17,21 @@ jobs:
     timeout-minutes: 25
     steps:
       - name: Check out repair branch
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: true
 
       - name: Set up pinned Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
         with:
           node-version: 22.22.1
           cache: npm
+
+      - name: Set up pinned Dart
+        uses: dart-lang/setup-dart@43c102f4dc9b9829c862401f0b64c7c9184eab4e # v1
+        with:
+          sdk: 3.12.1
 
       - name: Register the official formats and regenerate
         run: |

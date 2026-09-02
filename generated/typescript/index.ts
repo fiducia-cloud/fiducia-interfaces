@@ -379,6 +379,8 @@ export type QuoteRequest = {
   attribution?: Attribution;
   acknowledges_non_binding_estimate: boolean;
   acknowledges_no_secrets: boolean;
+  /** The current Fiducia privacy notice was accepted before submission. */
+  privacy_notice_accepted: boolean;
 };
 
 export type QuoteReceipt = {
@@ -405,6 +407,8 @@ export type PreInterestRequest = {
   product_updates_consent: boolean;
   attribution?: Attribution;
   acknowledges_no_secrets: boolean;
+  /** The current Fiducia privacy notice was accepted before submission. */
+  privacy_notice_accepted: boolean;
 };
 
 export type PreInterestReceipt = {

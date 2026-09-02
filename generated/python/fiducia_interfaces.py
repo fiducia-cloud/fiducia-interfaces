@@ -327,6 +327,7 @@ class QuoteRequest:
     budget_band: Literal["unknown", "under_500_monthly", "monthly_500_2000", "monthly_2000_10000", "monthly_10000_50000", "monthly_50000_plus", "custom_contract"]
     acknowledges_non_binding_estimate: bool
     acknowledges_no_secrets: bool
+    privacy_notice_accepted: bool
     compliance_frameworks: Optional[List[str]] = None
     onboarding_required: Optional[bool] = None
     notes: Optional[str] = None
@@ -355,6 +356,7 @@ class PreInterestRequest:
     support_plan: Literal["community", "standard", "priority", "enterprise", "custom"]
     product_updates_consent: bool
     acknowledges_no_secrets: bool
+    privacy_notice_accepted: bool
     attribution: Optional[Attribution] = None
 
 @dataclass

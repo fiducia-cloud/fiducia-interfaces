@@ -1229,6 +1229,8 @@ pub struct QuoteRequest {
     pub attribution: Option<Attribution>,
     pub acknowledges_non_binding_estimate: bool,
     pub acknowledges_no_secrets: bool,
+    /// The current Fiducia privacy notice was accepted before submission.
+    pub privacy_notice_accepted: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1258,6 +1260,8 @@ pub struct PreInterestRequest {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attribution: Option<Attribution>,
     pub acknowledges_no_secrets: bool,
+    /// The current Fiducia privacy notice was accepted before submission.
+    pub privacy_notice_accepted: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

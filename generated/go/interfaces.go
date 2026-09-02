@@ -395,6 +395,8 @@ type QuoteRequest struct {
 	Attribution *Attribution `json:"attribution,omitempty"`
 	AcknowledgesNonBindingEstimate bool `json:"acknowledges_non_binding_estimate"`
 	AcknowledgesNoSecrets bool `json:"acknowledges_no_secrets"`
+	// The current Fiducia privacy notice was accepted before submission.
+	PrivacyNoticeAccepted bool `json:"privacy_notice_accepted"`
 }
 
 type QuoteReceipt struct {
@@ -423,6 +425,8 @@ type PreInterestRequest struct {
 	ProductUpdatesConsent bool `json:"product_updates_consent"`
 	Attribution *Attribution `json:"attribution,omitempty"`
 	AcknowledgesNoSecrets bool `json:"acknowledges_no_secrets"`
+	// The current Fiducia privacy notice was accepted before submission.
+	PrivacyNoticeAccepted bool `json:"privacy_notice_accepted"`
 }
 
 type PreInterestReceipt struct {

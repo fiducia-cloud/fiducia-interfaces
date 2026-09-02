@@ -1481,7 +1481,8 @@ const schemaBundle = {
         "support_plan",
         "budget_band",
         "acknowledges_non_binding_estimate",
-        "acknowledges_no_secrets"
+        "acknowledges_no_secrets",
+        "privacy_notice_accepted"
       ],
       "properties": {
         "contact": {
@@ -1613,6 +1614,11 @@ const schemaBundle = {
         "acknowledges_no_secrets": {
           "type": "boolean",
           "const": true
+        },
+        "privacy_notice_accepted": {
+          "type": "boolean",
+          "const": true,
+          "description": "The current Fiducia privacy notice was accepted before submission."
         }
       }
     },
@@ -1689,7 +1695,8 @@ const schemaBundle = {
         "budget_band",
         "support_plan",
         "product_updates_consent",
-        "acknowledges_no_secrets"
+        "acknowledges_no_secrets",
+        "privacy_notice_accepted"
       ],
       "properties": {
         "contact": {
@@ -1774,6 +1781,11 @@ const schemaBundle = {
         "acknowledges_no_secrets": {
           "type": "boolean",
           "const": true
+        },
+        "privacy_notice_accepted": {
+          "type": "boolean",
+          "const": true,
+          "description": "The current Fiducia privacy notice was accepted before submission."
         }
       }
     },

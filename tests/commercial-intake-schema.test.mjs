@@ -131,7 +131,7 @@ test("compliance framework selection cannot be read as a certification claim", (
 test("requested service levels remain non-binding until a signed order form", () => {
   const serviceLevels = definitions.ServiceLevelRequest.properties;
   assert.match(
-    serviceLevels.availability_target.description,
+    serviceLevels.requested_availability.description,
     /only a signed order form can create a contractual SLA/iu,
   );
   assert.equal(serviceLevels.custom_availability_percent.minimum, 90);

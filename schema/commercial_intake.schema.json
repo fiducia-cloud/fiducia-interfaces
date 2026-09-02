@@ -1,0 +1,1416 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fiducia.cloud/schemas/commercial_intake.schema.json",
+  "title": "FiduciaCommercialIntake",
+  "description": "Typed, non-secret customer acquisition payloads for quotes, pre-interest registration, and detailed enterprise applications. Requested support and service levels are non-binding until accepted in a signed order form.",
+  "type": "object",
+  "$defs": {
+    "Contact": {
+      "title": "CommercialContact",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "email",
+        "full_name",
+        "role"
+      ],
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 254
+        },
+        "full_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "phone": {
+          "type": "string",
+          "minLength": 7,
+          "maxLength": 40
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "preferred_contact": {
+          "type": "string",
+          "enum": [
+            "email",
+            "phone",
+            "slack",
+            "microsoft_teams"
+          ]
+        }
+      }
+    },
+    "OrganizationProfile": {
+      "title": "OrganizationProfile",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "legal_name",
+        "country",
+        "company_size",
+        "industry"
+      ],
+      "properties": {
+        "legal_name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240
+        },
+        "doing_business_as": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240
+        },
+        "website": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048
+        },
+        "country": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "state_or_region": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "company_size": {
+          "type": "string",
+          "enum": [
+            "employees_1_10",
+            "employees_11_50",
+            "employees_51_200",
+            "employees_201_1000",
+            "employees_1001_5000",
+            "employees_5001_plus"
+          ]
+        },
+        "industry": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "existing_customer": {
+          "type": "boolean"
+        },
+        "parent_company": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240
+        }
+      }
+    },
+    "ProjectProfile": {
+      "title": "ProjectProfile",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "stage",
+        "use_case_summary",
+        "desired_start_date",
+        "decision_timeline"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "stage": {
+          "type": "string",
+          "enum": [
+            "research",
+            "prototype",
+            "pilot",
+            "pre_production",
+            "production",
+            "migration"
+          ]
+        },
+        "use_case_summary": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 8000
+        },
+        "desired_start_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "decision_timeline": {
+          "type": "string",
+          "enum": [
+            "immediate",
+            "within_30_days",
+            "within_90_days",
+            "within_6_months",
+            "later",
+            "exploring"
+          ]
+        },
+        "production_deadline": {
+          "type": "string",
+          "format": "date"
+        },
+        "estimated_internal_users": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000000
+        },
+        "estimated_end_users": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "environment_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        }
+      }
+    },
+    "TechnicalRequirements": {
+      "title": "TechnicalRequirements",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capabilities",
+        "deployment_models",
+        "client_languages",
+        "regions",
+        "average_operations_per_second",
+        "peak_operations_per_second",
+        "consistency_expectation",
+        "data_classes"
+      ],
+      "properties": {
+        "capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "description": "A Fiducia coordination capability requested by a prospective customer.",
+            "type": "string",
+            "enum": [
+              "distributed_locks",
+              "multi_key_locks",
+              "semaphores",
+              "renewable_leases",
+              "leader_election",
+              "encrypted_kv",
+              "idempotency",
+              "rate_limiting",
+              "scheduled_jobs",
+              "service_discovery",
+              "durable_tasks",
+              "budgets",
+              "barriers",
+              "counters",
+              "agent_coordination",
+              "secret_delivery"
+            ]
+          }
+        },
+        "deployment_models": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "managed_multi_tenant",
+              "managed_dedicated",
+              "customer_kubernetes",
+              "customer_cloud",
+              "hybrid",
+              "evaluation"
+            ],
+            "description": "Requested deployment model; availability is subject to technical and commercial review."
+          }
+        },
+        "client_languages": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 14,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "rust",
+              "typescript",
+              "javascript",
+              "go",
+              "dart",
+              "python",
+              "java",
+              "kotlin",
+              "swift",
+              "csharp",
+              "elixir",
+              "gleam",
+              "shell",
+              "other"
+            ]
+          }
+        },
+        "integrations": {
+          "type": "array",
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "rest",
+              "grpc",
+              "websocket",
+              "webhook",
+              "kubernetes",
+              "terraform",
+              "open_telemetry",
+              "prometheus",
+              "grafana",
+              "slack",
+              "microsoft_teams",
+              "pagerduty",
+              "datadog",
+              "splunk",
+              "custom"
+            ]
+          }
+        },
+        "regions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          }
+        },
+        "average_operations_per_second": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "peak_operations_per_second": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "estimated_active_keys": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000000
+        },
+        "maximum_payload_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10485760
+        },
+        "retention_days": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 36500
+        },
+        "consistency_expectation": {
+          "type": "string",
+          "enum": [
+            "linearizable",
+            "serializable",
+            "read_your_writes",
+            "eventual",
+            "unsure"
+          ]
+        },
+        "latency_p95_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60000
+        },
+        "latency_p99_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60000
+        },
+        "failover_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        },
+        "rpo_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 604800
+        },
+        "rto_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 604800
+        },
+        "private_networking_required": {
+          "type": "boolean"
+        },
+        "offline_or_edge_required": {
+          "type": "boolean"
+        },
+        "data_classes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "public",
+              "internal",
+              "confidential_business",
+              "customer_content",
+              "personal_data",
+              "authentication_metadata",
+              "secrets",
+              "regulated_health",
+              "payment_card",
+              "government_restricted"
+            ],
+            "description": "Prospective data classes. Regulated classes require separate written approval and may be unsupported."
+          }
+        },
+        "current_stack": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "migration_source": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "architecture_notes": {
+          "type": "string",
+          "maxLength": 12000
+        }
+      }
+    },
+    "SecurityRequirements": {
+      "title": "SecurityRequirements",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "compliance_frameworks",
+        "sso_required",
+        "audit_log_required",
+        "data_residency_required"
+      ],
+      "properties": {
+        "compliance_frameworks": {
+          "type": "array",
+          "maxItems": 12,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "none",
+              "gdpr",
+              "ccpa_cpra",
+              "soc_2",
+              "iso_27001",
+              "hipaa",
+              "pci_dss",
+              "fedramp",
+              "state_ramp",
+              "nist_800_53",
+              "cis",
+              "custom"
+            ],
+            "description": "Framework requested by the prospect. Selection does not assert Fiducia certification or eligibility."
+          }
+        },
+        "sso_required": {
+          "type": "boolean"
+        },
+        "scim_required": {
+          "type": "boolean"
+        },
+        "mfa_required": {
+          "type": "boolean"
+        },
+        "mtls_required": {
+          "type": "boolean"
+        },
+        "customer_managed_keys_required": {
+          "type": "boolean"
+        },
+        "data_residency_required": {
+          "type": "boolean"
+        },
+        "data_residency_locations": {
+          "type": "array",
+          "maxItems": 20,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80
+          }
+        },
+        "audit_log_required": {
+          "type": "boolean"
+        },
+        "audit_retention_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3650
+        },
+        "penetration_test_report_required": {
+          "type": "boolean"
+        },
+        "security_questionnaire_required": {
+          "type": "boolean"
+        },
+        "subprocessor_notice_required": {
+          "type": "boolean"
+        },
+        "vulnerability_disclosure_requirements": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "additional_security_requirements": {
+          "type": "string",
+          "maxLength": 12000
+        }
+      }
+    },
+    "SupportRequirements": {
+      "title": "SupportRequirements",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "support_plan",
+        "support_hours",
+        "channels",
+        "onboarding_required",
+        "named_technical_contact_required"
+      ],
+      "properties": {
+        "support_plan": {
+          "type": "string",
+          "enum": [
+            "community",
+            "standard",
+            "priority",
+            "enterprise",
+            "custom"
+          ],
+          "description": "Requested support plan. This is an intake preference, not an accepted entitlement."
+        },
+        "support_hours": {
+          "type": "string",
+          "enum": [
+            "business_hours",
+            "twenty_four_by_five",
+            "twenty_four_by_seven"
+          ],
+          "description": "Requested support coverage window."
+        },
+        "channels": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "email",
+              "ticket_portal",
+              "slack",
+              "microsoft_teams",
+              "phone"
+            ]
+          }
+        },
+        "onboarding_required": {
+          "type": "boolean"
+        },
+        "training_required": {
+          "type": "boolean"
+        },
+        "architecture_review_required": {
+          "type": "boolean"
+        },
+        "migration_assistance_required": {
+          "type": "boolean"
+        },
+        "named_technical_contact_required": {
+          "type": "boolean"
+        },
+        "technical_account_manager_required": {
+          "type": "boolean"
+        },
+        "incident_bridge_required": {
+          "type": "boolean"
+        },
+        "requested_p1_response_minutes": {
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 1440
+        },
+        "requested_p2_response_minutes": {
+          "type": "integer",
+          "minimum": 30,
+          "maximum": 4320
+        },
+        "requested_p3_response_hours": {
+          "type": "integer",
+          "minimum": 4,
+          "maximum": 168
+        },
+        "support_notes": {
+          "type": "string",
+          "maxLength": 8000
+        }
+      }
+    },
+    "ServiceLevelRequest": {
+      "title": "ServiceLevelRequest",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requested_availability",
+        "service_credit_requested",
+        "maintenance_notice_hours",
+        "accepts_slo_not_sla_during_evaluation"
+      ],
+      "properties": {
+        "requested_availability": {
+          "type": "string",
+          "enum": [
+            "best_effort_beta",
+            "availability_99_0",
+            "availability_99_5",
+            "availability_99_9",
+            "availability_99_95",
+            "custom"
+          ],
+          "description": "Requested monthly availability target. Only a signed order form can create a contractual SLA."
+        },
+        "custom_availability_percent": {
+          "type": "number",
+          "minimum": 90,
+          "maximum": 99.999
+        },
+        "service_credit_requested": {
+          "type": "boolean"
+        },
+        "maintenance_notice_hours": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 720
+        },
+        "error_budget_policy": {
+          "type": "string",
+          "enum": [
+            "informational",
+            "release_freeze",
+            "joint_review",
+            "custom"
+          ]
+        },
+        "accepts_slo_not_sla_during_evaluation": {
+          "type": "boolean"
+        },
+        "measurement_window": {
+          "type": "string",
+          "enum": [
+            "monthly",
+            "rolling_30_day",
+            "quarterly",
+            "custom"
+          ]
+        },
+        "exclusions_requested": {
+          "type": "string",
+          "maxLength": 6000
+        },
+        "slo_notes": {
+          "type": "string",
+          "maxLength": 8000
+        }
+      }
+    },
+    "ProcurementProfile": {
+      "title": "ProcurementProfile",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_path",
+        "term_months",
+        "billing_cadence",
+        "payment_terms",
+        "currency",
+        "purchase_order_required"
+      ],
+      "properties": {
+        "contract_path": {
+          "type": "string",
+          "enum": [
+            "online_terms",
+            "fiducia_msa",
+            "customer_msa",
+            "sow_only",
+            "public_sector_terms",
+            "custom"
+          ]
+        },
+        "requested_documents": {
+          "type": "array",
+          "maxItems": 12,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "msa",
+              "sow",
+              "order_form",
+              "sla",
+              "dpa",
+              "nda",
+              "aup",
+              "security_addendum",
+              "baa",
+              "insurance_certificate",
+              "w_9",
+              "accessibility_conformance_report"
+            ]
+          }
+        },
+        "term_months": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 120
+        },
+        "auto_renewal_allowed": {
+          "type": "boolean"
+        },
+        "termination_for_convenience_requested": {
+          "type": "boolean"
+        },
+        "termination_notice_days": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 365
+        },
+        "billing_cadence": {
+          "type": "string",
+          "enum": [
+            "monthly",
+            "quarterly",
+            "annual",
+            "prepaid_commit",
+            "custom"
+          ]
+        },
+        "payment_terms": {
+          "type": "string",
+          "enum": [
+            "card_due_on_receipt",
+            "net_15",
+            "net_30",
+            "net_45",
+            "net_60",
+            "custom"
+          ]
+        },
+        "currency": {
+          "type": "string",
+          "enum": [
+            "USD",
+            "EUR",
+            "GBP",
+            "CAD",
+            "AUD",
+            "other"
+          ]
+        },
+        "purchase_order_required": {
+          "type": "boolean"
+        },
+        "vendor_portal_required": {
+          "type": "boolean"
+        },
+        "security_review_required": {
+          "type": "boolean"
+        },
+        "legal_review_required": {
+          "type": "boolean"
+        },
+        "governing_law_preference": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "venue_preference": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "liability_cap_preference": {
+          "type": "string",
+          "maxLength": 1000
+        },
+        "indemnity_requirements": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "insurance_requirements": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "audit_rights_requirements": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "data_processing_requirements": {
+          "type": "string",
+          "maxLength": 8000
+        },
+        "intellectual_property_requirements": {
+          "type": "string",
+          "maxLength": 4000
+        },
+        "procurement_notes": {
+          "type": "string",
+          "maxLength": 12000
+        }
+      }
+    },
+    "CommercialProfile": {
+      "title": "CommercialProfile",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "budget_band",
+        "pricing_model_preference",
+        "billing_contact",
+        "authorized_signatory"
+      ],
+      "properties": {
+        "budget_band": {
+          "type": "string",
+          "enum": [
+            "unknown",
+            "under_500_monthly",
+            "monthly_500_2000",
+            "monthly_2000_10000",
+            "monthly_10000_50000",
+            "monthly_50000_plus",
+            "custom_contract"
+          ]
+        },
+        "pricing_model_preference": {
+          "type": "string",
+          "enum": [
+            "usage_based",
+            "per_cluster",
+            "per_environment",
+            "platform_subscription",
+            "committed_spend",
+            "custom"
+          ]
+        },
+        "estimated_monthly_budget_cents": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000000000
+        },
+        "estimated_implementation_budget_cents": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000000000
+        },
+        "billing_contact": {
+          "$ref": "#/$defs/Contact"
+        },
+        "procurement_contact": {
+          "$ref": "#/$defs/Contact"
+        },
+        "security_contact": {
+          "$ref": "#/$defs/Contact"
+        },
+        "authorized_signatory": {
+          "$ref": "#/$defs/Contact"
+        },
+        "tax_exempt": {
+          "type": "boolean"
+        },
+        "reseller_or_partner": {
+          "type": "boolean"
+        },
+        "commercial_notes": {
+          "type": "string",
+          "maxLength": 12000
+        }
+      }
+    },
+    "Attribution": {
+      "title": "Attribution",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "campaign": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "referrer": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048
+        },
+        "locale": {
+          "type": "string",
+          "maxLength": 35
+        },
+        "heard_about_us": {
+          "type": "string",
+          "maxLength": 1000
+        }
+      }
+    },
+    "QuoteRequest": {
+      "title": "CommercialQuoteRequest",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contact",
+        "organization",
+        "capabilities",
+        "deployment_model",
+        "environments",
+        "average_operations_per_second",
+        "peak_operations_per_second",
+        "retention_days",
+        "support_plan",
+        "budget_band",
+        "acknowledges_non_binding_estimate",
+        "acknowledges_no_secrets",
+        "privacy_notice_accepted"
+      ],
+      "properties": {
+        "contact": {
+          "$ref": "#/$defs/Contact"
+        },
+        "organization": {
+          "$ref": "#/$defs/OrganizationProfile"
+        },
+        "capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "description": "A Fiducia coordination capability requested by a prospective customer.",
+            "type": "string",
+            "enum": [
+              "distributed_locks",
+              "multi_key_locks",
+              "semaphores",
+              "renewable_leases",
+              "leader_election",
+              "encrypted_kv",
+              "idempotency",
+              "rate_limiting",
+              "scheduled_jobs",
+              "service_discovery",
+              "durable_tasks",
+              "budgets",
+              "barriers",
+              "counters",
+              "agent_coordination",
+              "secret_delivery"
+            ]
+          }
+        },
+        "deployment_model": {
+          "type": "string",
+          "enum": [
+            "managed_multi_tenant",
+            "managed_dedicated",
+            "customer_kubernetes",
+            "customer_cloud",
+            "hybrid",
+            "evaluation"
+          ],
+          "description": "Requested deployment model; availability is subject to technical and commercial review."
+        },
+        "environments": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "average_operations_per_second": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "peak_operations_per_second": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000000
+        },
+        "retention_days": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 36500
+        },
+        "support_plan": {
+          "type": "string",
+          "enum": [
+            "community",
+            "standard",
+            "priority",
+            "enterprise",
+            "custom"
+          ],
+          "description": "Requested support plan. This is an intake preference, not an accepted entitlement."
+        },
+        "compliance_frameworks": {
+          "type": "array",
+          "maxItems": 12,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "none",
+              "gdpr",
+              "ccpa_cpra",
+              "soc_2",
+              "iso_27001",
+              "hipaa",
+              "pci_dss",
+              "fedramp",
+              "state_ramp",
+              "nist_800_53",
+              "cis",
+              "custom"
+            ],
+            "description": "Framework requested by the prospect. Selection does not assert Fiducia certification or eligibility."
+          }
+        },
+        "onboarding_required": {
+          "type": "boolean"
+        },
+        "budget_band": {
+          "type": "string",
+          "enum": [
+            "unknown",
+            "under_500_monthly",
+            "monthly_500_2000",
+            "monthly_2000_10000",
+            "monthly_10000_50000",
+            "monthly_50000_plus",
+            "custom_contract"
+          ]
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 6000
+        },
+        "attribution": {
+          "$ref": "#/$defs/Attribution"
+        },
+        "acknowledges_non_binding_estimate": {
+          "type": "boolean",
+          "const": true
+        },
+        "acknowledges_no_secrets": {
+          "type": "boolean",
+          "const": true
+        },
+        "privacy_notice_accepted": {
+          "type": "boolean",
+          "const": true,
+          "description": "The current Fiducia privacy notice was accepted before submission."
+        }
+      }
+    },
+    "QuoteReceipt": {
+      "title": "CommercialQuoteReceipt",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "quote_id",
+        "currency",
+        "estimated_monthly_low_cents",
+        "estimated_monthly_high_cents",
+        "estimated_implementation_low_cents",
+        "estimated_implementation_high_cents",
+        "valid_until",
+        "assumptions",
+        "disclaimer"
+      ],
+      "properties": {
+        "quote_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "currency": {
+          "type": "string",
+          "const": "USD"
+        },
+        "estimated_monthly_low_cents": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "estimated_monthly_high_cents": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "estimated_implementation_low_cents": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "estimated_implementation_high_cents": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_until": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "assumptions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "disclaimer": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        }
+      }
+    },
+    "PreInterestRequest": {
+      "title": "PreInterestRegistrationRequest",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contact",
+        "organization",
+        "use_case_summary",
+        "capabilities",
+        "desired_start_window",
+        "budget_band",
+        "support_plan",
+        "product_updates_consent",
+        "acknowledges_no_secrets",
+        "privacy_notice_accepted"
+      ],
+      "properties": {
+        "contact": {
+          "$ref": "#/$defs/Contact"
+        },
+        "organization": {
+          "$ref": "#/$defs/OrganizationProfile"
+        },
+        "use_case_summary": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 8000
+        },
+        "capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "description": "A Fiducia coordination capability requested by a prospective customer.",
+            "type": "string",
+            "enum": [
+              "distributed_locks",
+              "multi_key_locks",
+              "semaphores",
+              "renewable_leases",
+              "leader_election",
+              "encrypted_kv",
+              "idempotency",
+              "rate_limiting",
+              "scheduled_jobs",
+              "service_discovery",
+              "durable_tasks",
+              "budgets",
+              "barriers",
+              "counters",
+              "agent_coordination",
+              "secret_delivery"
+            ]
+          }
+        },
+        "desired_start_window": {
+          "type": "string",
+          "enum": [
+            "immediate",
+            "within_30_days",
+            "within_90_days",
+            "within_6_months",
+            "later",
+            "exploring"
+          ]
+        },
+        "budget_band": {
+          "type": "string",
+          "enum": [
+            "unknown",
+            "under_500_monthly",
+            "monthly_500_2000",
+            "monthly_2000_10000",
+            "monthly_10000_50000",
+            "monthly_50000_plus",
+            "custom_contract"
+          ]
+        },
+        "support_plan": {
+          "type": "string",
+          "enum": [
+            "community",
+            "standard",
+            "priority",
+            "enterprise",
+            "custom"
+          ],
+          "description": "Requested support plan. This is an intake preference, not an accepted entitlement."
+        },
+        "product_updates_consent": {
+          "type": "boolean"
+        },
+        "attribution": {
+          "$ref": "#/$defs/Attribution"
+        },
+        "acknowledges_no_secrets": {
+          "type": "boolean",
+          "const": true
+        },
+        "privacy_notice_accepted": {
+          "type": "boolean",
+          "const": true,
+          "description": "The current Fiducia privacy notice was accepted before submission."
+        }
+      }
+    },
+    "PreInterestReceipt": {
+      "title": "PreInterestRegistrationReceipt",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "registration_id",
+        "created_at",
+        "next_step"
+      ],
+      "properties": {
+        "registration_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "next_step": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      }
+    },
+    "EnterpriseApplicationRequest": {
+      "title": "EnterpriseApplicationRequest",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primary_contact",
+        "organization",
+        "project",
+        "technical",
+        "security",
+        "support",
+        "service_levels",
+        "procurement",
+        "commercial",
+        "authorized_to_submit",
+        "acknowledges_requested_terms_are_non_binding",
+        "acknowledges_no_credentials_or_secrets",
+        "privacy_notice_accepted"
+      ],
+      "properties": {
+        "quote_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "pre_interest_registration_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "primary_contact": {
+          "$ref": "#/$defs/Contact"
+        },
+        "organization": {
+          "$ref": "#/$defs/OrganizationProfile"
+        },
+        "project": {
+          "$ref": "#/$defs/ProjectProfile"
+        },
+        "technical": {
+          "$ref": "#/$defs/TechnicalRequirements"
+        },
+        "security": {
+          "$ref": "#/$defs/SecurityRequirements"
+        },
+        "support": {
+          "$ref": "#/$defs/SupportRequirements"
+        },
+        "service_levels": {
+          "$ref": "#/$defs/ServiceLevelRequest"
+        },
+        "procurement": {
+          "$ref": "#/$defs/ProcurementProfile"
+        },
+        "commercial": {
+          "$ref": "#/$defs/CommercialProfile"
+        },
+        "attribution": {
+          "$ref": "#/$defs/Attribution"
+        },
+        "additional_requirements": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "authorized_to_submit": {
+          "type": "boolean",
+          "const": true
+        },
+        "acknowledges_requested_terms_are_non_binding": {
+          "type": "boolean",
+          "const": true
+        },
+        "acknowledges_no_credentials_or_secrets": {
+          "type": "boolean",
+          "const": true
+        },
+        "privacy_notice_accepted": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
+    "EnterpriseApplicationReceipt": {
+      "title": "EnterpriseApplicationReceipt",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "application_id",
+        "created_at",
+        "status",
+        "next_step",
+        "contract_review_required"
+      ],
+      "properties": {
+        "application_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "received",
+            "needs_clarification",
+            "under_review"
+          ]
+        },
+        "next_step": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "contract_review_required": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ServiceTierSummary": {
+      "title": "ServiceTierSummary",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "support_plan",
+        "support_hours",
+        "contractual_sla",
+        "description"
+      ],
+      "properties": {
+        "support_plan": {
+          "type": "string",
+          "enum": [
+            "community",
+            "standard",
+            "priority",
+            "enterprise",
+            "custom"
+          ],
+          "description": "Requested support plan. This is an intake preference, not an accepted entitlement."
+        },
+        "support_hours": {
+          "type": "string",
+          "enum": [
+            "business_hours",
+            "twenty_four_by_five",
+            "twenty_four_by_seven"
+          ],
+          "description": "Requested support coverage window."
+        },
+        "contractual_sla": {
+          "type": "boolean"
+        },
+        "availability_target": {
+          "type": "string",
+          "enum": [
+            "best_effort_beta",
+            "availability_99_0",
+            "availability_99_5",
+            "availability_99_9",
+            "availability_99_95",
+            "custom"
+          ],
+          "description": "Requested monthly availability target. Only a signed order form can create a contractual SLA."
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        }
+      }
+    }
+  }
+}

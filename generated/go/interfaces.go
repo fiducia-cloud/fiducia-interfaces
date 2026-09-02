@@ -207,6 +207,274 @@ type ClaimState struct {
 	Generation int64 `json:"generation"`
 }
 
+type Contact struct {
+	Email string `json:"email"`
+	FullName string `json:"full_name"`
+	Role string `json:"role"`
+	Phone *string `json:"phone,omitempty"`
+	Timezone *string `json:"timezone,omitempty"`
+	// (one of: email, phone, slack, microsoft_teams)
+	PreferredContact *string `json:"preferred_contact,omitempty"`
+}
+
+type OrganizationProfile struct {
+	LegalName string `json:"legal_name"`
+	DoingBusinessAs *string `json:"doing_business_as,omitempty"`
+	Website *string `json:"website,omitempty"`
+	Country string `json:"country"`
+	StateOrRegion *string `json:"state_or_region,omitempty"`
+	// (one of: employees_1_10, employees_11_50, employees_51_200, employees_201_1000, employees_1001_5000, employees_5001_plus)
+	CompanySize string `json:"company_size"`
+	Industry string `json:"industry"`
+	ExistingCustomer *bool `json:"existing_customer,omitempty"`
+	ParentCompany *string `json:"parent_company,omitempty"`
+}
+
+type ProjectProfile struct {
+	Name string `json:"name"`
+	// (one of: research, prototype, pilot, pre_production, production, migration)
+	Stage string `json:"stage"`
+	UseCaseSummary string `json:"use_case_summary"`
+	DesiredStartDate string `json:"desired_start_date"`
+	// (one of: immediate, within_30_days, within_90_days, within_6_months, later, exploring)
+	DecisionTimeline string `json:"decision_timeline"`
+	ProductionDeadline *string `json:"production_deadline,omitempty"`
+	EstimatedInternalUsers *int64 `json:"estimated_internal_users,omitempty"`
+	EstimatedEndUsers *int64 `json:"estimated_end_users,omitempty"`
+	EnvironmentCount *int64 `json:"environment_count,omitempty"`
+}
+
+type TechnicalRequirements struct {
+	Capabilities []string `json:"capabilities"`
+	DeploymentModels []string `json:"deployment_models"`
+	ClientLanguages []string `json:"client_languages"`
+	Integrations *[]string `json:"integrations,omitempty"`
+	Regions []string `json:"regions"`
+	AverageOperationsPerSecond int64 `json:"average_operations_per_second"`
+	PeakOperationsPerSecond int64 `json:"peak_operations_per_second"`
+	EstimatedActiveKeys *int64 `json:"estimated_active_keys,omitempty"`
+	MaximumPayloadBytes *int64 `json:"maximum_payload_bytes,omitempty"`
+	RetentionDays *int64 `json:"retention_days,omitempty"`
+	// (one of: linearizable, serializable, read_your_writes, eventual, unsure)
+	ConsistencyExpectation string `json:"consistency_expectation"`
+	LatencyP95Ms *int64 `json:"latency_p95_ms,omitempty"`
+	LatencyP99Ms *int64 `json:"latency_p99_ms,omitempty"`
+	FailoverSeconds *int64 `json:"failover_seconds,omitempty"`
+	RpoSeconds *int64 `json:"rpo_seconds,omitempty"`
+	RtoSeconds *int64 `json:"rto_seconds,omitempty"`
+	PrivateNetworkingRequired *bool `json:"private_networking_required,omitempty"`
+	OfflineOrEdgeRequired *bool `json:"offline_or_edge_required,omitempty"`
+	DataClasses []string `json:"data_classes"`
+	CurrentStack *string `json:"current_stack,omitempty"`
+	MigrationSource *string `json:"migration_source,omitempty"`
+	ArchitectureNotes *string `json:"architecture_notes,omitempty"`
+}
+
+type SecurityRequirements struct {
+	ComplianceFrameworks []string `json:"compliance_frameworks"`
+	SsoRequired bool `json:"sso_required"`
+	ScimRequired *bool `json:"scim_required,omitempty"`
+	MfaRequired *bool `json:"mfa_required,omitempty"`
+	MtlsRequired *bool `json:"mtls_required,omitempty"`
+	CustomerManagedKeysRequired *bool `json:"customer_managed_keys_required,omitempty"`
+	DataResidencyRequired bool `json:"data_residency_required"`
+	DataResidencyLocations *[]string `json:"data_residency_locations,omitempty"`
+	AuditLogRequired bool `json:"audit_log_required"`
+	AuditRetentionDays *int64 `json:"audit_retention_days,omitempty"`
+	PenetrationTestReportRequired *bool `json:"penetration_test_report_required,omitempty"`
+	SecurityQuestionnaireRequired *bool `json:"security_questionnaire_required,omitempty"`
+	SubprocessorNoticeRequired *bool `json:"subprocessor_notice_required,omitempty"`
+	VulnerabilityDisclosureRequirements *string `json:"vulnerability_disclosure_requirements,omitempty"`
+	AdditionalSecurityRequirements *string `json:"additional_security_requirements,omitempty"`
+}
+
+type SupportRequirements struct {
+	// Requested support plan. This is an intake preference, not an accepted entitlement. (one of: community, standard, priority, enterprise, custom)
+	SupportPlan string `json:"support_plan"`
+	// Requested support coverage window. (one of: business_hours, twenty_four_by_five, twenty_four_by_seven)
+	SupportHours string `json:"support_hours"`
+	Channels []string `json:"channels"`
+	OnboardingRequired bool `json:"onboarding_required"`
+	TrainingRequired *bool `json:"training_required,omitempty"`
+	ArchitectureReviewRequired *bool `json:"architecture_review_required,omitempty"`
+	MigrationAssistanceRequired *bool `json:"migration_assistance_required,omitempty"`
+	NamedTechnicalContactRequired bool `json:"named_technical_contact_required"`
+	TechnicalAccountManagerRequired *bool `json:"technical_account_manager_required,omitempty"`
+	IncidentBridgeRequired *bool `json:"incident_bridge_required,omitempty"`
+	RequestedP1ResponseMinutes *int64 `json:"requested_p1_response_minutes,omitempty"`
+	RequestedP2ResponseMinutes *int64 `json:"requested_p2_response_minutes,omitempty"`
+	RequestedP3ResponseHours *int64 `json:"requested_p3_response_hours,omitempty"`
+	SupportNotes *string `json:"support_notes,omitempty"`
+}
+
+type ServiceLevelRequest struct {
+	// Requested monthly availability target. Only a signed order form can create a contractual SLA. (one of: best_effort_beta, availability_99_0, availability_99_5, availability_99_9, availability_99_95, custom)
+	RequestedAvailability string `json:"requested_availability"`
+	CustomAvailabilityPercent *float64 `json:"custom_availability_percent,omitempty"`
+	ServiceCreditRequested bool `json:"service_credit_requested"`
+	MaintenanceNoticeHours int64 `json:"maintenance_notice_hours"`
+	// (one of: informational, release_freeze, joint_review, custom)
+	ErrorBudgetPolicy *string `json:"error_budget_policy,omitempty"`
+	AcceptsSloNotSlaDuringEvaluation bool `json:"accepts_slo_not_sla_during_evaluation"`
+	// (one of: monthly, rolling_30_day, quarterly, custom)
+	MeasurementWindow *string `json:"measurement_window,omitempty"`
+	ExclusionsRequested *string `json:"exclusions_requested,omitempty"`
+	SloNotes *string `json:"slo_notes,omitempty"`
+}
+
+type ProcurementProfile struct {
+	// (one of: online_terms, fiducia_msa, customer_msa, sow_only, public_sector_terms, custom)
+	ContractPath string `json:"contract_path"`
+	RequestedDocuments *[]string `json:"requested_documents,omitempty"`
+	TermMonths int64 `json:"term_months"`
+	AutoRenewalAllowed *bool `json:"auto_renewal_allowed,omitempty"`
+	TerminationForConvenienceRequested *bool `json:"termination_for_convenience_requested,omitempty"`
+	TerminationNoticeDays *int64 `json:"termination_notice_days,omitempty"`
+	// (one of: monthly, quarterly, annual, prepaid_commit, custom)
+	BillingCadence string `json:"billing_cadence"`
+	// (one of: card_due_on_receipt, net_15, net_30, net_45, net_60, custom)
+	PaymentTerms string `json:"payment_terms"`
+	// (one of: USD, EUR, GBP, CAD, AUD, other)
+	Currency string `json:"currency"`
+	PurchaseOrderRequired bool `json:"purchase_order_required"`
+	VendorPortalRequired *bool `json:"vendor_portal_required,omitempty"`
+	SecurityReviewRequired *bool `json:"security_review_required,omitempty"`
+	LegalReviewRequired *bool `json:"legal_review_required,omitempty"`
+	GoverningLawPreference *string `json:"governing_law_preference,omitempty"`
+	VenuePreference *string `json:"venue_preference,omitempty"`
+	LiabilityCapPreference *string `json:"liability_cap_preference,omitempty"`
+	IndemnityRequirements *string `json:"indemnity_requirements,omitempty"`
+	InsuranceRequirements *string `json:"insurance_requirements,omitempty"`
+	AuditRightsRequirements *string `json:"audit_rights_requirements,omitempty"`
+	DataProcessingRequirements *string `json:"data_processing_requirements,omitempty"`
+	IntellectualPropertyRequirements *string `json:"intellectual_property_requirements,omitempty"`
+	ProcurementNotes *string `json:"procurement_notes,omitempty"`
+}
+
+type CommercialProfile struct {
+	// (one of: unknown, under_500_monthly, monthly_500_2000, monthly_2000_10000, monthly_10000_50000, monthly_50000_plus, custom_contract)
+	BudgetBand string `json:"budget_band"`
+	// (one of: usage_based, per_cluster, per_environment, platform_subscription, committed_spend, custom)
+	PricingModelPreference string `json:"pricing_model_preference"`
+	EstimatedMonthlyBudgetCents *int64 `json:"estimated_monthly_budget_cents,omitempty"`
+	EstimatedImplementationBudgetCents *int64 `json:"estimated_implementation_budget_cents,omitempty"`
+	BillingContact Contact `json:"billing_contact"`
+	ProcurementContact *Contact `json:"procurement_contact,omitempty"`
+	SecurityContact *Contact `json:"security_contact,omitempty"`
+	AuthorizedSignatory Contact `json:"authorized_signatory"`
+	TaxExempt *bool `json:"tax_exempt,omitempty"`
+	ResellerOrPartner *bool `json:"reseller_or_partner,omitempty"`
+	CommercialNotes *string `json:"commercial_notes,omitempty"`
+}
+
+type Attribution struct {
+	Source *string `json:"source,omitempty"`
+	Campaign *string `json:"campaign,omitempty"`
+	Referrer *string `json:"referrer,omitempty"`
+	Locale *string `json:"locale,omitempty"`
+	HeardAboutUs *string `json:"heard_about_us,omitempty"`
+}
+
+type QuoteRequest struct {
+	Contact Contact `json:"contact"`
+	Organization OrganizationProfile `json:"organization"`
+	Capabilities []string `json:"capabilities"`
+	// Requested deployment model; availability is subject to technical and commercial review. (one of: managed_multi_tenant, managed_dedicated, customer_kubernetes, customer_cloud, hybrid, evaluation)
+	DeploymentModel string `json:"deployment_model"`
+	Environments int64 `json:"environments"`
+	AverageOperationsPerSecond int64 `json:"average_operations_per_second"`
+	PeakOperationsPerSecond int64 `json:"peak_operations_per_second"`
+	RetentionDays int64 `json:"retention_days"`
+	// Requested support plan. This is an intake preference, not an accepted entitlement. (one of: community, standard, priority, enterprise, custom)
+	SupportPlan string `json:"support_plan"`
+	ComplianceFrameworks *[]string `json:"compliance_frameworks,omitempty"`
+	OnboardingRequired *bool `json:"onboarding_required,omitempty"`
+	// (one of: unknown, under_500_monthly, monthly_500_2000, monthly_2000_10000, monthly_10000_50000, monthly_50000_plus, custom_contract)
+	BudgetBand string `json:"budget_band"`
+	Notes *string `json:"notes,omitempty"`
+	Attribution *Attribution `json:"attribution,omitempty"`
+	AcknowledgesNonBindingEstimate bool `json:"acknowledges_non_binding_estimate"`
+	AcknowledgesNoSecrets bool `json:"acknowledges_no_secrets"`
+	// The current Fiducia privacy notice was accepted before submission.
+	PrivacyNoticeAccepted bool `json:"privacy_notice_accepted"`
+}
+
+type QuoteReceipt struct {
+	QuoteId string `json:"quote_id"`
+	Currency string `json:"currency"`
+	EstimatedMonthlyLowCents int64 `json:"estimated_monthly_low_cents"`
+	EstimatedMonthlyHighCents int64 `json:"estimated_monthly_high_cents"`
+	EstimatedImplementationLowCents int64 `json:"estimated_implementation_low_cents"`
+	EstimatedImplementationHighCents int64 `json:"estimated_implementation_high_cents"`
+	ValidUntil string `json:"valid_until"`
+	Assumptions []string `json:"assumptions"`
+	Disclaimer string `json:"disclaimer"`
+}
+
+type PreInterestRequest struct {
+	Contact Contact `json:"contact"`
+	Organization OrganizationProfile `json:"organization"`
+	UseCaseSummary string `json:"use_case_summary"`
+	Capabilities []string `json:"capabilities"`
+	// (one of: immediate, within_30_days, within_90_days, within_6_months, later, exploring)
+	DesiredStartWindow string `json:"desired_start_window"`
+	// (one of: unknown, under_500_monthly, monthly_500_2000, monthly_2000_10000, monthly_10000_50000, monthly_50000_plus, custom_contract)
+	BudgetBand string `json:"budget_band"`
+	// Requested support plan. This is an intake preference, not an accepted entitlement. (one of: community, standard, priority, enterprise, custom)
+	SupportPlan string `json:"support_plan"`
+	ProductUpdatesConsent bool `json:"product_updates_consent"`
+	Attribution *Attribution `json:"attribution,omitempty"`
+	AcknowledgesNoSecrets bool `json:"acknowledges_no_secrets"`
+	// The current Fiducia privacy notice was accepted before submission.
+	PrivacyNoticeAccepted bool `json:"privacy_notice_accepted"`
+}
+
+type PreInterestReceipt struct {
+	RegistrationId string `json:"registration_id"`
+	CreatedAt string `json:"created_at"`
+	NextStep string `json:"next_step"`
+}
+
+type EnterpriseApplicationRequest struct {
+	QuoteId *string `json:"quote_id,omitempty"`
+	PreInterestRegistrationId *string `json:"pre_interest_registration_id,omitempty"`
+	PrimaryContact Contact `json:"primary_contact"`
+	Organization OrganizationProfile `json:"organization"`
+	Project ProjectProfile `json:"project"`
+	Technical TechnicalRequirements `json:"technical"`
+	Security SecurityRequirements `json:"security"`
+	Support SupportRequirements `json:"support"`
+	ServiceLevels ServiceLevelRequest `json:"service_levels"`
+	Procurement ProcurementProfile `json:"procurement"`
+	Commercial CommercialProfile `json:"commercial"`
+	Attribution *Attribution `json:"attribution,omitempty"`
+	AdditionalRequirements *string `json:"additional_requirements,omitempty"`
+	AuthorizedToSubmit bool `json:"authorized_to_submit"`
+	AcknowledgesRequestedTermsAreNonBinding bool `json:"acknowledges_requested_terms_are_non_binding"`
+	AcknowledgesNoCredentialsOrSecrets bool `json:"acknowledges_no_credentials_or_secrets"`
+	PrivacyNoticeAccepted bool `json:"privacy_notice_accepted"`
+}
+
+type EnterpriseApplicationReceipt struct {
+	ApplicationId string `json:"application_id"`
+	CreatedAt string `json:"created_at"`
+	// (one of: received, needs_clarification, under_review)
+	Status string `json:"status"`
+	NextStep string `json:"next_step"`
+	ContractReviewRequired bool `json:"contract_review_required"`
+}
+
+type ServiceTierSummary struct {
+	// Requested support plan. This is an intake preference, not an accepted entitlement. (one of: community, standard, priority, enterprise, custom)
+	SupportPlan string `json:"support_plan"`
+	// Requested support coverage window. (one of: business_hours, twenty_four_by_five, twenty_four_by_seven)
+	SupportHours string `json:"support_hours"`
+	ContractualSla bool `json:"contractual_sla"`
+	// Requested monthly availability target. Only a signed order form can create a contractual SLA. (one of: best_effort_beta, availability_99_0, availability_99_5, availability_99_9, availability_99_95, custom)
+	AvailabilityTarget *string `json:"availability_target,omitempty"`
+	Description string `json:"description"`
+}
+
 // ProposeOutcome: Result of a committed write (lock/kv/election/discovery mutation).
 type ProposeOutcome struct {
 	// Shard whose Raft group committed the command.

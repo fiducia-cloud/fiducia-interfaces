@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  ContactSchema,
   SyncChangeEventSchema,
   SyncReplicaMetadataSchema,
   SyncWritePolicySchema,
@@ -45,6 +46,24 @@ test("Zod validates sync IO from the canonical JSON Schema", () => {
       created_at_ms: 10,
       updated_at_ms: 9,
       unknown: true,
+    }),
+  );
+});
+
+test("commercial contact email uses the canonical JSON Schema format", () => {
+  assert.equal(
+    ContactSchema.parse({
+      full_name: "Ada Lovelace",
+      email: "ada@example.com",
+      role: "Chief Technology Officer",
+    }).email,
+    "ada@example.com",
+  );
+  assert.throws(() =>
+    ContactSchema.parse({
+      full_name: "Ada Lovelace",
+      email: "not-an-email",
+      role: "Chief Technology Officer",
     }),
   );
 });

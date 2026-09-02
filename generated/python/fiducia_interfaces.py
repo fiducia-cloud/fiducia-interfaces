@@ -162,6 +162,299 @@ class ClaimState:
     superseded_by: Optional[str] = None
 
 @dataclass
+class Capability:
+    """A Fiducia coordination capability requested by a prospective customer."""
+    pass
+
+@dataclass
+class DeploymentModel:
+    """Requested deployment model; availability is subject to technical and commercial review."""
+    pass
+
+@dataclass
+class SupportPlan:
+    """Requested support plan. This is an intake preference, not an accepted entitlement."""
+    pass
+
+@dataclass
+class SupportHours:
+    """Requested support coverage window."""
+    pass
+
+@dataclass
+class RequestedAvailability:
+    """Requested monthly availability target. Only a signed order form can create a contractual SLA."""
+    pass
+
+@dataclass
+class CompanySize:
+    pass
+
+@dataclass
+class ProjectStage:
+    pass
+
+@dataclass
+class BudgetBand:
+    pass
+
+@dataclass
+class DataClass:
+    """Prospective data classes. Regulated classes require separate written approval and may be unsupported."""
+    pass
+
+@dataclass
+class ComplianceFramework:
+    """Framework requested by the prospect. Selection does not assert Fiducia certification or eligibility."""
+    pass
+
+@dataclass
+class Integration:
+    pass
+
+@dataclass
+class ClientLanguage:
+    pass
+
+@dataclass
+class Contact:
+    email: str
+    full_name: str
+    role: str
+    phone: Optional[str] = None
+    timezone: Optional[str] = None
+    preferred_contact: Optional[Literal["email", "phone", "slack", "microsoft_teams"]] = None
+
+@dataclass
+class OrganizationProfile:
+    legal_name: str
+    country: str
+    company_size: CompanySize
+    industry: str
+    doing_business_as: Optional[str] = None
+    website: Optional[str] = None
+    state_or_region: Optional[str] = None
+    existing_customer: Optional[bool] = None
+    parent_company: Optional[str] = None
+
+@dataclass
+class ProjectProfile:
+    name: str
+    stage: ProjectStage
+    use_case_summary: str
+    desired_start_date: str
+    decision_timeline: Literal["immediate", "within_30_days", "within_90_days", "within_6_months", "later", "exploring"]
+    production_deadline: Optional[str] = None
+    estimated_internal_users: Optional[int] = None
+    estimated_end_users: Optional[int] = None
+    environment_count: Optional[int] = None
+
+@dataclass
+class TechnicalRequirements:
+    capabilities: List[Capability]
+    deployment_models: List[DeploymentModel]
+    client_languages: List[ClientLanguage]
+    regions: List[str]
+    average_operations_per_second: int
+    peak_operations_per_second: int
+    consistency_expectation: Literal["linearizable", "serializable", "read_your_writes", "eventual", "unsure"]
+    data_classes: List[DataClass]
+    integrations: Optional[List[Integration]] = None
+    estimated_active_keys: Optional[int] = None
+    maximum_payload_bytes: Optional[int] = None
+    retention_days: Optional[int] = None
+    latency_p95_ms: Optional[int] = None
+    latency_p99_ms: Optional[int] = None
+    failover_seconds: Optional[int] = None
+    rpo_seconds: Optional[int] = None
+    rto_seconds: Optional[int] = None
+    private_networking_required: Optional[bool] = None
+    offline_or_edge_required: Optional[bool] = None
+    current_stack: Optional[str] = None
+    migration_source: Optional[str] = None
+    architecture_notes: Optional[str] = None
+
+@dataclass
+class SecurityRequirements:
+    compliance_frameworks: List[ComplianceFramework]
+    sso_required: bool
+    data_residency_required: bool
+    audit_log_required: bool
+    scim_required: Optional[bool] = None
+    mfa_required: Optional[bool] = None
+    mtls_required: Optional[bool] = None
+    customer_managed_keys_required: Optional[bool] = None
+    data_residency_locations: Optional[List[str]] = None
+    audit_retention_days: Optional[int] = None
+    penetration_test_report_required: Optional[bool] = None
+    security_questionnaire_required: Optional[bool] = None
+    subprocessor_notice_required: Optional[bool] = None
+    vulnerability_disclosure_requirements: Optional[str] = None
+    additional_security_requirements: Optional[str] = None
+
+@dataclass
+class SupportRequirements:
+    support_plan: SupportPlan
+    support_hours: SupportHours
+    channels: List[str]
+    onboarding_required: bool
+    named_technical_contact_required: bool
+    training_required: Optional[bool] = None
+    architecture_review_required: Optional[bool] = None
+    migration_assistance_required: Optional[bool] = None
+    technical_account_manager_required: Optional[bool] = None
+    incident_bridge_required: Optional[bool] = None
+    requested_p1_response_minutes: Optional[int] = None
+    requested_p2_response_minutes: Optional[int] = None
+    requested_p3_response_hours: Optional[int] = None
+    support_notes: Optional[str] = None
+
+@dataclass
+class ServiceLevelRequest:
+    requested_availability: RequestedAvailability
+    service_credit_requested: bool
+    maintenance_notice_hours: int
+    accepts_slo_not_sla_during_evaluation: bool
+    custom_availability_percent: Optional[float] = None
+    error_budget_policy: Optional[Literal["informational", "release_freeze", "joint_review", "custom"]] = None
+    measurement_window: Optional[Literal["monthly", "rolling_30_day", "quarterly", "custom"]] = None
+    exclusions_requested: Optional[str] = None
+    slo_notes: Optional[str] = None
+
+@dataclass
+class ProcurementProfile:
+    contract_path: Literal["online_terms", "fiducia_msa", "customer_msa", "sow_only", "public_sector_terms", "custom"]
+    term_months: int
+    billing_cadence: Literal["monthly", "quarterly", "annual", "prepaid_commit", "custom"]
+    payment_terms: Literal["card_due_on_receipt", "net_15", "net_30", "net_45", "net_60", "custom"]
+    currency: Literal["USD", "EUR", "GBP", "CAD", "AUD", "other"]
+    purchase_order_required: bool
+    requested_documents: Optional[List[str]] = None
+    auto_renewal_allowed: Optional[bool] = None
+    termination_for_convenience_requested: Optional[bool] = None
+    termination_notice_days: Optional[int] = None
+    vendor_portal_required: Optional[bool] = None
+    security_review_required: Optional[bool] = None
+    legal_review_required: Optional[bool] = None
+    governing_law_preference: Optional[str] = None
+    venue_preference: Optional[str] = None
+    liability_cap_preference: Optional[str] = None
+    indemnity_requirements: Optional[str] = None
+    insurance_requirements: Optional[str] = None
+    audit_rights_requirements: Optional[str] = None
+    data_processing_requirements: Optional[str] = None
+    intellectual_property_requirements: Optional[str] = None
+    procurement_notes: Optional[str] = None
+
+@dataclass
+class CommercialProfile:
+    budget_band: BudgetBand
+    pricing_model_preference: Literal["usage_based", "per_cluster", "per_environment", "platform_subscription", "committed_spend", "custom"]
+    billing_contact: Contact
+    authorized_signatory: Contact
+    estimated_monthly_budget_cents: Optional[int] = None
+    estimated_implementation_budget_cents: Optional[int] = None
+    procurement_contact: Optional[Contact] = None
+    security_contact: Optional[Contact] = None
+    tax_exempt: Optional[bool] = None
+    reseller_or_partner: Optional[bool] = None
+    commercial_notes: Optional[str] = None
+
+@dataclass
+class Attribution:
+    source: Optional[str] = None
+    campaign: Optional[str] = None
+    referrer: Optional[str] = None
+    locale: Optional[str] = None
+    heard_about_us: Optional[str] = None
+
+@dataclass
+class QuoteRequest:
+    contact: Contact
+    organization: OrganizationProfile
+    capabilities: List[Capability]
+    deployment_model: DeploymentModel
+    environments: int
+    average_operations_per_second: int
+    peak_operations_per_second: int
+    retention_days: int
+    support_plan: SupportPlan
+    budget_band: BudgetBand
+    acknowledges_non_binding_estimate: bool
+    acknowledges_no_secrets: bool
+    compliance_frameworks: Optional[List[ComplianceFramework]] = None
+    onboarding_required: Optional[bool] = None
+    notes: Optional[str] = None
+    attribution: Optional[Attribution] = None
+
+@dataclass
+class QuoteReceipt:
+    quote_id: str
+    currency: str
+    estimated_monthly_low_cents: int
+    estimated_monthly_high_cents: int
+    estimated_implementation_low_cents: int
+    estimated_implementation_high_cents: int
+    valid_until: str
+    assumptions: List[str]
+    disclaimer: str
+
+@dataclass
+class PreInterestRequest:
+    contact: Contact
+    organization: OrganizationProfile
+    use_case_summary: str
+    capabilities: List[Capability]
+    desired_start_window: Literal["immediate", "within_30_days", "within_90_days", "within_6_months", "later", "exploring"]
+    budget_band: BudgetBand
+    support_plan: SupportPlan
+    product_updates_consent: bool
+    acknowledges_no_secrets: bool
+    attribution: Optional[Attribution] = None
+
+@dataclass
+class PreInterestReceipt:
+    registration_id: str
+    created_at: str
+    next_step: str
+
+@dataclass
+class EnterpriseApplicationRequest:
+    primary_contact: Contact
+    organization: OrganizationProfile
+    project: ProjectProfile
+    technical: TechnicalRequirements
+    security: SecurityRequirements
+    support: SupportRequirements
+    service_levels: ServiceLevelRequest
+    procurement: ProcurementProfile
+    commercial: CommercialProfile
+    authorized_to_submit: bool
+    acknowledges_requested_terms_are_non_binding: bool
+    acknowledges_no_credentials_or_secrets: bool
+    privacy_notice_accepted: bool
+    quote_id: Optional[str] = None
+    pre_interest_registration_id: Optional[str] = None
+    attribution: Optional[Attribution] = None
+    additional_requirements: Optional[str] = None
+
+@dataclass
+class EnterpriseApplicationReceipt:
+    application_id: str
+    created_at: str
+    status: Literal["received", "needs_clarification", "under_review"]
+    next_step: str
+    contract_review_required: bool
+
+@dataclass
+class ServiceTierSummary:
+    support_plan: SupportPlan
+    support_hours: SupportHours
+    contractual_sla: bool
+    description: str
+    availability_target: Optional[RequestedAvailability] = None
+
+@dataclass
 class ProposeOutcome:
     """Result of a committed write (lock/kv/election/discovery mutation)."""
     shard: int

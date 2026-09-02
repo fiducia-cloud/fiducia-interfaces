@@ -205,6 +205,287 @@ export type ClaimState = {
   generation: number;
 };
 
+/** A Fiducia coordination capability requested by a prospective customer. */
+export type Capability = {
+};
+
+/** Requested deployment model; availability is subject to technical and commercial review. */
+export type DeploymentModel = {
+};
+
+/** Requested support plan. This is an intake preference, not an accepted entitlement. */
+export type SupportPlan = {
+};
+
+/** Requested support coverage window. */
+export type SupportHours = {
+};
+
+/** Requested monthly availability target. Only a signed order form can create a contractual SLA. */
+export type RequestedAvailability = {
+};
+
+export type CompanySize = {
+};
+
+export type ProjectStage = {
+};
+
+export type BudgetBand = {
+};
+
+/** Prospective data classes. Regulated classes require separate written approval and may be unsupported. */
+export type DataClass = {
+};
+
+/** Framework requested by the prospect. Selection does not assert Fiducia certification or eligibility. */
+export type ComplianceFramework = {
+};
+
+export type Integration = {
+};
+
+export type ClientLanguage = {
+};
+
+export type Contact = {
+  email: string;
+  full_name: string;
+  role: string;
+  phone?: string;
+  timezone?: string;
+  preferred_contact?: "email" | "phone" | "slack" | "microsoft_teams";
+};
+
+export type OrganizationProfile = {
+  legal_name: string;
+  doing_business_as?: string;
+  website?: string;
+  country: string;
+  state_or_region?: string;
+  company_size: CompanySize;
+  industry: string;
+  existing_customer?: boolean;
+  parent_company?: string;
+};
+
+export type ProjectProfile = {
+  name: string;
+  stage: ProjectStage;
+  use_case_summary: string;
+  desired_start_date: string;
+  decision_timeline: "immediate" | "within_30_days" | "within_90_days" | "within_6_months" | "later" | "exploring";
+  production_deadline?: string;
+  estimated_internal_users?: number;
+  estimated_end_users?: number;
+  environment_count?: number;
+};
+
+export type TechnicalRequirements = {
+  capabilities: Capability[];
+  deployment_models: DeploymentModel[];
+  client_languages: ClientLanguage[];
+  integrations?: Integration[];
+  regions: string[];
+  average_operations_per_second: number;
+  peak_operations_per_second: number;
+  estimated_active_keys?: number;
+  maximum_payload_bytes?: number;
+  retention_days?: number;
+  consistency_expectation: "linearizable" | "serializable" | "read_your_writes" | "eventual" | "unsure";
+  latency_p95_ms?: number;
+  latency_p99_ms?: number;
+  failover_seconds?: number;
+  rpo_seconds?: number;
+  rto_seconds?: number;
+  private_networking_required?: boolean;
+  offline_or_edge_required?: boolean;
+  data_classes: DataClass[];
+  current_stack?: string;
+  migration_source?: string;
+  architecture_notes?: string;
+};
+
+export type SecurityRequirements = {
+  compliance_frameworks: ComplianceFramework[];
+  sso_required: boolean;
+  scim_required?: boolean;
+  mfa_required?: boolean;
+  mtls_required?: boolean;
+  customer_managed_keys_required?: boolean;
+  data_residency_required: boolean;
+  data_residency_locations?: string[];
+  audit_log_required: boolean;
+  audit_retention_days?: number;
+  penetration_test_report_required?: boolean;
+  security_questionnaire_required?: boolean;
+  subprocessor_notice_required?: boolean;
+  vulnerability_disclosure_requirements?: string;
+  additional_security_requirements?: string;
+};
+
+export type SupportRequirements = {
+  support_plan: SupportPlan;
+  support_hours: SupportHours;
+  channels: string[];
+  onboarding_required: boolean;
+  training_required?: boolean;
+  architecture_review_required?: boolean;
+  migration_assistance_required?: boolean;
+  named_technical_contact_required: boolean;
+  technical_account_manager_required?: boolean;
+  incident_bridge_required?: boolean;
+  requested_p1_response_minutes?: number;
+  requested_p2_response_minutes?: number;
+  requested_p3_response_hours?: number;
+  support_notes?: string;
+};
+
+export type ServiceLevelRequest = {
+  requested_availability: RequestedAvailability;
+  custom_availability_percent?: number;
+  service_credit_requested: boolean;
+  maintenance_notice_hours: number;
+  error_budget_policy?: "informational" | "release_freeze" | "joint_review" | "custom";
+  accepts_slo_not_sla_during_evaluation: boolean;
+  measurement_window?: "monthly" | "rolling_30_day" | "quarterly" | "custom";
+  exclusions_requested?: string;
+  slo_notes?: string;
+};
+
+export type ProcurementProfile = {
+  contract_path: "online_terms" | "fiducia_msa" | "customer_msa" | "sow_only" | "public_sector_terms" | "custom";
+  requested_documents?: string[];
+  term_months: number;
+  auto_renewal_allowed?: boolean;
+  termination_for_convenience_requested?: boolean;
+  termination_notice_days?: number;
+  billing_cadence: "monthly" | "quarterly" | "annual" | "prepaid_commit" | "custom";
+  payment_terms: "card_due_on_receipt" | "net_15" | "net_30" | "net_45" | "net_60" | "custom";
+  currency: "USD" | "EUR" | "GBP" | "CAD" | "AUD" | "other";
+  purchase_order_required: boolean;
+  vendor_portal_required?: boolean;
+  security_review_required?: boolean;
+  legal_review_required?: boolean;
+  governing_law_preference?: string;
+  venue_preference?: string;
+  liability_cap_preference?: string;
+  indemnity_requirements?: string;
+  insurance_requirements?: string;
+  audit_rights_requirements?: string;
+  data_processing_requirements?: string;
+  intellectual_property_requirements?: string;
+  procurement_notes?: string;
+};
+
+export type CommercialProfile = {
+  budget_band: BudgetBand;
+  pricing_model_preference: "usage_based" | "per_cluster" | "per_environment" | "platform_subscription" | "committed_spend" | "custom";
+  estimated_monthly_budget_cents?: number;
+  estimated_implementation_budget_cents?: number;
+  billing_contact: Contact;
+  procurement_contact?: Contact;
+  security_contact?: Contact;
+  authorized_signatory: Contact;
+  tax_exempt?: boolean;
+  reseller_or_partner?: boolean;
+  commercial_notes?: string;
+};
+
+export type Attribution = {
+  source?: string;
+  campaign?: string;
+  referrer?: string;
+  locale?: string;
+  heard_about_us?: string;
+};
+
+export type QuoteRequest = {
+  contact: Contact;
+  organization: OrganizationProfile;
+  capabilities: Capability[];
+  deployment_model: DeploymentModel;
+  environments: number;
+  average_operations_per_second: number;
+  peak_operations_per_second: number;
+  retention_days: number;
+  support_plan: SupportPlan;
+  compliance_frameworks?: ComplianceFramework[];
+  onboarding_required?: boolean;
+  budget_band: BudgetBand;
+  notes?: string;
+  attribution?: Attribution;
+  acknowledges_non_binding_estimate: boolean;
+  acknowledges_no_secrets: boolean;
+};
+
+export type QuoteReceipt = {
+  quote_id: string;
+  currency: string;
+  estimated_monthly_low_cents: number;
+  estimated_monthly_high_cents: number;
+  estimated_implementation_low_cents: number;
+  estimated_implementation_high_cents: number;
+  valid_until: string;
+  assumptions: string[];
+  disclaimer: string;
+};
+
+export type PreInterestRequest = {
+  contact: Contact;
+  organization: OrganizationProfile;
+  use_case_summary: string;
+  capabilities: Capability[];
+  desired_start_window: "immediate" | "within_30_days" | "within_90_days" | "within_6_months" | "later" | "exploring";
+  budget_band: BudgetBand;
+  support_plan: SupportPlan;
+  product_updates_consent: boolean;
+  attribution?: Attribution;
+  acknowledges_no_secrets: boolean;
+};
+
+export type PreInterestReceipt = {
+  registration_id: string;
+  created_at: string;
+  next_step: string;
+};
+
+export type EnterpriseApplicationRequest = {
+  quote_id?: string;
+  pre_interest_registration_id?: string;
+  primary_contact: Contact;
+  organization: OrganizationProfile;
+  project: ProjectProfile;
+  technical: TechnicalRequirements;
+  security: SecurityRequirements;
+  support: SupportRequirements;
+  service_levels: ServiceLevelRequest;
+  procurement: ProcurementProfile;
+  commercial: CommercialProfile;
+  attribution?: Attribution;
+  additional_requirements?: string;
+  authorized_to_submit: boolean;
+  acknowledges_requested_terms_are_non_binding: boolean;
+  acknowledges_no_credentials_or_secrets: boolean;
+  privacy_notice_accepted: boolean;
+};
+
+export type EnterpriseApplicationReceipt = {
+  application_id: string;
+  created_at: string;
+  status: "received" | "needs_clarification" | "under_review";
+  next_step: string;
+  contract_review_required: boolean;
+};
+
+export type ServiceTierSummary = {
+  support_plan: SupportPlan;
+  support_hours: SupportHours;
+  contractual_sla: boolean;
+  availability_target?: RequestedAvailability;
+  description: string;
+};
+
 /** Result of a committed write (lock/kv/election/discovery mutation). */
 export type ProposeOutcome = {
   /** Shard whose Raft group committed the command. */

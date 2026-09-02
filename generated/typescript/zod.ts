@@ -578,191 +578,6 @@ const schemaBundle = {
         }
       }
     },
-    "Capability": {
-      "title": "Capability",
-      "description": "A Fiducia coordination capability requested by a prospective customer.",
-      "type": "string",
-      "enum": [
-        "distributed_locks",
-        "multi_key_locks",
-        "semaphores",
-        "renewable_leases",
-        "leader_election",
-        "encrypted_kv",
-        "idempotency",
-        "rate_limiting",
-        "scheduled_jobs",
-        "service_discovery",
-        "durable_tasks",
-        "budgets",
-        "barriers",
-        "counters",
-        "agent_coordination",
-        "secret_delivery"
-      ]
-    },
-    "DeploymentModel": {
-      "title": "DeploymentModel",
-      "type": "string",
-      "enum": [
-        "managed_multi_tenant",
-        "managed_dedicated",
-        "customer_kubernetes",
-        "customer_cloud",
-        "hybrid",
-        "evaluation"
-      ],
-      "description": "Requested deployment model; availability is subject to technical and commercial review."
-    },
-    "SupportPlan": {
-      "title": "SupportPlan",
-      "type": "string",
-      "enum": [
-        "community",
-        "standard",
-        "priority",
-        "enterprise",
-        "custom"
-      ],
-      "description": "Requested support plan. This is an intake preference, not an accepted entitlement."
-    },
-    "SupportHours": {
-      "title": "SupportHours",
-      "type": "string",
-      "enum": [
-        "business_hours",
-        "twenty_four_by_five",
-        "twenty_four_by_seven"
-      ],
-      "description": "Requested support coverage window."
-    },
-    "RequestedAvailability": {
-      "title": "RequestedAvailability",
-      "type": "string",
-      "enum": [
-        "best_effort_beta",
-        "99_0",
-        "99_5",
-        "99_9",
-        "99_95",
-        "custom"
-      ],
-      "description": "Requested monthly availability target. Only a signed order form can create a contractual SLA."
-    },
-    "CompanySize": {
-      "title": "CompanySize",
-      "type": "string",
-      "enum": [
-        "1_10",
-        "11_50",
-        "51_200",
-        "201_1000",
-        "1001_5000",
-        "5001_plus"
-      ]
-    },
-    "ProjectStage": {
-      "title": "ProjectStage",
-      "type": "string",
-      "enum": [
-        "research",
-        "prototype",
-        "pilot",
-        "pre_production",
-        "production",
-        "migration"
-      ]
-    },
-    "BudgetBand": {
-      "title": "BudgetBand",
-      "type": "string",
-      "enum": [
-        "unknown",
-        "under_500_monthly",
-        "500_2000_monthly",
-        "2000_10000_monthly",
-        "10000_50000_monthly",
-        "50000_plus_monthly",
-        "custom_contract"
-      ]
-    },
-    "DataClass": {
-      "title": "DataClass",
-      "type": "string",
-      "enum": [
-        "public",
-        "internal",
-        "confidential_business",
-        "customer_content",
-        "personal_data",
-        "authentication_metadata",
-        "secrets",
-        "regulated_health",
-        "payment_card",
-        "government_restricted"
-      ],
-      "description": "Prospective data classes. Regulated classes require separate written approval and may be unsupported."
-    },
-    "ComplianceFramework": {
-      "title": "ComplianceFramework",
-      "type": "string",
-      "enum": [
-        "none",
-        "gdpr",
-        "ccpa_cpra",
-        "soc_2",
-        "iso_27001",
-        "hipaa",
-        "pci_dss",
-        "fedramp",
-        "state_ramp",
-        "nist_800_53",
-        "cis",
-        "custom"
-      ],
-      "description": "Framework requested by the prospect. Selection does not assert Fiducia certification or eligibility."
-    },
-    "Integration": {
-      "title": "Integration",
-      "type": "string",
-      "enum": [
-        "rest",
-        "grpc",
-        "websocket",
-        "webhook",
-        "kubernetes",
-        "terraform",
-        "open_telemetry",
-        "prometheus",
-        "grafana",
-        "slack",
-        "microsoft_teams",
-        "pagerduty",
-        "datadog",
-        "splunk",
-        "custom"
-      ]
-    },
-    "ClientLanguage": {
-      "title": "ClientLanguage",
-      "type": "string",
-      "enum": [
-        "rust",
-        "typescript",
-        "javascript",
-        "go",
-        "dart",
-        "python",
-        "java",
-        "kotlin",
-        "swift",
-        "csharp",
-        "elixir",
-        "gleam",
-        "shell",
-        "other"
-      ]
-    },
     "Contact": {
       "title": "CommercialContact",
       "type": "object",
@@ -846,7 +661,15 @@ const schemaBundle = {
           "maxLength": 120
         },
         "company_size": {
-          "$ref": "#/$defs/CompanySize"
+          "type": "string",
+          "enum": [
+            "1_10",
+            "11_50",
+            "51_200",
+            "201_1000",
+            "1001_5000",
+            "5001_plus"
+          ]
         },
         "industry": {
           "type": "string",
@@ -881,7 +704,15 @@ const schemaBundle = {
           "maxLength": 200
         },
         "stage": {
-          "$ref": "#/$defs/ProjectStage"
+          "type": "string",
+          "enum": [
+            "research",
+            "prototype",
+            "pilot",
+            "pre_production",
+            "production",
+            "migration"
+          ]
         },
         "use_case_summary": {
           "type": "string",
@@ -945,7 +776,26 @@ const schemaBundle = {
           "maxItems": 16,
           "uniqueItems": true,
           "items": {
-            "$ref": "#/$defs/Capability"
+            "description": "A Fiducia coordination capability requested by a prospective customer.",
+            "type": "string",
+            "enum": [
+              "distributed_locks",
+              "multi_key_locks",
+              "semaphores",
+              "renewable_leases",
+              "leader_election",
+              "encrypted_kv",
+              "idempotency",
+              "rate_limiting",
+              "scheduled_jobs",
+              "service_discovery",
+              "durable_tasks",
+              "budgets",
+              "barriers",
+              "counters",
+              "agent_coordination",
+              "secret_delivery"
+            ]
           }
         },
         "deployment_models": {
@@ -954,7 +804,16 @@ const schemaBundle = {
           "maxItems": 6,
           "uniqueItems": true,
           "items": {
-            "$ref": "#/$defs/DeploymentModel"
+            "type": "string",
+            "enum": [
+              "managed_multi_tenant",
+              "managed_dedicated",
+              "customer_kubernetes",
+              "customer_cloud",
+              "hybrid",
+              "evaluation"
+            ],
+            "description": "Requested deployment model; availability is subject to technical and commercial review."
           }
         },
         "client_languages": {
@@ -963,7 +822,23 @@ const schemaBundle = {
           "maxItems": 14,
           "uniqueItems": true,
           "items": {
-            "$ref": "#/$defs/ClientLanguage"
+            "type": "string",
+            "enum": [
+              "rust",
+              "typescript",
+              "javascript",
+              "go",
+              "dart",
+              "python",
+              "java",
+              "kotlin",
+              "swift",
+              "csharp",
+              "elixir",
+              "gleam",
+              "shell",
+              "other"
+            ]
           }
         },
         "integrations": {
@@ -971,7 +846,24 @@ const schemaBundle = {
           "maxItems": 16,
           "uniqueItems": true,
           "items": {
-            "$ref": "#/$defs/Integration"
+            "type": "string",
+            "enum": [
+              "rest",
+              "grpc",
+              "websocket",
+              "webhook",
+              "kubernetes",
+              "terraform",
+              "open_telemetry",
+              "prometheus",
+              "grafana",
+              "slack",
+              "microsoft_teams",
+              "pagerduty",
+              "datadog",
+              "splunk",
+              "custom"
+            ]
           }
         },
         "regions": {
@@ -1057,7 +949,20 @@ const schemaBundle = {
           "maxItems": 10,
           "uniqueItems": true,
           "items": {
-            "$ref": "#/$defs/DataClass"
+            "type": "string",
+            "enum": [
+              "public",
+              "internal",
+              "confidential_business",
+              "customer_content",
+              "personal_data",
+              "authentication_metadata",
+              "secrets",
+              "regulated_health",
+              "payment_card",
+              "government_restricted"
+            ],
+            "description": "Prospective data classes. Regulated classes require separate written approval and may be unsupported."
           }
         },
         "current_stack": {
@@ -1090,7 +995,22 @@ const schemaBundle = {
           "maxItems": 12,
           "uniqueItems": true,
           "items": {
-            "$ref": "#/$defs/ComplianceFramework"
+            "type": "string",
+            "enum": [
+              "none",
+              "gdpr",
+              "ccpa_cpra",
+              "soc_2",
+              "iso_27001",
+              "hipaa",
+              "pci_dss",
+              "fedramp",
+              "state_ramp",
+              "nist_800_53",
+              "cis",
+              "custom"
+            ],
+            "description": "Framework requested by the prospect. Selection does not assert Fiducia certification or eligibility."
           }
         },
         "sso_required": {
@@ -1161,10 +1081,24 @@ const schemaBundle = {
       ],
       "properties": {
         "support_plan": {
-          "$ref": "#/$defs/SupportPlan"
+          "type": "string",
+          "enum": [
+            "community",
+            "standard",
+            "priority",
+            "enterprise",
+            "custom"
+          ],
+          "description": "Requested support plan. This is an intake preference, not an accepted entitlement."
         },
         "support_hours": {
-          "$ref": "#/$defs/SupportHours"
+          "type": "string",
+          "enum": [
+            "business_hours",
+            "twenty_four_by_five",
+            "twenty_four_by_seven"
+          ],
+          "description": "Requested support coverage window."
         },
         "channels": {
           "type": "array",
@@ -1236,7 +1170,16 @@ const schemaBundle = {
       ],
       "properties": {
         "requested_availability": {
-          "$ref": "#/$defs/RequestedAvailability"
+          "type": "string",
+          "enum": [
+            "best_effort_beta",
+            "99_0",
+            "99_5",
+            "99_9",
+            "99_95",
+            "custom"
+          ],
+          "description": "Requested monthly availability target. Only a signed order form can create a contractual SLA."
         },
         "custom_availability_percent": {
           "type": "number",
@@ -1438,7 +1381,16 @@ const schemaBundle = {
       ],
       "properties": {
         "budget_band": {
-          "$ref": "#/$defs/BudgetBand"
+          "type": "string",
+          "enum": [
+            "unknown",
+            "under_500_monthly",
+            "500_2000_monthly",
+            "2000_10000_monthly",
+            "10000_50000_monthly",
+            "50000_plus_monthly",
+            "custom_contract"
+          ]
         },
         "pricing_model_preference": {
           "type": "string",
@@ -1544,11 +1496,39 @@ const schemaBundle = {
           "maxItems": 16,
           "uniqueItems": true,
           "items": {
-            "$ref": "#/$defs/Capability"
+            "description": "A Fiducia coordination capability requested by a prospective customer.",
+            "type": "string",
+            "enum": [
+              "distributed_locks",
+              "multi_key_locks",
+              "semaphores",
+              "renewable_leases",
+              "leader_election",
+              "encrypted_kv",
+              "idempotency",
+              "rate_limiting",
+              "scheduled_jobs",
+              "service_discovery",
+              "durable_tasks",
+              "budgets",
+              "barriers",
+              "counters",
+              "agent_coordination",
+              "secret_delivery"
+            ]
           }
         },
         "deployment_model": {
-          "$ref": "#/$defs/DeploymentModel"
+          "type": "string",
+          "enum": [
+            "managed_multi_tenant",
+            "managed_dedicated",
+            "customer_kubernetes",
+            "customer_cloud",
+            "hybrid",
+            "evaluation"
+          ],
+          "description": "Requested deployment model; availability is subject to technical and commercial review."
         },
         "environments": {
           "type": "integer",
@@ -1571,21 +1551,53 @@ const schemaBundle = {
           "maximum": 36500
         },
         "support_plan": {
-          "$ref": "#/$defs/SupportPlan"
+          "type": "string",
+          "enum": [
+            "community",
+            "standard",
+            "priority",
+            "enterprise",
+            "custom"
+          ],
+          "description": "Requested support plan. This is an intake preference, not an accepted entitlement."
         },
         "compliance_frameworks": {
           "type": "array",
           "maxItems": 12,
           "uniqueItems": true,
           "items": {
-            "$ref": "#/$defs/ComplianceFramework"
+            "type": "string",
+            "enum": [
+              "none",
+              "gdpr",
+              "ccpa_cpra",
+              "soc_2",
+              "iso_27001",
+              "hipaa",
+              "pci_dss",
+              "fedramp",
+              "state_ramp",
+              "nist_800_53",
+              "cis",
+              "custom"
+            ],
+            "description": "Framework requested by the prospect. Selection does not assert Fiducia certification or eligibility."
           }
         },
         "onboarding_required": {
           "type": "boolean"
         },
         "budget_band": {
-          "$ref": "#/$defs/BudgetBand"
+          "type": "string",
+          "enum": [
+            "unknown",
+            "under_500_monthly",
+            "500_2000_monthly",
+            "2000_10000_monthly",
+            "10000_50000_monthly",
+            "50000_plus_monthly",
+            "custom_contract"
+          ]
         },
         "notes": {
           "type": "string",
@@ -1697,7 +1709,26 @@ const schemaBundle = {
           "maxItems": 16,
           "uniqueItems": true,
           "items": {
-            "$ref": "#/$defs/Capability"
+            "description": "A Fiducia coordination capability requested by a prospective customer.",
+            "type": "string",
+            "enum": [
+              "distributed_locks",
+              "multi_key_locks",
+              "semaphores",
+              "renewable_leases",
+              "leader_election",
+              "encrypted_kv",
+              "idempotency",
+              "rate_limiting",
+              "scheduled_jobs",
+              "service_discovery",
+              "durable_tasks",
+              "budgets",
+              "barriers",
+              "counters",
+              "agent_coordination",
+              "secret_delivery"
+            ]
           }
         },
         "desired_start_window": {
@@ -1712,10 +1743,27 @@ const schemaBundle = {
           ]
         },
         "budget_band": {
-          "$ref": "#/$defs/BudgetBand"
+          "type": "string",
+          "enum": [
+            "unknown",
+            "under_500_monthly",
+            "500_2000_monthly",
+            "2000_10000_monthly",
+            "10000_50000_monthly",
+            "50000_plus_monthly",
+            "custom_contract"
+          ]
         },
         "support_plan": {
-          "$ref": "#/$defs/SupportPlan"
+          "type": "string",
+          "enum": [
+            "community",
+            "standard",
+            "priority",
+            "enterprise",
+            "custom"
+          ],
+          "description": "Requested support plan. This is an intake preference, not an accepted entitlement."
         },
         "product_updates_consent": {
           "type": "boolean"
@@ -1884,16 +1932,39 @@ const schemaBundle = {
       ],
       "properties": {
         "support_plan": {
-          "$ref": "#/$defs/SupportPlan"
+          "type": "string",
+          "enum": [
+            "community",
+            "standard",
+            "priority",
+            "enterprise",
+            "custom"
+          ],
+          "description": "Requested support plan. This is an intake preference, not an accepted entitlement."
         },
         "support_hours": {
-          "$ref": "#/$defs/SupportHours"
+          "type": "string",
+          "enum": [
+            "business_hours",
+            "twenty_four_by_five",
+            "twenty_four_by_seven"
+          ],
+          "description": "Requested support coverage window."
         },
         "contractual_sla": {
           "type": "boolean"
         },
         "availability_target": {
-          "$ref": "#/$defs/RequestedAvailability"
+          "type": "string",
+          "enum": [
+            "best_effort_beta",
+            "99_0",
+            "99_5",
+            "99_9",
+            "99_95",
+            "custom"
+          ],
+          "description": "Requested monthly availability target. Only a signed order form can create a contractual SLA."
         },
         "description": {
           "type": "string",
@@ -5705,30 +5776,6 @@ export const ClaimContestRequestSchema = schemaFor<types.ClaimContestRequest>("C
 export const ClaimResolveRequestSchema = schemaFor<types.ClaimResolveRequest>("ClaimResolveRequest");
 
 export const ClaimStateSchema = schemaFor<types.ClaimState>("ClaimState");
-
-export const CapabilitySchema = schemaFor<types.Capability>("Capability");
-
-export const DeploymentModelSchema = schemaFor<types.DeploymentModel>("DeploymentModel");
-
-export const SupportPlanSchema = schemaFor<types.SupportPlan>("SupportPlan");
-
-export const SupportHoursSchema = schemaFor<types.SupportHours>("SupportHours");
-
-export const RequestedAvailabilitySchema = schemaFor<types.RequestedAvailability>("RequestedAvailability");
-
-export const CompanySizeSchema = schemaFor<types.CompanySize>("CompanySize");
-
-export const ProjectStageSchema = schemaFor<types.ProjectStage>("ProjectStage");
-
-export const BudgetBandSchema = schemaFor<types.BudgetBand>("BudgetBand");
-
-export const DataClassSchema = schemaFor<types.DataClass>("DataClass");
-
-export const ComplianceFrameworkSchema = schemaFor<types.ComplianceFramework>("ComplianceFramework");
-
-export const IntegrationSchema = schemaFor<types.Integration>("Integration");
-
-export const ClientLanguageSchema = schemaFor<types.ClientLanguage>("ClientLanguage");
 
 export const ContactSchema = schemaFor<types.Contact>("Contact");
 

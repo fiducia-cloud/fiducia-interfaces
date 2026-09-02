@@ -205,49 +205,6 @@ export type ClaimState = {
   generation: number;
 };
 
-/** A Fiducia coordination capability requested by a prospective customer. */
-export type Capability = {
-};
-
-/** Requested deployment model; availability is subject to technical and commercial review. */
-export type DeploymentModel = {
-};
-
-/** Requested support plan. This is an intake preference, not an accepted entitlement. */
-export type SupportPlan = {
-};
-
-/** Requested support coverage window. */
-export type SupportHours = {
-};
-
-/** Requested monthly availability target. Only a signed order form can create a contractual SLA. */
-export type RequestedAvailability = {
-};
-
-export type CompanySize = {
-};
-
-export type ProjectStage = {
-};
-
-export type BudgetBand = {
-};
-
-/** Prospective data classes. Regulated classes require separate written approval and may be unsupported. */
-export type DataClass = {
-};
-
-/** Framework requested by the prospect. Selection does not assert Fiducia certification or eligibility. */
-export type ComplianceFramework = {
-};
-
-export type Integration = {
-};
-
-export type ClientLanguage = {
-};
-
 export type Contact = {
   email: string;
   full_name: string;
@@ -263,7 +220,7 @@ export type OrganizationProfile = {
   website?: string;
   country: string;
   state_or_region?: string;
-  company_size: CompanySize;
+  company_size: "1_10" | "11_50" | "51_200" | "201_1000" | "1001_5000" | "5001_plus";
   industry: string;
   existing_customer?: boolean;
   parent_company?: string;
@@ -271,7 +228,7 @@ export type OrganizationProfile = {
 
 export type ProjectProfile = {
   name: string;
-  stage: ProjectStage;
+  stage: "research" | "prototype" | "pilot" | "pre_production" | "production" | "migration";
   use_case_summary: string;
   desired_start_date: string;
   decision_timeline: "immediate" | "within_30_days" | "within_90_days" | "within_6_months" | "later" | "exploring";
@@ -282,10 +239,10 @@ export type ProjectProfile = {
 };
 
 export type TechnicalRequirements = {
-  capabilities: Capability[];
-  deployment_models: DeploymentModel[];
-  client_languages: ClientLanguage[];
-  integrations?: Integration[];
+  capabilities: string[];
+  deployment_models: string[];
+  client_languages: string[];
+  integrations?: string[];
   regions: string[];
   average_operations_per_second: number;
   peak_operations_per_second: number;
@@ -300,14 +257,14 @@ export type TechnicalRequirements = {
   rto_seconds?: number;
   private_networking_required?: boolean;
   offline_or_edge_required?: boolean;
-  data_classes: DataClass[];
+  data_classes: string[];
   current_stack?: string;
   migration_source?: string;
   architecture_notes?: string;
 };
 
 export type SecurityRequirements = {
-  compliance_frameworks: ComplianceFramework[];
+  compliance_frameworks: string[];
   sso_required: boolean;
   scim_required?: boolean;
   mfa_required?: boolean;
@@ -325,8 +282,10 @@ export type SecurityRequirements = {
 };
 
 export type SupportRequirements = {
-  support_plan: SupportPlan;
-  support_hours: SupportHours;
+  /** Requested support plan. This is an intake preference, not an accepted entitlement. */
+  support_plan: "community" | "standard" | "priority" | "enterprise" | "custom";
+  /** Requested support coverage window. */
+  support_hours: "business_hours" | "twenty_four_by_five" | "twenty_four_by_seven";
   channels: string[];
   onboarding_required: boolean;
   training_required?: boolean;
@@ -342,7 +301,8 @@ export type SupportRequirements = {
 };
 
 export type ServiceLevelRequest = {
-  requested_availability: RequestedAvailability;
+  /** Requested monthly availability target. Only a signed order form can create a contractual SLA. */
+  requested_availability: "best_effort_beta" | "99_0" | "99_5" | "99_9" | "99_95" | "custom";
   custom_availability_percent?: number;
   service_credit_requested: boolean;
   maintenance_notice_hours: number;
@@ -379,7 +339,7 @@ export type ProcurementProfile = {
 };
 
 export type CommercialProfile = {
-  budget_band: BudgetBand;
+  budget_band: "unknown" | "under_500_monthly" | "500_2000_monthly" | "2000_10000_monthly" | "10000_50000_monthly" | "50000_plus_monthly" | "custom_contract";
   pricing_model_preference: "usage_based" | "per_cluster" | "per_environment" | "platform_subscription" | "committed_spend" | "custom";
   estimated_monthly_budget_cents?: number;
   estimated_implementation_budget_cents?: number;
@@ -403,16 +363,18 @@ export type Attribution = {
 export type QuoteRequest = {
   contact: Contact;
   organization: OrganizationProfile;
-  capabilities: Capability[];
-  deployment_model: DeploymentModel;
+  capabilities: string[];
+  /** Requested deployment model; availability is subject to technical and commercial review. */
+  deployment_model: "managed_multi_tenant" | "managed_dedicated" | "customer_kubernetes" | "customer_cloud" | "hybrid" | "evaluation";
   environments: number;
   average_operations_per_second: number;
   peak_operations_per_second: number;
   retention_days: number;
-  support_plan: SupportPlan;
-  compliance_frameworks?: ComplianceFramework[];
+  /** Requested support plan. This is an intake preference, not an accepted entitlement. */
+  support_plan: "community" | "standard" | "priority" | "enterprise" | "custom";
+  compliance_frameworks?: string[];
   onboarding_required?: boolean;
-  budget_band: BudgetBand;
+  budget_band: "unknown" | "under_500_monthly" | "500_2000_monthly" | "2000_10000_monthly" | "10000_50000_monthly" | "50000_plus_monthly" | "custom_contract";
   notes?: string;
   attribution?: Attribution;
   acknowledges_non_binding_estimate: boolean;
@@ -435,10 +397,11 @@ export type PreInterestRequest = {
   contact: Contact;
   organization: OrganizationProfile;
   use_case_summary: string;
-  capabilities: Capability[];
+  capabilities: string[];
   desired_start_window: "immediate" | "within_30_days" | "within_90_days" | "within_6_months" | "later" | "exploring";
-  budget_band: BudgetBand;
-  support_plan: SupportPlan;
+  budget_band: "unknown" | "under_500_monthly" | "500_2000_monthly" | "2000_10000_monthly" | "10000_50000_monthly" | "50000_plus_monthly" | "custom_contract";
+  /** Requested support plan. This is an intake preference, not an accepted entitlement. */
+  support_plan: "community" | "standard" | "priority" | "enterprise" | "custom";
   product_updates_consent: boolean;
   attribution?: Attribution;
   acknowledges_no_secrets: boolean;
@@ -479,10 +442,13 @@ export type EnterpriseApplicationReceipt = {
 };
 
 export type ServiceTierSummary = {
-  support_plan: SupportPlan;
-  support_hours: SupportHours;
+  /** Requested support plan. This is an intake preference, not an accepted entitlement. */
+  support_plan: "community" | "standard" | "priority" | "enterprise" | "custom";
+  /** Requested support coverage window. */
+  support_hours: "business_hours" | "twenty_four_by_five" | "twenty_four_by_seven";
   contractual_sla: boolean;
-  availability_target?: RequestedAvailability;
+  /** Requested monthly availability target. Only a signed order form can create a contractual SLA. */
+  availability_target?: "best_effort_beta" | "99_0" | "99_5" | "99_9" | "99_95" | "custom";
   description: string;
 };
 

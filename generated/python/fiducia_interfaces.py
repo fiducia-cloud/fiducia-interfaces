@@ -162,61 +162,6 @@ class ClaimState:
     superseded_by: Optional[str] = None
 
 @dataclass
-class Capability:
-    """A Fiducia coordination capability requested by a prospective customer."""
-    pass
-
-@dataclass
-class DeploymentModel:
-    """Requested deployment model; availability is subject to technical and commercial review."""
-    pass
-
-@dataclass
-class SupportPlan:
-    """Requested support plan. This is an intake preference, not an accepted entitlement."""
-    pass
-
-@dataclass
-class SupportHours:
-    """Requested support coverage window."""
-    pass
-
-@dataclass
-class RequestedAvailability:
-    """Requested monthly availability target. Only a signed order form can create a contractual SLA."""
-    pass
-
-@dataclass
-class CompanySize:
-    pass
-
-@dataclass
-class ProjectStage:
-    pass
-
-@dataclass
-class BudgetBand:
-    pass
-
-@dataclass
-class DataClass:
-    """Prospective data classes. Regulated classes require separate written approval and may be unsupported."""
-    pass
-
-@dataclass
-class ComplianceFramework:
-    """Framework requested by the prospect. Selection does not assert Fiducia certification or eligibility."""
-    pass
-
-@dataclass
-class Integration:
-    pass
-
-@dataclass
-class ClientLanguage:
-    pass
-
-@dataclass
 class Contact:
     email: str
     full_name: str
@@ -229,7 +174,7 @@ class Contact:
 class OrganizationProfile:
     legal_name: str
     country: str
-    company_size: CompanySize
+    company_size: Literal["1_10", "11_50", "51_200", "201_1000", "1001_5000", "5001_plus"]
     industry: str
     doing_business_as: Optional[str] = None
     website: Optional[str] = None
@@ -240,7 +185,7 @@ class OrganizationProfile:
 @dataclass
 class ProjectProfile:
     name: str
-    stage: ProjectStage
+    stage: Literal["research", "prototype", "pilot", "pre_production", "production", "migration"]
     use_case_summary: str
     desired_start_date: str
     decision_timeline: Literal["immediate", "within_30_days", "within_90_days", "within_6_months", "later", "exploring"]
@@ -251,15 +196,15 @@ class ProjectProfile:
 
 @dataclass
 class TechnicalRequirements:
-    capabilities: List[Capability]
-    deployment_models: List[DeploymentModel]
-    client_languages: List[ClientLanguage]
+    capabilities: List[str]
+    deployment_models: List[str]
+    client_languages: List[str]
     regions: List[str]
     average_operations_per_second: int
     peak_operations_per_second: int
     consistency_expectation: Literal["linearizable", "serializable", "read_your_writes", "eventual", "unsure"]
-    data_classes: List[DataClass]
-    integrations: Optional[List[Integration]] = None
+    data_classes: List[str]
+    integrations: Optional[List[str]] = None
     estimated_active_keys: Optional[int] = None
     maximum_payload_bytes: Optional[int] = None
     retention_days: Optional[int] = None
@@ -276,7 +221,7 @@ class TechnicalRequirements:
 
 @dataclass
 class SecurityRequirements:
-    compliance_frameworks: List[ComplianceFramework]
+    compliance_frameworks: List[str]
     sso_required: bool
     data_residency_required: bool
     audit_log_required: bool
@@ -294,8 +239,8 @@ class SecurityRequirements:
 
 @dataclass
 class SupportRequirements:
-    support_plan: SupportPlan
-    support_hours: SupportHours
+    support_plan: Literal["community", "standard", "priority", "enterprise", "custom"]
+    support_hours: Literal["business_hours", "twenty_four_by_five", "twenty_four_by_seven"]
     channels: List[str]
     onboarding_required: bool
     named_technical_contact_required: bool
@@ -311,7 +256,7 @@ class SupportRequirements:
 
 @dataclass
 class ServiceLevelRequest:
-    requested_availability: RequestedAvailability
+    requested_availability: Literal["best_effort_beta", "99_0", "99_5", "99_9", "99_95", "custom"]
     service_credit_requested: bool
     maintenance_notice_hours: int
     accepts_slo_not_sla_during_evaluation: bool
@@ -348,7 +293,7 @@ class ProcurementProfile:
 
 @dataclass
 class CommercialProfile:
-    budget_band: BudgetBand
+    budget_band: Literal["unknown", "under_500_monthly", "500_2000_monthly", "2000_10000_monthly", "10000_50000_monthly", "50000_plus_monthly", "custom_contract"]
     pricing_model_preference: Literal["usage_based", "per_cluster", "per_environment", "platform_subscription", "committed_spend", "custom"]
     billing_contact: Contact
     authorized_signatory: Contact
@@ -372,17 +317,17 @@ class Attribution:
 class QuoteRequest:
     contact: Contact
     organization: OrganizationProfile
-    capabilities: List[Capability]
-    deployment_model: DeploymentModel
+    capabilities: List[str]
+    deployment_model: Literal["managed_multi_tenant", "managed_dedicated", "customer_kubernetes", "customer_cloud", "hybrid", "evaluation"]
     environments: int
     average_operations_per_second: int
     peak_operations_per_second: int
     retention_days: int
-    support_plan: SupportPlan
-    budget_band: BudgetBand
+    support_plan: Literal["community", "standard", "priority", "enterprise", "custom"]
+    budget_band: Literal["unknown", "under_500_monthly", "500_2000_monthly", "2000_10000_monthly", "10000_50000_monthly", "50000_plus_monthly", "custom_contract"]
     acknowledges_non_binding_estimate: bool
     acknowledges_no_secrets: bool
-    compliance_frameworks: Optional[List[ComplianceFramework]] = None
+    compliance_frameworks: Optional[List[str]] = None
     onboarding_required: Optional[bool] = None
     notes: Optional[str] = None
     attribution: Optional[Attribution] = None
@@ -404,10 +349,10 @@ class PreInterestRequest:
     contact: Contact
     organization: OrganizationProfile
     use_case_summary: str
-    capabilities: List[Capability]
+    capabilities: List[str]
     desired_start_window: Literal["immediate", "within_30_days", "within_90_days", "within_6_months", "later", "exploring"]
-    budget_band: BudgetBand
-    support_plan: SupportPlan
+    budget_band: Literal["unknown", "under_500_monthly", "500_2000_monthly", "2000_10000_monthly", "10000_50000_monthly", "50000_plus_monthly", "custom_contract"]
+    support_plan: Literal["community", "standard", "priority", "enterprise", "custom"]
     product_updates_consent: bool
     acknowledges_no_secrets: bool
     attribution: Optional[Attribution] = None
@@ -448,11 +393,11 @@ class EnterpriseApplicationReceipt:
 
 @dataclass
 class ServiceTierSummary:
-    support_plan: SupportPlan
-    support_hours: SupportHours
+    support_plan: Literal["community", "standard", "priority", "enterprise", "custom"]
+    support_hours: Literal["business_hours", "twenty_four_by_five", "twenty_four_by_seven"]
     contractual_sla: bool
     description: str
-    availability_target: Optional[RequestedAvailability] = None
+    availability_target: Optional[Literal["best_effort_beta", "99_0", "99_5", "99_9", "99_95", "custom"]] = None
 
 @dataclass
 class ProposeOutcome:

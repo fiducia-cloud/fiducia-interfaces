@@ -77,6 +77,40 @@ pub enum ContactPreferredContact {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
 #[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub enum OrganizationProfileCompanySize {
+    #[serde(rename = "1_10")]
+    110,
+    #[serde(rename = "11_50")]
+    1150,
+    #[serde(rename = "51_200")]
+    51200,
+    #[serde(rename = "201_1000")]
+    2011000,
+    #[serde(rename = "1001_5000")]
+    10015000,
+    #[serde(rename = "5001_plus")]
+    5001Plus,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub enum ProjectProfileStage {
+    #[serde(rename = "research")]
+    Research,
+    #[serde(rename = "prototype")]
+    Prototype,
+    #[serde(rename = "pilot")]
+    Pilot,
+    #[serde(rename = "pre_production")]
+    PreProduction,
+    #[serde(rename = "production")]
+    Production,
+    #[serde(rename = "migration")]
+    Migration,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
 pub enum ProjectProfileDecisionTimeline {
     #[serde(rename = "immediate")]
     Immediate,
@@ -105,6 +139,49 @@ pub enum TechnicalRequirementsConsistencyExpectation {
     Eventual,
     #[serde(rename = "unsure")]
     Unsure,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub enum SupportRequirementsSupportPlan {
+    #[serde(rename = "community")]
+    Community,
+    #[serde(rename = "standard")]
+    Standard,
+    #[serde(rename = "priority")]
+    Priority,
+    #[serde(rename = "enterprise")]
+    Enterprise,
+    #[serde(rename = "custom")]
+    Custom,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub enum SupportRequirementsSupportHours {
+    #[serde(rename = "business_hours")]
+    BusinessHours,
+    #[serde(rename = "twenty_four_by_five")]
+    TwentyFourByFive,
+    #[serde(rename = "twenty_four_by_seven")]
+    TwentyFourBySeven,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub enum ServiceLevelRequestRequestedAvailability {
+    #[serde(rename = "best_effort_beta")]
+    BestEffortBeta,
+    #[serde(rename = "99_0")]
+    990,
+    #[serde(rename = "99_5")]
+    995,
+    #[serde(rename = "99_9")]
+    999,
+    #[serde(rename = "99_95")]
+    9995,
+    #[serde(rename = "custom")]
+    Custom,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
@@ -201,6 +278,25 @@ pub enum ProcurementProfileCurrency {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
 #[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub enum CommercialProfileBudgetBand {
+    #[serde(rename = "unknown")]
+    Unknown,
+    #[serde(rename = "under_500_monthly")]
+    Under500Monthly,
+    #[serde(rename = "500_2000_monthly")]
+    5002000Monthly,
+    #[serde(rename = "2000_10000_monthly")]
+    200010000Monthly,
+    #[serde(rename = "10000_50000_monthly")]
+    1000050000Monthly,
+    #[serde(rename = "50000_plus_monthly")]
+    50000PlusMonthly,
+    #[serde(rename = "custom_contract")]
+    CustomContract,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
 pub enum CommercialProfilePricingModelPreference {
     #[serde(rename = "usage_based")]
     UsageBased,
@@ -214,6 +310,57 @@ pub enum CommercialProfilePricingModelPreference {
     CommittedSpend,
     #[serde(rename = "custom")]
     Custom,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub enum QuoteRequestDeploymentModel {
+    #[serde(rename = "managed_multi_tenant")]
+    ManagedMultiTenant,
+    #[serde(rename = "managed_dedicated")]
+    ManagedDedicated,
+    #[serde(rename = "customer_kubernetes")]
+    CustomerKubernetes,
+    #[serde(rename = "customer_cloud")]
+    CustomerCloud,
+    #[serde(rename = "hybrid")]
+    Hybrid,
+    #[serde(rename = "evaluation")]
+    Evaluation,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub enum QuoteRequestSupportPlan {
+    #[serde(rename = "community")]
+    Community,
+    #[serde(rename = "standard")]
+    Standard,
+    #[serde(rename = "priority")]
+    Priority,
+    #[serde(rename = "enterprise")]
+    Enterprise,
+    #[serde(rename = "custom")]
+    Custom,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub enum QuoteRequestBudgetBand {
+    #[serde(rename = "unknown")]
+    Unknown,
+    #[serde(rename = "under_500_monthly")]
+    Under500Monthly,
+    #[serde(rename = "500_2000_monthly")]
+    5002000Monthly,
+    #[serde(rename = "2000_10000_monthly")]
+    200010000Monthly,
+    #[serde(rename = "10000_50000_monthly")]
+    1000050000Monthly,
+    #[serde(rename = "50000_plus_monthly")]
+    50000PlusMonthly,
+    #[serde(rename = "custom_contract")]
+    CustomContract,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
@@ -235,6 +382,40 @@ pub enum PreInterestRequestDesiredStartWindow {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
 #[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub enum PreInterestRequestBudgetBand {
+    #[serde(rename = "unknown")]
+    Unknown,
+    #[serde(rename = "under_500_monthly")]
+    Under500Monthly,
+    #[serde(rename = "500_2000_monthly")]
+    5002000Monthly,
+    #[serde(rename = "2000_10000_monthly")]
+    200010000Monthly,
+    #[serde(rename = "10000_50000_monthly")]
+    1000050000Monthly,
+    #[serde(rename = "50000_plus_monthly")]
+    50000PlusMonthly,
+    #[serde(rename = "custom_contract")]
+    CustomContract,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub enum PreInterestRequestSupportPlan {
+    #[serde(rename = "community")]
+    Community,
+    #[serde(rename = "standard")]
+    Standard,
+    #[serde(rename = "priority")]
+    Priority,
+    #[serde(rename = "enterprise")]
+    Enterprise,
+    #[serde(rename = "custom")]
+    Custom,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
 pub enum EnterpriseApplicationReceiptStatus {
     #[serde(rename = "received")]
     Received,
@@ -242,6 +423,49 @@ pub enum EnterpriseApplicationReceiptStatus {
     NeedsClarification,
     #[serde(rename = "under_review")]
     UnderReview,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub enum ServiceTierSummarySupportPlan {
+    #[serde(rename = "community")]
+    Community,
+    #[serde(rename = "standard")]
+    Standard,
+    #[serde(rename = "priority")]
+    Priority,
+    #[serde(rename = "enterprise")]
+    Enterprise,
+    #[serde(rename = "custom")]
+    Custom,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub enum ServiceTierSummarySupportHours {
+    #[serde(rename = "business_hours")]
+    BusinessHours,
+    #[serde(rename = "twenty_four_by_five")]
+    TwentyFourByFive,
+    #[serde(rename = "twenty_four_by_seven")]
+    TwentyFourBySeven,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
+pub enum ServiceTierSummaryAvailabilityTarget {
+    #[serde(rename = "best_effort_beta")]
+    BestEffortBeta,
+    #[serde(rename = "99_0")]
+    990,
+    #[serde(rename = "99_5")]
+    995,
+    #[serde(rename = "99_9")]
+    999,
+    #[serde(rename = "99_95")]
+    9995,
+    #[serde(rename = "custom")]
+    Custom,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
@@ -817,73 +1041,6 @@ pub struct ClaimState {
     pub generation: i64,
 }
 
-/// A Fiducia coordination capability requested by a prospective customer.
-#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
-pub struct Capability {
-}
-
-/// Requested deployment model; availability is subject to technical and commercial review.
-#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
-pub struct DeploymentModel {
-}
-
-/// Requested support plan. This is an intake preference, not an accepted entitlement.
-#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
-pub struct SupportPlan {
-}
-
-/// Requested support coverage window.
-#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
-pub struct SupportHours {
-}
-
-/// Requested monthly availability target. Only a signed order form can create a contractual SLA.
-#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
-pub struct RequestedAvailability {
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
-pub struct CompanySize {
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
-pub struct ProjectStage {
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
-pub struct BudgetBand {
-}
-
-/// Prospective data classes. Regulated classes require separate written approval and may be unsupported.
-#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
-pub struct DataClass {
-}
-
-/// Framework requested by the prospect. Selection does not assert Fiducia certification or eligibility.
-#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
-pub struct ComplianceFramework {
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
-pub struct Integration {
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
-#[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
-pub struct ClientLanguage {
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
 #[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
 pub struct Contact {
@@ -909,7 +1066,7 @@ pub struct OrganizationProfile {
     pub country: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub state_or_region: Option<String>,
-    pub company_size: CompanySize,
+    pub company_size: OrganizationProfileCompanySize,
     pub industry: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub existing_customer: Option<bool>,
@@ -921,7 +1078,7 @@ pub struct OrganizationProfile {
 #[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
 pub struct ProjectProfile {
     pub name: String,
-    pub stage: ProjectStage,
+    pub stage: ProjectProfileStage,
     pub use_case_summary: String,
     pub desired_start_date: String,
     pub decision_timeline: ProjectProfileDecisionTimeline,
@@ -938,11 +1095,11 @@ pub struct ProjectProfile {
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
 #[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
 pub struct TechnicalRequirements {
-    pub capabilities: Vec<Capability>,
-    pub deployment_models: Vec<DeploymentModel>,
-    pub client_languages: Vec<ClientLanguage>,
+    pub capabilities: Vec<String>,
+    pub deployment_models: Vec<String>,
+    pub client_languages: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub integrations: Option<Vec<Integration>>,
+    pub integrations: Option<Vec<String>>,
     pub regions: Vec<String>,
     pub average_operations_per_second: i64,
     pub peak_operations_per_second: i64,
@@ -967,7 +1124,7 @@ pub struct TechnicalRequirements {
     pub private_networking_required: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub offline_or_edge_required: Option<bool>,
-    pub data_classes: Vec<DataClass>,
+    pub data_classes: Vec<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub current_stack: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -979,7 +1136,7 @@ pub struct TechnicalRequirements {
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
 #[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
 pub struct SecurityRequirements {
-    pub compliance_frameworks: Vec<ComplianceFramework>,
+    pub compliance_frameworks: Vec<String>,
     pub sso_required: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scim_required: Option<bool>,
@@ -1010,8 +1167,10 @@ pub struct SecurityRequirements {
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
 #[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
 pub struct SupportRequirements {
-    pub support_plan: SupportPlan,
-    pub support_hours: SupportHours,
+    /// Requested support plan. This is an intake preference, not an accepted entitlement.
+    pub support_plan: SupportRequirementsSupportPlan,
+    /// Requested support coverage window.
+    pub support_hours: SupportRequirementsSupportHours,
     pub channels: Vec<String>,
     pub onboarding_required: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1038,7 +1197,8 @@ pub struct SupportRequirements {
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
 #[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
 pub struct ServiceLevelRequest {
-    pub requested_availability: RequestedAvailability,
+    /// Requested monthly availability target. Only a signed order form can create a contractual SLA.
+    pub requested_availability: ServiceLevelRequestRequestedAvailability,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub custom_availability_percent: Option<f64>,
     pub service_credit_requested: bool,
@@ -1100,7 +1260,7 @@ pub struct ProcurementProfile {
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
 #[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
 pub struct CommercialProfile {
-    pub budget_band: BudgetBand,
+    pub budget_band: CommercialProfileBudgetBand,
     pub pricing_model_preference: CommercialProfilePricingModelPreference,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub estimated_monthly_budget_cents: Option<i64>,
@@ -1140,18 +1300,20 @@ pub struct Attribution {
 pub struct QuoteRequest {
     pub contact: Contact,
     pub organization: OrganizationProfile,
-    pub capabilities: Vec<Capability>,
-    pub deployment_model: DeploymentModel,
+    pub capabilities: Vec<String>,
+    /// Requested deployment model; availability is subject to technical and commercial review.
+    pub deployment_model: QuoteRequestDeploymentModel,
     pub environments: i64,
     pub average_operations_per_second: i64,
     pub peak_operations_per_second: i64,
     pub retention_days: i64,
-    pub support_plan: SupportPlan,
+    /// Requested support plan. This is an intake preference, not an accepted entitlement.
+    pub support_plan: QuoteRequestSupportPlan,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub compliance_frameworks: Option<Vec<ComplianceFramework>>,
+    pub compliance_frameworks: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub onboarding_required: Option<bool>,
-    pub budget_band: BudgetBand,
+    pub budget_band: QuoteRequestBudgetBand,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notes: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1180,10 +1342,11 @@ pub struct PreInterestRequest {
     pub contact: Contact,
     pub organization: OrganizationProfile,
     pub use_case_summary: String,
-    pub capabilities: Vec<Capability>,
+    pub capabilities: Vec<String>,
     pub desired_start_window: PreInterestRequestDesiredStartWindow,
-    pub budget_band: BudgetBand,
-    pub support_plan: SupportPlan,
+    pub budget_band: PreInterestRequestBudgetBand,
+    /// Requested support plan. This is an intake preference, not an accepted entitlement.
+    pub support_plan: PreInterestRequestSupportPlan,
     pub product_updates_consent: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub attribution: Option<Attribution>,
@@ -1237,11 +1400,14 @@ pub struct EnterpriseApplicationReceipt {
 #[derive(Debug, Clone, Serialize, Deserialize, Tsify)]
 #[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
 pub struct ServiceTierSummary {
-    pub support_plan: SupportPlan,
-    pub support_hours: SupportHours,
+    /// Requested support plan. This is an intake preference, not an accepted entitlement.
+    pub support_plan: ServiceTierSummarySupportPlan,
+    /// Requested support coverage window.
+    pub support_hours: ServiceTierSummarySupportHours,
     pub contractual_sla: bool,
+    /// Requested monthly availability target. Only a signed order form can create a contractual SLA.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub availability_target: Option<RequestedAvailability>,
+    pub availability_target: Option<ServiceTierSummaryAvailabilityTarget>,
     pub description: String,
 }
 

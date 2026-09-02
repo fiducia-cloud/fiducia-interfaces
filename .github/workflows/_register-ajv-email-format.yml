@@ -1,3 +1,4 @@
+# Retriggered after PR CI identified the missing canonical email format registration.
 name: Register AJV email format
 
 on:

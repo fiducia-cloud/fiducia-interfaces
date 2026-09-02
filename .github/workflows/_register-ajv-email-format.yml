@@ -1,3 +1,4 @@
+# Retrigger after expanding AJV registration to the complete official format set.
 name: Repair AJV email format
 
 on:
@@ -27,7 +28,7 @@ jobs:
           node-version: 22.22.1
           cache: npm
 
-      - name: Register the official email format and regenerate
+      - name: Register the official formats and regenerate
         run: |
           set -euo pipefail
           npm install --save-exact --ignore-scripts ajv-formats@3.0.1
@@ -49,5 +50,5 @@ jobs:
           git diff --cached --check
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git commit -m "fix(validation): register canonical email format"
+          git commit -m "fix(validation): register canonical JSON Schema formats"
           git push origin "HEAD:${GITHUB_REF_NAME}"

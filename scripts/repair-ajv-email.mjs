@@ -14,7 +14,7 @@ if (generator.split(importAnchor).length !== 2) {
 generator = generator.replace(importAnchor, importReplacement);
 
 const setupAnchor = `    "});",\n    "ajv.addSchema(schemaBundle, schemaBundle.$id);",\n`;
-const setupReplacement = `    "});",\n    'addFormats(ajv, ["email"]);',\n    "ajv.addSchema(schemaBundle, schemaBundle.$id);",\n`;
+const setupReplacement = `    "});",\n    "addFormats(ajv);",\n    "ajv.addSchema(schemaBundle, schemaBundle.$id);",\n`;
 if (generator.split(setupAnchor).length !== 2) {
   throw new Error("expected exactly one generated AJV setup anchor");
 }

@@ -220,7 +220,7 @@ export type OrganizationProfile = {
   website?: string;
   country: string;
   state_or_region?: string;
-  company_size: "1_10" | "11_50" | "51_200" | "201_1000" | "1001_5000" | "5001_plus";
+  company_size: "employees_1_10" | "employees_11_50" | "employees_51_200" | "employees_201_1000" | "employees_1001_5000" | "employees_5001_plus";
   industry: string;
   existing_customer?: boolean;
   parent_company?: string;
@@ -302,7 +302,7 @@ export type SupportRequirements = {
 
 export type ServiceLevelRequest = {
   /** Requested monthly availability target. Only a signed order form can create a contractual SLA. */
-  requested_availability: "best_effort_beta" | "99_0" | "99_5" | "99_9" | "99_95" | "custom";
+  requested_availability: "best_effort_beta" | "availability_99_0" | "availability_99_5" | "availability_99_9" | "availability_99_95" | "custom";
   custom_availability_percent?: number;
   service_credit_requested: boolean;
   maintenance_notice_hours: number;
@@ -339,7 +339,7 @@ export type ProcurementProfile = {
 };
 
 export type CommercialProfile = {
-  budget_band: "unknown" | "under_500_monthly" | "500_2000_monthly" | "2000_10000_monthly" | "10000_50000_monthly" | "50000_plus_monthly" | "custom_contract";
+  budget_band: "unknown" | "under_500_monthly" | "monthly_500_2000" | "monthly_2000_10000" | "monthly_10000_50000" | "monthly_50000_plus" | "custom_contract";
   pricing_model_preference: "usage_based" | "per_cluster" | "per_environment" | "platform_subscription" | "committed_spend" | "custom";
   estimated_monthly_budget_cents?: number;
   estimated_implementation_budget_cents?: number;
@@ -374,7 +374,7 @@ export type QuoteRequest = {
   support_plan: "community" | "standard" | "priority" | "enterprise" | "custom";
   compliance_frameworks?: string[];
   onboarding_required?: boolean;
-  budget_band: "unknown" | "under_500_monthly" | "500_2000_monthly" | "2000_10000_monthly" | "10000_50000_monthly" | "50000_plus_monthly" | "custom_contract";
+  budget_band: "unknown" | "under_500_monthly" | "monthly_500_2000" | "monthly_2000_10000" | "monthly_10000_50000" | "monthly_50000_plus" | "custom_contract";
   notes?: string;
   attribution?: Attribution;
   acknowledges_non_binding_estimate: boolean;
@@ -399,7 +399,7 @@ export type PreInterestRequest = {
   use_case_summary: string;
   capabilities: string[];
   desired_start_window: "immediate" | "within_30_days" | "within_90_days" | "within_6_months" | "later" | "exploring";
-  budget_band: "unknown" | "under_500_monthly" | "500_2000_monthly" | "2000_10000_monthly" | "10000_50000_monthly" | "50000_plus_monthly" | "custom_contract";
+  budget_band: "unknown" | "under_500_monthly" | "monthly_500_2000" | "monthly_2000_10000" | "monthly_10000_50000" | "monthly_50000_plus" | "custom_contract";
   /** Requested support plan. This is an intake preference, not an accepted entitlement. */
   support_plan: "community" | "standard" | "priority" | "enterprise" | "custom";
   product_updates_consent: boolean;
@@ -448,7 +448,7 @@ export type ServiceTierSummary = {
   support_hours: "business_hours" | "twenty_four_by_five" | "twenty_four_by_seven";
   contractual_sla: boolean;
   /** Requested monthly availability target. Only a signed order form can create a contractual SLA. */
-  availability_target?: "best_effort_beta" | "99_0" | "99_5" | "99_9" | "99_95" | "custom";
+  availability_target?: "best_effort_beta" | "availability_99_0" | "availability_99_5" | "availability_99_9" | "availability_99_95" | "custom";
   description: string;
 };
 

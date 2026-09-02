@@ -174,7 +174,7 @@ class Contact:
 class OrganizationProfile:
     legal_name: str
     country: str
-    company_size: Literal["1_10", "11_50", "51_200", "201_1000", "1001_5000", "5001_plus"]
+    company_size: Literal["employees_1_10", "employees_11_50", "employees_51_200", "employees_201_1000", "employees_1001_5000", "employees_5001_plus"]
     industry: str
     doing_business_as: Optional[str] = None
     website: Optional[str] = None
@@ -256,7 +256,7 @@ class SupportRequirements:
 
 @dataclass
 class ServiceLevelRequest:
-    requested_availability: Literal["best_effort_beta", "99_0", "99_5", "99_9", "99_95", "custom"]
+    requested_availability: Literal["best_effort_beta", "availability_99_0", "availability_99_5", "availability_99_9", "availability_99_95", "custom"]
     service_credit_requested: bool
     maintenance_notice_hours: int
     accepts_slo_not_sla_during_evaluation: bool
@@ -293,7 +293,7 @@ class ProcurementProfile:
 
 @dataclass
 class CommercialProfile:
-    budget_band: Literal["unknown", "under_500_monthly", "500_2000_monthly", "2000_10000_monthly", "10000_50000_monthly", "50000_plus_monthly", "custom_contract"]
+    budget_band: Literal["unknown", "under_500_monthly", "monthly_500_2000", "monthly_2000_10000", "monthly_10000_50000", "monthly_50000_plus", "custom_contract"]
     pricing_model_preference: Literal["usage_based", "per_cluster", "per_environment", "platform_subscription", "committed_spend", "custom"]
     billing_contact: Contact
     authorized_signatory: Contact
@@ -324,7 +324,7 @@ class QuoteRequest:
     peak_operations_per_second: int
     retention_days: int
     support_plan: Literal["community", "standard", "priority", "enterprise", "custom"]
-    budget_band: Literal["unknown", "under_500_monthly", "500_2000_monthly", "2000_10000_monthly", "10000_50000_monthly", "50000_plus_monthly", "custom_contract"]
+    budget_band: Literal["unknown", "under_500_monthly", "monthly_500_2000", "monthly_2000_10000", "monthly_10000_50000", "monthly_50000_plus", "custom_contract"]
     acknowledges_non_binding_estimate: bool
     acknowledges_no_secrets: bool
     compliance_frameworks: Optional[List[str]] = None
@@ -351,7 +351,7 @@ class PreInterestRequest:
     use_case_summary: str
     capabilities: List[str]
     desired_start_window: Literal["immediate", "within_30_days", "within_90_days", "within_6_months", "later", "exploring"]
-    budget_band: Literal["unknown", "under_500_monthly", "500_2000_monthly", "2000_10000_monthly", "10000_50000_monthly", "50000_plus_monthly", "custom_contract"]
+    budget_band: Literal["unknown", "under_500_monthly", "monthly_500_2000", "monthly_2000_10000", "monthly_10000_50000", "monthly_50000_plus", "custom_contract"]
     support_plan: Literal["community", "standard", "priority", "enterprise", "custom"]
     product_updates_consent: bool
     acknowledges_no_secrets: bool
@@ -397,7 +397,7 @@ class ServiceTierSummary:
     support_hours: Literal["business_hours", "twenty_four_by_five", "twenty_four_by_seven"]
     contractual_sla: bool
     description: str
-    availability_target: Optional[Literal["best_effort_beta", "99_0", "99_5", "99_9", "99_95", "custom"]] = None
+    availability_target: Optional[Literal["best_effort_beta", "availability_99_0", "availability_99_5", "availability_99_9", "availability_99_95", "custom"]] = None
 
 @dataclass
 class ProposeOutcome:

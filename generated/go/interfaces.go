@@ -223,7 +223,7 @@ type OrganizationProfile struct {
 	Website *string `json:"website,omitempty"`
 	Country string `json:"country"`
 	StateOrRegion *string `json:"state_or_region,omitempty"`
-	// (one of: 1_10, 11_50, 51_200, 201_1000, 1001_5000, 5001_plus)
+	// (one of: employees_1_10, employees_11_50, employees_51_200, employees_201_1000, employees_1001_5000, employees_5001_plus)
 	CompanySize string `json:"company_size"`
 	Industry string `json:"industry"`
 	ExistingCustomer *bool `json:"existing_customer,omitempty"`
@@ -308,7 +308,7 @@ type SupportRequirements struct {
 }
 
 type ServiceLevelRequest struct {
-	// Requested monthly availability target. Only a signed order form can create a contractual SLA. (one of: best_effort_beta, 99_0, 99_5, 99_9, 99_95, custom)
+	// Requested monthly availability target. Only a signed order form can create a contractual SLA. (one of: best_effort_beta, availability_99_0, availability_99_5, availability_99_9, availability_99_95, custom)
 	RequestedAvailability string `json:"requested_availability"`
 	CustomAvailabilityPercent *float64 `json:"custom_availability_percent,omitempty"`
 	ServiceCreditRequested bool `json:"service_credit_requested"`
@@ -352,7 +352,7 @@ type ProcurementProfile struct {
 }
 
 type CommercialProfile struct {
-	// (one of: unknown, under_500_monthly, 500_2000_monthly, 2000_10000_monthly, 10000_50000_monthly, 50000_plus_monthly, custom_contract)
+	// (one of: unknown, under_500_monthly, monthly_500_2000, monthly_2000_10000, monthly_10000_50000, monthly_50000_plus, custom_contract)
 	BudgetBand string `json:"budget_band"`
 	// (one of: usage_based, per_cluster, per_environment, platform_subscription, committed_spend, custom)
 	PricingModelPreference string `json:"pricing_model_preference"`
@@ -389,7 +389,7 @@ type QuoteRequest struct {
 	SupportPlan string `json:"support_plan"`
 	ComplianceFrameworks *[]string `json:"compliance_frameworks,omitempty"`
 	OnboardingRequired *bool `json:"onboarding_required,omitempty"`
-	// (one of: unknown, under_500_monthly, 500_2000_monthly, 2000_10000_monthly, 10000_50000_monthly, 50000_plus_monthly, custom_contract)
+	// (one of: unknown, under_500_monthly, monthly_500_2000, monthly_2000_10000, monthly_10000_50000, monthly_50000_plus, custom_contract)
 	BudgetBand string `json:"budget_band"`
 	Notes *string `json:"notes,omitempty"`
 	Attribution *Attribution `json:"attribution,omitempty"`
@@ -416,7 +416,7 @@ type PreInterestRequest struct {
 	Capabilities []string `json:"capabilities"`
 	// (one of: immediate, within_30_days, within_90_days, within_6_months, later, exploring)
 	DesiredStartWindow string `json:"desired_start_window"`
-	// (one of: unknown, under_500_monthly, 500_2000_monthly, 2000_10000_monthly, 10000_50000_monthly, 50000_plus_monthly, custom_contract)
+	// (one of: unknown, under_500_monthly, monthly_500_2000, monthly_2000_10000, monthly_10000_50000, monthly_50000_plus, custom_contract)
 	BudgetBand string `json:"budget_band"`
 	// Requested support plan. This is an intake preference, not an accepted entitlement. (one of: community, standard, priority, enterprise, custom)
 	SupportPlan string `json:"support_plan"`
@@ -466,7 +466,7 @@ type ServiceTierSummary struct {
 	// Requested support coverage window. (one of: business_hours, twenty_four_by_five, twenty_four_by_seven)
 	SupportHours string `json:"support_hours"`
 	ContractualSla bool `json:"contractual_sla"`
-	// Requested monthly availability target. Only a signed order form can create a contractual SLA. (one of: best_effort_beta, 99_0, 99_5, 99_9, 99_95, custom)
+	// Requested monthly availability target. Only a signed order form can create a contractual SLA. (one of: best_effort_beta, availability_99_0, availability_99_5, availability_99_9, availability_99_95, custom)
 	AvailabilityTarget *string `json:"availability_target,omitempty"`
 	Description string `json:"description"`
 }

@@ -78,18 +78,18 @@ pub enum ContactPreferredContact {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
 #[tsify(into_wasm_abi, from_wasm_abi, hashmap_as_object)]
 pub enum OrganizationProfileCompanySize {
-    #[serde(rename = "1_10")]
-    110,
-    #[serde(rename = "11_50")]
-    1150,
-    #[serde(rename = "51_200")]
-    51200,
-    #[serde(rename = "201_1000")]
-    2011000,
-    #[serde(rename = "1001_5000")]
-    10015000,
-    #[serde(rename = "5001_plus")]
-    5001Plus,
+    #[serde(rename = "employees_1_10")]
+    Employees110,
+    #[serde(rename = "employees_11_50")]
+    Employees1150,
+    #[serde(rename = "employees_51_200")]
+    Employees51200,
+    #[serde(rename = "employees_201_1000")]
+    Employees2011000,
+    #[serde(rename = "employees_1001_5000")]
+    Employees10015000,
+    #[serde(rename = "employees_5001_plus")]
+    Employees5001Plus,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Tsify)]
@@ -172,14 +172,14 @@ pub enum SupportRequirementsSupportHours {
 pub enum ServiceLevelRequestRequestedAvailability {
     #[serde(rename = "best_effort_beta")]
     BestEffortBeta,
-    #[serde(rename = "99_0")]
-    990,
-    #[serde(rename = "99_5")]
-    995,
-    #[serde(rename = "99_9")]
-    999,
-    #[serde(rename = "99_95")]
-    9995,
+    #[serde(rename = "availability_99_0")]
+    Availability990,
+    #[serde(rename = "availability_99_5")]
+    Availability995,
+    #[serde(rename = "availability_99_9")]
+    Availability999,
+    #[serde(rename = "availability_99_95")]
+    Availability9995,
     #[serde(rename = "custom")]
     Custom,
 }
@@ -283,14 +283,14 @@ pub enum CommercialProfileBudgetBand {
     Unknown,
     #[serde(rename = "under_500_monthly")]
     Under500Monthly,
-    #[serde(rename = "500_2000_monthly")]
-    5002000Monthly,
-    #[serde(rename = "2000_10000_monthly")]
-    200010000Monthly,
-    #[serde(rename = "10000_50000_monthly")]
-    1000050000Monthly,
-    #[serde(rename = "50000_plus_monthly")]
-    50000PlusMonthly,
+    #[serde(rename = "monthly_500_2000")]
+    Monthly5002000,
+    #[serde(rename = "monthly_2000_10000")]
+    Monthly200010000,
+    #[serde(rename = "monthly_10000_50000")]
+    Monthly1000050000,
+    #[serde(rename = "monthly_50000_plus")]
+    Monthly50000Plus,
     #[serde(rename = "custom_contract")]
     CustomContract,
 }
@@ -351,14 +351,14 @@ pub enum QuoteRequestBudgetBand {
     Unknown,
     #[serde(rename = "under_500_monthly")]
     Under500Monthly,
-    #[serde(rename = "500_2000_monthly")]
-    5002000Monthly,
-    #[serde(rename = "2000_10000_monthly")]
-    200010000Monthly,
-    #[serde(rename = "10000_50000_monthly")]
-    1000050000Monthly,
-    #[serde(rename = "50000_plus_monthly")]
-    50000PlusMonthly,
+    #[serde(rename = "monthly_500_2000")]
+    Monthly5002000,
+    #[serde(rename = "monthly_2000_10000")]
+    Monthly200010000,
+    #[serde(rename = "monthly_10000_50000")]
+    Monthly1000050000,
+    #[serde(rename = "monthly_50000_plus")]
+    Monthly50000Plus,
     #[serde(rename = "custom_contract")]
     CustomContract,
 }
@@ -387,14 +387,14 @@ pub enum PreInterestRequestBudgetBand {
     Unknown,
     #[serde(rename = "under_500_monthly")]
     Under500Monthly,
-    #[serde(rename = "500_2000_monthly")]
-    5002000Monthly,
-    #[serde(rename = "2000_10000_monthly")]
-    200010000Monthly,
-    #[serde(rename = "10000_50000_monthly")]
-    1000050000Monthly,
-    #[serde(rename = "50000_plus_monthly")]
-    50000PlusMonthly,
+    #[serde(rename = "monthly_500_2000")]
+    Monthly5002000,
+    #[serde(rename = "monthly_2000_10000")]
+    Monthly200010000,
+    #[serde(rename = "monthly_10000_50000")]
+    Monthly1000050000,
+    #[serde(rename = "monthly_50000_plus")]
+    Monthly50000Plus,
     #[serde(rename = "custom_contract")]
     CustomContract,
 }
@@ -456,14 +456,14 @@ pub enum ServiceTierSummarySupportHours {
 pub enum ServiceTierSummaryAvailabilityTarget {
     #[serde(rename = "best_effort_beta")]
     BestEffortBeta,
-    #[serde(rename = "99_0")]
-    990,
-    #[serde(rename = "99_5")]
-    995,
-    #[serde(rename = "99_9")]
-    999,
-    #[serde(rename = "99_95")]
-    9995,
+    #[serde(rename = "availability_99_0")]
+    Availability990,
+    #[serde(rename = "availability_99_5")]
+    Availability995,
+    #[serde(rename = "availability_99_9")]
+    Availability999,
+    #[serde(rename = "availability_99_95")]
+    Availability9995,
     #[serde(rename = "custom")]
     Custom,
 }

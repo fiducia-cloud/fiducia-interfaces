@@ -663,12 +663,12 @@ const schemaBundle = {
         "company_size": {
           "type": "string",
           "enum": [
-            "1_10",
-            "11_50",
-            "51_200",
-            "201_1000",
-            "1001_5000",
-            "5001_plus"
+            "employees_1_10",
+            "employees_11_50",
+            "employees_51_200",
+            "employees_201_1000",
+            "employees_1001_5000",
+            "employees_5001_plus"
           ]
         },
         "industry": {
@@ -1173,10 +1173,10 @@ const schemaBundle = {
           "type": "string",
           "enum": [
             "best_effort_beta",
-            "99_0",
-            "99_5",
-            "99_9",
-            "99_95",
+            "availability_99_0",
+            "availability_99_5",
+            "availability_99_9",
+            "availability_99_95",
             "custom"
           ],
           "description": "Requested monthly availability target. Only a signed order form can create a contractual SLA."
@@ -1385,10 +1385,10 @@ const schemaBundle = {
           "enum": [
             "unknown",
             "under_500_monthly",
-            "500_2000_monthly",
-            "2000_10000_monthly",
-            "10000_50000_monthly",
-            "50000_plus_monthly",
+            "monthly_500_2000",
+            "monthly_2000_10000",
+            "monthly_10000_50000",
+            "monthly_50000_plus",
             "custom_contract"
           ]
         },
@@ -1592,10 +1592,10 @@ const schemaBundle = {
           "enum": [
             "unknown",
             "under_500_monthly",
-            "500_2000_monthly",
-            "2000_10000_monthly",
-            "10000_50000_monthly",
-            "50000_plus_monthly",
+            "monthly_500_2000",
+            "monthly_2000_10000",
+            "monthly_10000_50000",
+            "monthly_50000_plus",
             "custom_contract"
           ]
         },
@@ -1747,10 +1747,10 @@ const schemaBundle = {
           "enum": [
             "unknown",
             "under_500_monthly",
-            "500_2000_monthly",
-            "2000_10000_monthly",
-            "10000_50000_monthly",
-            "50000_plus_monthly",
+            "monthly_500_2000",
+            "monthly_2000_10000",
+            "monthly_10000_50000",
+            "monthly_50000_plus",
             "custom_contract"
           ]
         },
@@ -1958,10 +1958,10 @@ const schemaBundle = {
           "type": "string",
           "enum": [
             "best_effort_beta",
-            "99_0",
-            "99_5",
-            "99_9",
-            "99_95",
+            "availability_99_0",
+            "availability_99_5",
+            "availability_99_9",
+            "availability_99_95",
             "custom"
           ],
           "description": "Requested monthly availability target. Only a signed order form can create a contractual SLA."

@@ -7,6 +7,9 @@ on:
       - 'schema/commercial_intake.schema.json'
       - 'src/check-peer-contract-sources.mjs'
       - 'src/check-peer-contract-sources.test.mjs'
+      - 'src/materialize-peer-contract-sources.mjs'
+      - 'src/materialize-peer-contract-sources.test.mjs'
+      - 'tools/commercial-intake-parity/**'
       - 'docs/commercial-intake-peer-sources.md'
       - '.github/workflows/ci.yml'
       - '.github/workflows/commercial-intake-peer-sources.yml'
@@ -18,6 +21,9 @@ on:
       - 'schema/commercial_intake.schema.json'
       - 'src/check-peer-contract-sources.mjs'
       - 'src/check-peer-contract-sources.test.mjs'
+      - 'src/materialize-peer-contract-sources.mjs'
+      - 'src/materialize-peer-contract-sources.test.mjs'
+      - 'tools/commercial-intake-parity/**'
       - 'docs/commercial-intake-peer-sources.md'
       - '.github/workflows/ci.yml'
       - '.github/workflows/commercial-intake-peer-sources.yml'
@@ -33,7 +39,7 @@ concurrency:
 jobs:
   verify-pinned-authorities:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Check out exact revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -49,8 +55,107 @@ jobs:
       - name: Install exact lockfile without lifecycle scripts
         run: npm ci --ignore-scripts --no-audit --no-fund
 
+      - name: Install reviewed Rust toolchain
+        uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable
+        with:
+          toolchain: '1.95.0'
+          components: rustfmt, clippy
+
+      - name: Cache semantic parity crate
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          workspaces: tools/commercial-intake-parity
+
       - name: Run peer-source unit and negative-policy tests
-        run: node --test src/check-peer-contract-sources.test.mjs
+        run: node --test src/check-peer-contract-sources.test.mjs src/materialize-peer-contract-sources.test.mjs
+
+      - name: Validate the reviewed parity policy with JSON Schema Draft 2020-12
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFile } from 'node:fs/promises';
+          import Ajv2020 from 'ajv/dist/2020.js';
+          import addFormats from 'ajv-formats';
+
+          const [policy, schema] = await Promise.all([
+            readFile('provenance/commercial-intake-parity-policy.json', 'utf8').then(JSON.parse),
+            readFile('provenance/commercial-intake-parity-policy.schema.json', 'utf8').then(JSON.parse),
+          ]);
+          const ajv = new Ajv2020({ allErrors: true, strict: true, validateFormats: true });
+          addFormats(ajv);
+          const validate = ajv.compile(schema);
+          if (!validate(policy)) {
+            throw new Error(JSON.stringify(validate.errors));
+          }
+          NODE
+
+      - name: Verify the Rust semantic parity engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --manifest-path tools/commercial-intake-parity/Cargo.toml --all -- --check
+          cargo test --locked --manifest-path tools/commercial-intake-parity/Cargo.toml
+          cargo clippy --locked --manifest-path tools/commercial-intake-parity/Cargo.toml --all-targets -- -D warnings
+
+      - name: Materialize immutable authorities into runner-temporary storage
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          output_dir="${RUNNER_TEMP}/commercial-intake-authorities"
+          node src/materialize-peer-contract-sources.mjs --output-dir "${output_dir}" \
+            > "${RUNNER_TEMP}/commercial-intake-materialization.json"
+          test -s "${output_dir}/commercial-intake.authority.tsp"
+          test -s "${output_dir}/commercial-intake.authority.schema.json"
+          if grep -Eq 'Authorization|Bearer|GITHUB_TOKEN' "${RUNNER_TEMP}/commercial-intake-materialization.json"; then
+            echo '::error::credential-shaped material leaked into the materialization receipt'
+            exit 1
+          fi
+
+      - name: Emit deterministic semantic discrepancy receipts twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          authority_dir="${RUNNER_TEMP}/commercial-intake-authorities"
+          first="${RUNNER_TEMP}/commercial-intake-parity-first.json"
+          second="${RUNNER_TEMP}/commercial-intake-parity-second.json"
+          for output in "${first}" "${second}"; do
+            cargo run --quiet --locked \
+              --manifest-path tools/commercial-intake-parity/Cargo.toml -- \
+              --typespec "${authority_dir}/commercial-intake.authority.tsp" \
+              --json-schema "${authority_dir}/commercial-intake.authority.schema.json" \
+              --publication schema/commercial_intake.schema.json \
+              --policy provenance/commercial-intake-parity-policy.json \
+              --output "${output}"
+          done
+          cmp "${first}" "${second}"
+          grep -q '"status": "STOPPED_FOR_EVALUATION"' "${first}"
+          grep -q '"classification": "distinct-lead-intake-contract"' "${first}"
+          grep -q 'SupportPlanDocument' "${first}"
+          grep -q 'SlaPolicyDocument' "${first}"
+
+      - name: Prove certified generation remains fail-closed while discrepancies exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          authority_dir="${RUNNER_TEMP}/commercial-intake-authorities"
+          set +e
+          cargo run --quiet --locked \
+            --manifest-path tools/commercial-intake-parity/Cargo.toml -- \
+            --typespec "${authority_dir}/commercial-intake.authority.tsp" \
+            --json-schema "${authority_dir}/commercial-intake.authority.schema.json" \
+            --publication schema/commercial_intake.schema.json \
+            --policy provenance/commercial-intake-parity-policy.json \
+            --output "${RUNNER_TEMP}/commercial-intake-required-pass.json" \
+            --require-pass
+          status=$?
+          set -e
+          if [ "${status}" -ne 2 ]; then
+            echo "::error::expected fail-closed status 2, observed ${status}"
+            exit 1
+          fi
 
       - name: Verify local manifest and publication deterministically
         shell: bash

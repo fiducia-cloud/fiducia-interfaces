@@ -75,11 +75,12 @@
       "evidence": [
         "The authority JSON Schema identifies https://fiducia.invalid/schemas/commercial-intake.schema.json and models six document kinds through a root oneOf.",
         "The publication identifies https://fiducia.cloud/schemas/commercial_intake.schema.json and exposes request/receipt definitions such as QuoteRequest and PreInterestRequest.",
-        "The authority blob is 1c5cd0878fbd9f2152fccef62edf4db8c6f72490 while the publication blob is e0542e1837f708b63ea42e277e346fb969d9d1c9."
+        "The authority blob is 1c5cd0878fbd9f2152fccef62edf4db8c6f72490 while the publication blob is e0542e1837f708b63ea42e277e346fb969d9d1c9.",
+        "The Rust semantic audit classifies the current publication as a distinct lead/estimate intake contract and emits deterministic peer-authority model, requiredness, enum, operation, header, and audience discrepancies."
       ],
       "resolutionCriteria": [
         "Create the intended fiducia-lib-core contract home or formally designate a successor package boundary.",
-        "Produce deterministic semantic comparison receipts for TypeSpec, JSON Schema, generated language interfaces, SQL catalogs, and runtime fixtures.",
+        "Resolve the deterministic Rust semantic receipt for TypeSpec and JSON Schema, then extend the same reviewed receipt to generated language interfaces, SQL catalogs, Diesel, and SeaORM.",
         "Resolve every field, discriminator, requiredness, enum, path, header, status, and visibility discrepancy by reviewed intent rather than copying one source over the other.",
         "Run client/server compile-time and runtime conformance suites and update all immutable consumer pins before changing this discrepancy to resolved."
       ]
@@ -93,7 +94,7 @@
   ],
   "nextRequiredEvidence": [
     "A reviewed repository/package decision for fiducia-lib-core, including ownership and release policy.",
-    "A Rust semantic parity engine and canonical discrepancy receipt covering TypeSpec, JSON Schema, SQL, Diesel, and SeaORM projections.",
+    "Resolution of the deterministic Rust TypeSpec/JSON Schema discrepancy receipt, followed by SQL, Diesel, and SeaORM catalog parity in the same fail-closed lane.",
     "Exact-head compile and runtime conformance results for Rust, TypeScript, Go, and Dart consumers.",
     "Test-organization PostgreSQL and outside-in API canary evidence with no production activation."
   ]

@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fiducia.cloud/schemas/commercial-intake-parity-policy.v1.schema.json",
+  "title": "FiduciaCommercialIntakeParityPolicy",
+  "description": "Reviewed semantic comparison policy for independent TypeSpec and JSON Schema authorities and the distinct lead-intake publication.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "format",
+    "expectedStatus",
+    "modelPairs",
+    "operations",
+    "publication"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "./commercial-intake-parity-policy.schema.json"
+    },
+    "format": {
+      "const": "fiducia.commercial-intake-parity-policy.v1"
+    },
+    "expectedStatus": {
+      "enum": [
+        "PASS",
+        "STOPPED_FOR_EVALUATION"
+      ]
+    },
+    "modelPairs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "$ref": "#/$defs/modelPair"
+      }
+    },
+    "operations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "$ref": "#/$defs/operation"
+      }
+    },
+    "publication": {
+      "$ref": "#/$defs/publication"
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+    },
+    "fieldSet": {
+      "type": "array",
+      "maxItems": 100,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z_][A-Za-z0-9_.]*$"
+      }
+    },
+    "modelPair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "typespecModel",
+        "jsonSchemaDefinition"
+      ],
+      "properties": {
+        "typespecModel": {
+          "$ref": "#/$defs/identifier"
+        },
+        "jsonSchemaDefinition": {
+          "$ref": "#/$defs/identifier"
+        },
+        "fieldRenames": {
+          "type": "object",
+          "maxProperties": 100,
+          "propertyNames": {
+            "$ref": "#/$defs/identifier"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_.]*$"
+          }
+        },
+        "allowTypeSpecOnly": {
+          "$ref": "#/$defs/fieldSet"
+        },
+        "allowJsonSchemaOnly": {
+          "$ref": "#/$defs/fieldSet"
+        },
+        "allowRequirednessMismatch": {
+          "$ref": "#/$defs/fieldSet"
+        }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "route",
+        "method",
+        "operation",
+        "audience"
+      ],
+      "properties": {
+        "route": {
+          "type": "string",
+          "pattern": "^/v1/",
+          "maxLength": 500
+        },
+        "subroute": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "maxLength": 100
+        },
+        "method": {
+          "enum": [
+            "delete",
+            "get",
+            "patch",
+            "post",
+            "put"
+          ]
+        },
+        "operation": {
+          "$ref": "#/$defs/identifier"
+        },
+        "headers": {
+          "type": "array",
+          "maxItems": 20,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9-]*$"
+          }
+        },
+        "bodyModel": {
+          "$ref": "#/$defs/identifier"
+        },
+        "audience": {
+          "enum": [
+            "public",
+            "admin"
+          ]
+        }
+      }
+    },
+    "publication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification",
+        "expectedId",
+        "forbiddenAuthorityId",
+        "requiredDefinitions"
+      ],
+      "properties": {
+        "classification": {
+          "const": "distinct-lead-intake-contract"
+        },
+        "expectedId": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 500
+        },
+        "forbiddenAuthorityId": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 500
+        },
+        "requiredDefinitions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        }
+      }
+    }
+  }
+}

@@ -15,7 +15,11 @@ struct Options {
     require_pass: bool,
 }
 
-fn value_after(arguments: &[String], index: &mut usize, flag: &str) -> Result<PathBuf, ParityError> {
+fn value_after(
+    arguments: &[String],
+    index: &mut usize,
+    flag: &str,
+) -> Result<PathBuf, ParityError> {
     *index += 1;
     arguments
         .get(*index)
@@ -53,10 +57,8 @@ fn parse_arguments(arguments: &[String]) -> Result<Options, ParityError> {
     }
     Ok(Options {
         typespec: typespec.ok_or_else(|| ParityError::from("--typespec is required"))?,
-        json_schema: json_schema
-            .ok_or_else(|| ParityError::from("--json-schema is required"))?,
-        publication: publication
-            .ok_or_else(|| ParityError::from("--publication is required"))?,
+        json_schema: json_schema.ok_or_else(|| ParityError::from("--json-schema is required"))?,
+        publication: publication.ok_or_else(|| ParityError::from("--publication is required"))?,
         policy: policy.ok_or_else(|| ParityError::from("--policy is required"))?,
         output: output.ok_or_else(|| ParityError::from("--output is required"))?,
         require_pass,

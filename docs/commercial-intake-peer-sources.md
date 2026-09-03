@@ -15,8 +15,12 @@ The current `fiducia-interfaces` publication snapshot is pinned separately. Its 
 
 - `provenance/commercial-intake.peer-sources.json` pins repositories, commits, paths, Git blob identities, expected contract markers, the open discrepancy, blocked promotions, and the evidence required to resume promotion.
 - `provenance/peer-contract-sources.schema.json` is the Draft 2020-12 meta-contract for the manifest.
+- `provenance/commercial-intake-parity-policy.json` is the reviewed model/operation comparison policy.
+- `provenance/commercial-intake-parity-policy.schema.json` validates that policy independently with JSON Schema Draft 2020-12.
 - `src/check-peer-contract-sources.mjs` validates the meta-contract, enforces semantic policy rules, verifies local publication bytes, and optionally verifies every immutable GitHub pin.
-- `.github/workflows/commercial-intake-peer-sources.yml` runs unit/negative tests plus local and remote verification.
+- `src/materialize-peer-contract-sources.mjs` fetches immutable authorities into runner-temporary storage after checking their Git blob identities and expected markers.
+- `tools/commercial-intake-parity/` contains the dependency-free Rust semantic comparator and its fail-closed `--require-pass` mode.
+- `.github/workflows/commercial-intake-peer-sources.yml` runs unit/negative tests, local and remote pin verification, Rust formatting/tests/lints, deterministic semantic comparison, and the negative certified-generation gate.
 
 ## Commands
 
@@ -24,12 +28,12 @@ From the repository root:
 
 ```bash
 npm ci --ignore-scripts --no-audit --no-fund
-node --test src/check-peer-contract-sources.test.mjs
+node --test src/check-peer-contract-sources.test.mjs src/materialize-peer-contract-sources.test.mjs
 node src/check-peer-contract-sources.mjs --offline
 GITHUB_TOKEN='ephemeral-actions-token' node src/check-peer-contract-sources.mjs --remote
 ```
 
-The token is optional for public repositories but avoids anonymous API rate limits. The checker uses it only in the `Authorization` request header and never includes it in receipts or logs.
+The token is optional for public repositories but avoids anonymous API rate limits. The checker and materializer use it only in an `Authorization` request header and never include it in receipts or logs.
 
 A successful checker process means the recorded evidence is internally consistent and every requested immutable pin was verified. The receipt may still report `STOPPED_FOR_EVALUATION`; that status means promotion remains blocked until the discrepancy's resolution criteria are met.
 
@@ -52,15 +56,19 @@ The checker rejects:
 
 ## Semantic reconciliation
 
-Hash equality is necessary for an exact-copy claim but is not semantic parity. The next parity engine must compare at least:
+Hash equality is necessary for an exact-copy claim but is not semantic parity. The Rust parity engine compares:
 
-- model and field identity, wire-name mapping, requiredness, nullability, defaults, bounds, formats, patterns, enums, unions, and discriminators;
-- methods, versioned paths, path parameters, body types, status families, public/admin visibility, idempotency headers, and optimistic-concurrency preconditions;
-- generated Rust, TypeScript, Go, and Dart interfaces and runtime validators;
-- SQL catalogs and migrations generated independently from both authorities;
-- Diesel and SeaORM projections and transaction/state-machine behavior.
+- reviewed TypeSpec-model to JSON-Schema-definition pairs;
+- camel-case TypeSpec fields against snake-case JSON wire names, with explicit reviewed rename/exception sets only;
+- field presence, requiredness, string literals, and enum values;
+- HTTP methods, versioned paths, operation names, request-body models, public/admin visibility, `Idempotency-Key`, and `If-Match`;
+- the identity of the local publication contract.
 
-Per the project directive, that deeper semantic/catalog engine should be implemented in Rust. It must emit deterministic discrepancy receipts and stop for review instead of choosing TypeSpec, JSON Schema, Diesel, or SeaORM wholesale.
+The current local `schema/commercial_intake.schema.json` is not silently treated as the lifecycle authority. It is classified as a **distinct lead/estimate intake contract** because it defines non-binding quote requests, lead registration, and enterprise-application intake, whereas the pinned peer authorities define versioned lifecycle documents, acceptance evidence, and service operations. That conceptual distinction is machine-checked; it does not waive the missing lifecycle publication or the remaining peer-authority mismatches.
+
+The engine emits deterministic discrepancy receipts twice in CI. `--require-pass` writes the receipt and returns status 2 while any discrepancy remains, so certified interface/code generation cannot proceed by ignoring the stop state. The reviewed policy itself records the expected stop/pass state; an unexpected transition in either direction fails and requires a policy review.
+
+The remaining reconciliation includes adding the missing versioned support-plan and SLA-policy transport models, resolving structural/wire-name differences such as application attestations, and then running generated Rust, TypeScript, Go, and Dart interfaces plus SQL/Diesel/SeaORM catalog checks from both authorities. Neither authority is generated from the other.
 
 ## Future contract home
 

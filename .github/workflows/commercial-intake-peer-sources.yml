@@ -1,0 +1,84 @@
+name: commercial-intake peer-source provenance
+
+on:
+  pull_request:
+    paths:
+      - 'provenance/**'
+      - 'schema/commercial_intake.schema.json'
+      - 'src/check-peer-contract-sources.mjs'
+      - 'src/check-peer-contract-sources.test.mjs'
+      - 'docs/commercial-intake-peer-sources.md'
+      - '.github/workflows/ci.yml'
+      - '.github/workflows/commercial-intake-peer-sources.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'provenance/**'
+      - 'schema/commercial_intake.schema.json'
+      - 'src/check-peer-contract-sources.mjs'
+      - 'src/check-peer-contract-sources.test.mjs'
+      - 'docs/commercial-intake-peer-sources.md'
+      - '.github/workflows/ci.yml'
+      - '.github/workflows/commercial-intake-peer-sources.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: commercial-intake-peer-sources-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-pinned-authorities:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install repository Node version
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22.22.1'
+          cache: npm
+
+      - name: Install exact lockfile without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Run peer-source unit and negative-policy tests
+        run: node --test src/check-peer-contract-sources.test.mjs
+
+      - name: Verify local manifest and publication deterministically
+        shell: bash
+        run: |
+          set -euo pipefail
+          first="${RUNNER_TEMP}/peer-source-offline-first.json"
+          second="${RUNNER_TEMP}/peer-source-offline-second.json"
+          node src/check-peer-contract-sources.mjs --offline --output "${first}" >/dev/null
+          node src/check-peer-contract-sources.mjs --offline --output "${second}" >/dev/null
+          cmp "${first}" "${second}"
+          grep -q '"status": "STOPPED_FOR_EVALUATION"' "${first}"
+          grep -q '"manifestJsonSchema": "PASS"' "${first}"
+          grep -q '"localPublicationSnapshots": "PASS"' "${first}"
+
+      - name: Verify immutable TypeSpec and JSON Schema pins twice
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          first="${RUNNER_TEMP}/peer-source-remote-first.json"
+          second="${RUNNER_TEMP}/peer-source-remote-second.json"
+          node src/check-peer-contract-sources.mjs --remote --output "${first}" >/dev/null
+          node src/check-peer-contract-sources.mjs --remote --output "${second}" >/dev/null
+          cmp "${first}" "${second}"
+          grep -q '"remotePinnedSources": "PASS"' "${first}"
+          grep -q 'commercial-intake-json-schema-publication-divergence' "${first}"
+          if grep -Eq 'Authorization|Bearer|GITHUB_TOKEN' "${first}"; then
+            echo '::error::credential-shaped material leaked into the audit receipt'
+            exit 1
+          fi

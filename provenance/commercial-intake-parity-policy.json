@@ -1,0 +1,235 @@
+{
+  "$schema": "./commercial-intake-parity-policy.schema.json",
+  "format": "fiducia.commercial-intake-parity-policy.v1",
+  "expectedStatus": "STOPPED_FOR_EVALUATION",
+  "modelPairs": [
+    {
+      "typespecModel": "Money",
+      "jsonSchemaDefinition": "money"
+    },
+    {
+      "typespecModel": "Address",
+      "jsonSchemaDefinition": "address"
+    },
+    {
+      "typespecModel": "Contact",
+      "jsonSchemaDefinition": "contact"
+    },
+    {
+      "typespecModel": "Organization",
+      "jsonSchemaDefinition": "organization"
+    },
+    {
+      "typespecModel": "NeedSummary",
+      "jsonSchemaDefinition": "needSummary"
+    },
+    {
+      "typespecModel": "UsageForecast",
+      "jsonSchemaDefinition": "usageForecast"
+    },
+    {
+      "typespecModel": "TechnicalRequirements",
+      "jsonSchemaDefinition": "technicalRequirements"
+    },
+    {
+      "typespecModel": "DataSecurityRequirements",
+      "jsonSchemaDefinition": "dataSecurityRequirements"
+    },
+    {
+      "typespecModel": "MigrationRequirements",
+      "jsonSchemaDefinition": "migrationRequirements"
+    },
+    {
+      "typespecModel": "CommercialRequirements",
+      "jsonSchemaDefinition": "commercialRequirements"
+    },
+    {
+      "typespecModel": "SupportRequirements",
+      "jsonSchemaDefinition": "supportRequirements"
+    },
+    {
+      "typespecModel": "SeverityTarget",
+      "jsonSchemaDefinition": "severityTarget"
+    },
+    {
+      "typespecModel": "LegalRequirements",
+      "jsonSchemaDefinition": "legalRequirements"
+    },
+    {
+      "typespecModel": "AttachmentReference",
+      "jsonSchemaDefinition": "attachment"
+    },
+    {
+      "typespecModel": "ConsentEvidence",
+      "jsonSchemaDefinition": "consent"
+    },
+    {
+      "typespecModel": "PreInterestRequest",
+      "jsonSchemaDefinition": "preInterest"
+    },
+    {
+      "typespecModel": "ApplicationDocument",
+      "jsonSchemaDefinition": "application"
+    },
+    {
+      "typespecModel": "SupportPlanDocument",
+      "jsonSchemaDefinition": "supportPlan"
+    },
+    {
+      "typespecModel": "SlaPolicyDocument",
+      "jsonSchemaDefinition": "slaPolicy"
+    },
+    {
+      "typespecModel": "QuoteLineItem",
+      "jsonSchemaDefinition": "quoteLineItem"
+    },
+    {
+      "typespecModel": "ContractReference",
+      "jsonSchemaDefinition": "contractReference"
+    },
+    {
+      "typespecModel": "QuoteDocument",
+      "jsonSchemaDefinition": "quote"
+    },
+    {
+      "typespecModel": "Signer",
+      "jsonSchemaDefinition": "signer"
+    },
+    {
+      "typespecModel": "ContractAcceptanceRequest",
+      "jsonSchemaDefinition": "contractAcceptance"
+    }
+  ],
+  "operations": [
+    {
+      "route": "/v1/pre-interest",
+      "method": "post",
+      "operation": "create",
+      "headers": [
+        "Idempotency-Key"
+      ],
+      "bodyModel": "PreInterestRequest",
+      "audience": "public"
+    },
+    {
+      "route": "/v1/applications",
+      "method": "post",
+      "operation": "create",
+      "headers": [
+        "Idempotency-Key"
+      ],
+      "bodyModel": "ApplicationDocument",
+      "audience": "public"
+    },
+    {
+      "route": "/v1/applications/{applicationId}",
+      "method": "get",
+      "operation": "read",
+      "audience": "public"
+    },
+    {
+      "route": "/v1/applications/{applicationId}",
+      "method": "patch",
+      "operation": "update",
+      "headers": [
+        "Idempotency-Key",
+        "If-Match"
+      ],
+      "bodyModel": "ApplicationPatch",
+      "audience": "public"
+    },
+    {
+      "route": "/v1/applications/{applicationId}",
+      "subroute": "submit",
+      "method": "post",
+      "operation": "submit",
+      "headers": [
+        "Idempotency-Key",
+        "If-Match"
+      ],
+      "audience": "public"
+    },
+    {
+      "route": "/v1/applications/{applicationId}",
+      "subroute": "withdraw",
+      "method": "post",
+      "operation": "withdraw",
+      "headers": [
+        "Idempotency-Key",
+        "If-Match"
+      ],
+      "audience": "public"
+    },
+    {
+      "route": "/v1/quotes/{quoteId}",
+      "method": "get",
+      "operation": "read",
+      "audience": "public"
+    },
+    {
+      "route": "/v1/quotes/{quoteId}",
+      "subroute": "accept",
+      "method": "post",
+      "operation": "accept",
+      "headers": [
+        "Idempotency-Key",
+        "If-Match"
+      ],
+      "bodyModel": "ContractAcceptanceRequest",
+      "audience": "public"
+    },
+    {
+      "route": "/v1/quotes/{quoteId}",
+      "subroute": "decline",
+      "method": "post",
+      "operation": "decline",
+      "headers": [
+        "Idempotency-Key",
+        "If-Match"
+      ],
+      "audience": "public"
+    },
+    {
+      "route": "/v1/admin/applications/{applicationId}",
+      "method": "get",
+      "operation": "read",
+      "audience": "admin"
+    },
+    {
+      "route": "/v1/admin/applications/{applicationId}",
+      "subroute": "transition",
+      "method": "post",
+      "operation": "transition",
+      "headers": [
+        "Idempotency-Key",
+        "If-Match"
+      ],
+      "bodyModel": "AdminTransitionRequest",
+      "audience": "admin"
+    },
+    {
+      "route": "/v1/admin/quotes",
+      "method": "post",
+      "operation": "createVersion",
+      "headers": [
+        "Idempotency-Key"
+      ],
+      "bodyModel": "QuoteDocument",
+      "audience": "admin"
+    }
+  ],
+  "publication": {
+    "classification": "distinct-lead-intake-contract",
+    "expectedId": "https://fiducia.cloud/schemas/commercial_intake.schema.json",
+    "forbiddenAuthorityId": "https://fiducia.invalid/schemas/commercial-intake.schema.json",
+    "requiredDefinitions": [
+      "EnterpriseApplicationReceipt",
+      "EnterpriseApplicationRequest",
+      "PreInterestReceipt",
+      "PreInterestRequest",
+      "QuoteReceipt",
+      "QuoteRequest",
+      "ServiceTierSummary"
+    ]
+  }
+}

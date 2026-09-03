@@ -1,0 +1,16 @@
+[package]
+name = "commercial-intake-parity"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "MIT"
+description = "Deterministic semantic parity audit for Fiducia TypeSpec and JSON Schema authorities."
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "commercial-intake-parity"
+path = "src/main.rs"
+
+[workspace]

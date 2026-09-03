@@ -33,6 +33,8 @@ The token is optional for public repositories but avoids anonymous API rate limi
 
 A successful checker process means the recorded evidence is internally consistent and every requested immutable pin was verified. The receipt may still report `STOPPED_FOR_EVALUATION`; that status means promotion remains blocked until the discrepancy's resolution criteria are met.
 
+Repository promotion gates also require a clean lockfile install and a high-severity dependency audit. A newly disclosed advisory therefore blocks promotion until the compatible dependency line is moved to a patched release and the exact updated lock passes package, interface, provenance, and audit checks.
+
 ## Fail-closed rules
 
 The checker rejects:

@@ -96,19 +96,44 @@ def structural_check(doc, rel, problems):
         "required": list, "enum": list, "allOf": list, "anyOf": list, "oneOf": list,
         "prefixItems": list,
     }
-    stack = [doc]
-    while stack:
-        node = stack.pop()
-        if isinstance(node, dict):
-            for key, expected in keyword_types.items():
-                if key in node and not isinstance(node[key], expected):
-                    problems.append(Problem("error", rel, "%r must be a %s" % (key, expected.__name__)))
-            t = node.get("type")
-            if t is not None and not isinstance(t, (str, list)):
-                problems.append(Problem("error", rel, "'type' must be a string or array"))
-            stack.extend(v for v in node.values() if isinstance(v, (dict, list)))
-        elif isinstance(node, list):
-            stack.extend(v for v in node if isinstance(v, (dict, list)))
+    # Only recurse through values that are themselves schema positions.  A
+    # property named ``required`` is ordinary user data under ``properties``;
+    # treating every nested mapping as a schema (the old implementation did)
+    # reports valid property definitions as malformed schema keywords.
+    schema_maps = {
+        "properties", "$defs", "definitions", "patternProperties", "dependentSchemas",
+    }
+    schema_values = {
+        "items", "additionalItems", "contains", "additionalProperties", "propertyNames",
+        "unevaluatedItems", "unevaluatedProperties", "not", "if", "then", "else",
+        "contentSchema",
+    }
+    schema_lists = {"allOf", "anyOf", "oneOf", "prefixItems"}
+
+    def visit(node):
+        if not isinstance(node, dict):
+            return
+        for key, expected in keyword_types.items():
+            if key in node and not isinstance(node[key], expected):
+                problems.append(Problem("error", rel, "%r must be a %s" % (key, expected.__name__)))
+        t = node.get("type")
+        if t is not None and not isinstance(t, (str, list)):
+            problems.append(Problem("error", rel, "'type' must be a string or array"))
+
+        for key in schema_maps:
+            value = node.get(key)
+            if isinstance(value, dict):
+                for child in value.values():
+                    visit(child)
+        for key in schema_values:
+            visit(node.get(key))
+        for key in schema_lists:
+            value = node.get(key)
+            if isinstance(value, list):
+                for child in value:
+                    visit(child)
+
+    visit(doc)
 
 
 def validate_repo(repo, consumers=()):

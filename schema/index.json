@@ -4,6 +4,7 @@
     "barriers.schema.json",
     "budgets.schema.json",
     "claims.schema.json",
+    "commercial_intake.schema.json",
     "common.schema.json",
     "counters.schema.json",
     "decisions.schema.json",

@@ -1,0 +1,310 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fiducia.cloud/schemas/peer-contract-sources.v1.schema.json",
+  "title": "FiduciaPeerContractSources",
+  "description": "Fail-closed provenance and discrepancy manifest for independent TypeSpec and JSON Schema contract authorities.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "format",
+    "domain",
+    "status",
+    "policy",
+    "authorities",
+    "publicationSnapshots",
+    "discrepancies",
+    "blockedPromotions",
+    "nextRequiredEvidence"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "format": {
+      "const": "fiducia.peer-contract-sources.v1"
+    },
+    "domain": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,63}$"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "STOPPED_FOR_EVALUATION"
+      ]
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "independentAuthorities",
+        "allowGeneratedAuthority",
+        "failClosed",
+        "productionMutation"
+      ],
+      "properties": {
+        "independentAuthorities": {
+          "const": true
+        },
+        "allowGeneratedAuthority": {
+          "const": false
+        },
+        "failClosed": {
+          "const": true
+        },
+        "productionMutation": {
+          "const": false
+        }
+      }
+    },
+    "authorities": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "$ref": "#/$defs/authority"
+      }
+    },
+    "publicationSnapshots": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20,
+      "items": {
+        "$ref": "#/$defs/publicationSnapshot"
+      }
+    },
+    "discrepancies": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "$ref": "#/$defs/discrepancy"
+      }
+    },
+    "blockedPromotions": {
+      "type": "array",
+      "maxItems": 50,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]{1,127}$"
+      }
+    },
+    "nextRequiredEvidence": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 50,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1000
+      }
+    }
+  },
+  "$defs": {
+    "repository": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+    },
+    "gitSha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "repositoryPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "pattern": "^[^/\\\\].*"
+    },
+    "expectedMarkers": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 30,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1000
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "authorship",
+        "scope",
+        "repository",
+        "commit",
+        "path",
+        "gitBlobSha",
+        "expectedMarkers"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "typespec",
+            "json-schema"
+          ]
+        },
+        "authorship": {
+          "const": "independent-human-authored"
+        },
+        "scope": {
+          "type": "string",
+          "enum": [
+            "http-operations-and-transport",
+            "payload-validation-and-interfaces"
+          ]
+        },
+        "repository": {
+          "$ref": "#/$defs/repository"
+        },
+        "commit": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "path": {
+          "$ref": "#/$defs/repositoryPath"
+        },
+        "gitBlobSha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "expectedMarkers": {
+          "$ref": "#/$defs/expectedMarkers"
+        }
+      }
+    },
+    "publicationSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "sourceAuthority",
+        "relationship",
+        "repository",
+        "commit",
+        "path",
+        "gitBlobSha",
+        "expectedMarkers"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{1,127}$"
+        },
+        "sourceAuthority": {
+          "type": "string",
+          "enum": [
+            "typespec",
+            "json-schema"
+          ]
+        },
+        "relationship": {
+          "type": "string",
+          "enum": [
+            "exact-copy",
+            "content-divergent"
+          ]
+        },
+        "repository": {
+          "$ref": "#/$defs/repository"
+        },
+        "commit": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "path": {
+          "$ref": "#/$defs/repositoryPath"
+        },
+        "gitBlobSha": {
+          "$ref": "#/$defs/gitSha"
+        },
+        "expectedMarkers": {
+          "$ref": "#/$defs/expectedMarkers"
+        }
+      }
+    },
+    "discrepancy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "classification",
+        "status",
+        "sourceAuthority",
+        "publicationSnapshotId",
+        "fingerprint",
+        "summary",
+        "evidence",
+        "resolutionCriteria"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{1,127}$"
+        },
+        "classification": {
+          "type": "string",
+          "enum": [
+            "unreconciled-peer-publication",
+            "missing-peer-authority",
+            "generated-output-drift"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "open",
+            "resolved"
+          ]
+        },
+        "sourceAuthority": {
+          "type": "string",
+          "enum": [
+            "typespec",
+            "json-schema"
+          ]
+        },
+        "publicationSnapshotId": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{1,127}$"
+        },
+        "fingerprint": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        },
+        "resolutionCriteria": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        }
+      }
+    }
+  }
+}

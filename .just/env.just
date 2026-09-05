@@ -218,8 +218,11 @@ env-keygen: _env-dec
     age-keygen -y "$key"
 
 # Fail-closed audit: no plaintext in git, gitignore intact, ciphertext valid.
+# The audit is deliberately keyless: it inspects tracked/staged paths,
+# ignore policy, ciphertext shape, and private-key markers without creating
+# decrypted runtime state or requiring ores-sops.
 [group('env')]
-env-check: _env-dec
+env-check:
     #!/usr/bin/env bash
     set -euo pipefail
     cd {{ justfile_directory() }}

@@ -1,0 +1,101 @@
+{
+  "$schema": "./peer-contract-sources.schema.json",
+  "format": "fiducia.peer-contract-sources.v1",
+  "domain": "commercial-intake",
+  "status": "STOPPED_FOR_EVALUATION",
+  "policy": {
+    "independentAuthorities": true,
+    "allowGeneratedAuthority": false,
+    "failClosed": true,
+    "productionMutation": false
+  },
+  "authorities": [
+    {
+      "kind": "typespec",
+      "authorship": "independent-human-authored",
+      "scope": "http-operations-and-transport",
+      "repository": "fiducia-cloud/fiducia-infra",
+      "commit": "6d3891ddb3eba135d8c7e128f5f5e16935b4ba25",
+      "path": "quote-system/contracts/main.tsp",
+      "gitBlobSha": "c9758fffc87378b9777f7fed67e778a1ba24bb31",
+      "expectedMarkers": [
+        "@service(#{ title: \"Fiducia Commercial Intake API\" })",
+        "namespace Fiducia.CommercialIntake;",
+        "@route(\"/v1/pre-interest\")",
+        "@route(\"/v1/admin/quotes\")",
+        "@header(\"Idempotency-Key\")",
+        "@header(\"If-Match\")"
+      ]
+    },
+    {
+      "kind": "json-schema",
+      "authorship": "independent-human-authored",
+      "scope": "payload-validation-and-interfaces",
+      "repository": "fiducia-cloud/fiducia-infra",
+      "commit": "6d3891ddb3eba135d8c7e128f5f5e16935b4ba25",
+      "path": "quote-system/contracts/commercial-intake.schema.json",
+      "gitBlobSha": "1c5cd0878fbd9f2152fccef62edf4db8c6f72490",
+      "expectedMarkers": [
+        "\"$schema\": \"https://json-schema.org/draft/2020-12/schema\"",
+        "\"$id\": \"https://fiducia.invalid/schemas/commercial-intake.schema.json\"",
+        "\"preInterest\"",
+        "\"application\"",
+        "\"quote\"",
+        "\"contractAcceptance\""
+      ]
+    }
+  ],
+  "publicationSnapshots": [
+    {
+      "id": "fiducia-interfaces-commercial-intake-json-schema",
+      "sourceAuthority": "json-schema",
+      "relationship": "content-divergent",
+      "repository": "fiducia-cloud/fiducia-interfaces",
+      "commit": "b5e2e6c6307da7c0a63bb4d5138f208db20c1c27",
+      "path": "schema/commercial_intake.schema.json",
+      "gitBlobSha": "e0542e1837f708b63ea42e277e346fb969d9d1c9",
+      "expectedMarkers": [
+        "\"$schema\": \"https://json-schema.org/draft/2020-12/schema\"",
+        "\"$id\": \"https://fiducia.cloud/schemas/commercial_intake.schema.json\"",
+        "\"QuoteRequest\"",
+        "\"PreInterestRequest\"",
+        "\"EnterpriseApplicationRequest\""
+      ]
+    }
+  ],
+  "discrepancies": [
+    {
+      "id": "commercial-intake-json-schema-publication-divergence",
+      "classification": "unreconciled-peer-publication",
+      "status": "open",
+      "sourceAuthority": "json-schema",
+      "publicationSnapshotId": "fiducia-interfaces-commercial-intake-json-schema",
+      "fingerprint": "sha256:2db89b6c2e9efa769e9795f178ea1d21e50fd634770e7d3e1227595896503d2f",
+      "summary": "The reviewed JSON Schema authority in fiducia-infra and the current fiducia-interfaces publication have different immutable Git blob identities and materially different document/model organizations. Neither is silently selected as the winner.",
+      "evidence": [
+        "The authority JSON Schema identifies https://fiducia.invalid/schemas/commercial-intake.schema.json and models six document kinds through a root oneOf.",
+        "The publication identifies https://fiducia.cloud/schemas/commercial_intake.schema.json and exposes request/receipt definitions such as QuoteRequest and PreInterestRequest.",
+        "The authority blob is 1c5cd0878fbd9f2152fccef62edf4db8c6f72490 while the publication blob is e0542e1837f708b63ea42e277e346fb969d9d1c9.",
+        "The Rust semantic audit classifies the current publication as a distinct lead/estimate intake contract and emits deterministic peer-authority model, requiredness, enum, operation, header, and audience discrepancies."
+      ],
+      "resolutionCriteria": [
+        "Create the intended fiducia-lib-core contract home or formally designate a successor package boundary.",
+        "Resolve the deterministic Rust semantic receipt for TypeSpec and JSON Schema, then extend the same reviewed receipt to generated language interfaces, SQL catalogs, Diesel, and SeaORM.",
+        "Resolve every field, discriminator, requiredness, enum, path, header, status, and visibility discrepancy by reviewed intent rather than copying one source over the other.",
+        "Run client/server compile-time and runtime conformance suites and update all immutable consumer pins before changing this discrepancy to resolved."
+      ]
+    }
+  ],
+  "blockedPromotions": [
+    "commercial-intake-client-certification",
+    "commercial-intake-lib-core-release",
+    "commercial-intake-orm-parity-certification",
+    "commercial-intake-sql-catalog-certification"
+  ],
+  "nextRequiredEvidence": [
+    "A reviewed repository/package decision for fiducia-lib-core, including ownership and release policy.",
+    "Resolution of the deterministic Rust TypeSpec/JSON Schema discrepancy receipt, followed by SQL, Diesel, and SeaORM catalog parity in the same fail-closed lane.",
+    "Exact-head compile and runtime conformance results for Rust, TypeScript, Go, and Dart consumers.",
+    "Test-organization PostgreSQL and outside-in API canary evidence with no production activation."
+  ]
+}

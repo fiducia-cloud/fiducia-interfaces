@@ -57,6 +57,386 @@ pub enum ClaimStateStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ContactPreferredContact {
+    #[serde(rename = "email")]
+    Email,
+    #[serde(rename = "phone")]
+    Phone,
+    #[serde(rename = "slack")]
+    Slack,
+    #[serde(rename = "microsoft_teams")]
+    MicrosoftTeams,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum OrganizationProfileCompanySize {
+    #[serde(rename = "employees_1_10")]
+    Employees110,
+    #[serde(rename = "employees_11_50")]
+    Employees1150,
+    #[serde(rename = "employees_51_200")]
+    Employees51200,
+    #[serde(rename = "employees_201_1000")]
+    Employees2011000,
+    #[serde(rename = "employees_1001_5000")]
+    Employees10015000,
+    #[serde(rename = "employees_5001_plus")]
+    Employees5001Plus,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProjectProfileStage {
+    #[serde(rename = "research")]
+    Research,
+    #[serde(rename = "prototype")]
+    Prototype,
+    #[serde(rename = "pilot")]
+    Pilot,
+    #[serde(rename = "pre_production")]
+    PreProduction,
+    #[serde(rename = "production")]
+    Production,
+    #[serde(rename = "migration")]
+    Migration,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProjectProfileDecisionTimeline {
+    #[serde(rename = "immediate")]
+    Immediate,
+    #[serde(rename = "within_30_days")]
+    Within30Days,
+    #[serde(rename = "within_90_days")]
+    Within90Days,
+    #[serde(rename = "within_6_months")]
+    Within6Months,
+    #[serde(rename = "later")]
+    Later,
+    #[serde(rename = "exploring")]
+    Exploring,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TechnicalRequirementsConsistencyExpectation {
+    #[serde(rename = "linearizable")]
+    Linearizable,
+    #[serde(rename = "serializable")]
+    Serializable,
+    #[serde(rename = "read_your_writes")]
+    ReadYourWrites,
+    #[serde(rename = "eventual")]
+    Eventual,
+    #[serde(rename = "unsure")]
+    Unsure,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SupportRequirementsSupportPlan {
+    #[serde(rename = "community")]
+    Community,
+    #[serde(rename = "standard")]
+    Standard,
+    #[serde(rename = "priority")]
+    Priority,
+    #[serde(rename = "enterprise")]
+    Enterprise,
+    #[serde(rename = "custom")]
+    Custom,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SupportRequirementsSupportHours {
+    #[serde(rename = "business_hours")]
+    BusinessHours,
+    #[serde(rename = "twenty_four_by_five")]
+    TwentyFourByFive,
+    #[serde(rename = "twenty_four_by_seven")]
+    TwentyFourBySeven,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ServiceLevelRequestRequestedAvailability {
+    #[serde(rename = "best_effort_beta")]
+    BestEffortBeta,
+    #[serde(rename = "availability_99_0")]
+    Availability990,
+    #[serde(rename = "availability_99_5")]
+    Availability995,
+    #[serde(rename = "availability_99_9")]
+    Availability999,
+    #[serde(rename = "availability_99_95")]
+    Availability9995,
+    #[serde(rename = "custom")]
+    Custom,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ServiceLevelRequestErrorBudgetPolicy {
+    #[serde(rename = "informational")]
+    Informational,
+    #[serde(rename = "release_freeze")]
+    ReleaseFreeze,
+    #[serde(rename = "joint_review")]
+    JointReview,
+    #[serde(rename = "custom")]
+    Custom,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ServiceLevelRequestMeasurementWindow {
+    #[serde(rename = "monthly")]
+    Monthly,
+    #[serde(rename = "rolling_30_day")]
+    Rolling30Day,
+    #[serde(rename = "quarterly")]
+    Quarterly,
+    #[serde(rename = "custom")]
+    Custom,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProcurementProfileContractPath {
+    #[serde(rename = "online_terms")]
+    OnlineTerms,
+    #[serde(rename = "fiducia_msa")]
+    FiduciaMsa,
+    #[serde(rename = "customer_msa")]
+    CustomerMsa,
+    #[serde(rename = "sow_only")]
+    SowOnly,
+    #[serde(rename = "public_sector_terms")]
+    PublicSectorTerms,
+    #[serde(rename = "custom")]
+    Custom,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProcurementProfileBillingCadence {
+    #[serde(rename = "monthly")]
+    Monthly,
+    #[serde(rename = "quarterly")]
+    Quarterly,
+    #[serde(rename = "annual")]
+    Annual,
+    #[serde(rename = "prepaid_commit")]
+    PrepaidCommit,
+    #[serde(rename = "custom")]
+    Custom,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProcurementProfilePaymentTerms {
+    #[serde(rename = "card_due_on_receipt")]
+    CardDueOnReceipt,
+    #[serde(rename = "net_15")]
+    Net15,
+    #[serde(rename = "net_30")]
+    Net30,
+    #[serde(rename = "net_45")]
+    Net45,
+    #[serde(rename = "net_60")]
+    Net60,
+    #[serde(rename = "custom")]
+    Custom,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProcurementProfileCurrency {
+    #[serde(rename = "USD")]
+    USD,
+    #[serde(rename = "EUR")]
+    EUR,
+    #[serde(rename = "GBP")]
+    GBP,
+    #[serde(rename = "CAD")]
+    CAD,
+    #[serde(rename = "AUD")]
+    AUD,
+    #[serde(rename = "other")]
+    Other,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CommercialProfileBudgetBand {
+    #[serde(rename = "unknown")]
+    Unknown,
+    #[serde(rename = "under_500_monthly")]
+    Under500Monthly,
+    #[serde(rename = "monthly_500_2000")]
+    Monthly5002000,
+    #[serde(rename = "monthly_2000_10000")]
+    Monthly200010000,
+    #[serde(rename = "monthly_10000_50000")]
+    Monthly1000050000,
+    #[serde(rename = "monthly_50000_plus")]
+    Monthly50000Plus,
+    #[serde(rename = "custom_contract")]
+    CustomContract,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CommercialProfilePricingModelPreference {
+    #[serde(rename = "usage_based")]
+    UsageBased,
+    #[serde(rename = "per_cluster")]
+    PerCluster,
+    #[serde(rename = "per_environment")]
+    PerEnvironment,
+    #[serde(rename = "platform_subscription")]
+    PlatformSubscription,
+    #[serde(rename = "committed_spend")]
+    CommittedSpend,
+    #[serde(rename = "custom")]
+    Custom,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum QuoteRequestDeploymentModel {
+    #[serde(rename = "managed_multi_tenant")]
+    ManagedMultiTenant,
+    #[serde(rename = "managed_dedicated")]
+    ManagedDedicated,
+    #[serde(rename = "customer_kubernetes")]
+    CustomerKubernetes,
+    #[serde(rename = "customer_cloud")]
+    CustomerCloud,
+    #[serde(rename = "hybrid")]
+    Hybrid,
+    #[serde(rename = "evaluation")]
+    Evaluation,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum QuoteRequestSupportPlan {
+    #[serde(rename = "community")]
+    Community,
+    #[serde(rename = "standard")]
+    Standard,
+    #[serde(rename = "priority")]
+    Priority,
+    #[serde(rename = "enterprise")]
+    Enterprise,
+    #[serde(rename = "custom")]
+    Custom,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum QuoteRequestBudgetBand {
+    #[serde(rename = "unknown")]
+    Unknown,
+    #[serde(rename = "under_500_monthly")]
+    Under500Monthly,
+    #[serde(rename = "monthly_500_2000")]
+    Monthly5002000,
+    #[serde(rename = "monthly_2000_10000")]
+    Monthly200010000,
+    #[serde(rename = "monthly_10000_50000")]
+    Monthly1000050000,
+    #[serde(rename = "monthly_50000_plus")]
+    Monthly50000Plus,
+    #[serde(rename = "custom_contract")]
+    CustomContract,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PreInterestRequestDesiredStartWindow {
+    #[serde(rename = "immediate")]
+    Immediate,
+    #[serde(rename = "within_30_days")]
+    Within30Days,
+    #[serde(rename = "within_90_days")]
+    Within90Days,
+    #[serde(rename = "within_6_months")]
+    Within6Months,
+    #[serde(rename = "later")]
+    Later,
+    #[serde(rename = "exploring")]
+    Exploring,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PreInterestRequestBudgetBand {
+    #[serde(rename = "unknown")]
+    Unknown,
+    #[serde(rename = "under_500_monthly")]
+    Under500Monthly,
+    #[serde(rename = "monthly_500_2000")]
+    Monthly5002000,
+    #[serde(rename = "monthly_2000_10000")]
+    Monthly200010000,
+    #[serde(rename = "monthly_10000_50000")]
+    Monthly1000050000,
+    #[serde(rename = "monthly_50000_plus")]
+    Monthly50000Plus,
+    #[serde(rename = "custom_contract")]
+    CustomContract,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PreInterestRequestSupportPlan {
+    #[serde(rename = "community")]
+    Community,
+    #[serde(rename = "standard")]
+    Standard,
+    #[serde(rename = "priority")]
+    Priority,
+    #[serde(rename = "enterprise")]
+    Enterprise,
+    #[serde(rename = "custom")]
+    Custom,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EnterpriseApplicationReceiptStatus {
+    #[serde(rename = "received")]
+    Received,
+    #[serde(rename = "needs_clarification")]
+    NeedsClarification,
+    #[serde(rename = "under_review")]
+    UnderReview,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ServiceTierSummarySupportPlan {
+    #[serde(rename = "community")]
+    Community,
+    #[serde(rename = "standard")]
+    Standard,
+    #[serde(rename = "priority")]
+    Priority,
+    #[serde(rename = "enterprise")]
+    Enterprise,
+    #[serde(rename = "custom")]
+    Custom,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ServiceTierSummarySupportHours {
+    #[serde(rename = "business_hours")]
+    BusinessHours,
+    #[serde(rename = "twenty_four_by_five")]
+    TwentyFourByFive,
+    #[serde(rename = "twenty_four_by_seven")]
+    TwentyFourBySeven,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ServiceTierSummaryAvailabilityTarget {
+    #[serde(rename = "best_effort_beta")]
+    BestEffortBeta,
+    #[serde(rename = "availability_99_0")]
+    Availability990,
+    #[serde(rename = "availability_99_5")]
+    Availability995,
+    #[serde(rename = "availability_99_9")]
+    Availability999,
+    #[serde(rename = "availability_99_95")]
+    Availability9995,
+    #[serde(rename = "custom")]
+    Custom,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ProposeErrorReason {
     #[serde(rename = "not_leader")]
     NotLeader,
@@ -579,6 +959,363 @@ pub struct ClaimState {
     pub version: i64,
     /// Monotonic state version.
     pub generation: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Contact {
+    pub email: String,
+    pub full_name: String,
+    pub role: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub phone: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timezone: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preferred_contact: Option<ContactPreferredContact>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrganizationProfile {
+    pub legal_name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub doing_business_as: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub website: Option<String>,
+    pub country: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub state_or_region: Option<String>,
+    pub company_size: OrganizationProfileCompanySize,
+    pub industry: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub existing_customer: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parent_company: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProjectProfile {
+    pub name: String,
+    pub stage: ProjectProfileStage,
+    pub use_case_summary: String,
+    pub desired_start_date: String,
+    pub decision_timeline: ProjectProfileDecisionTimeline,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub production_deadline: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub estimated_internal_users: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub estimated_end_users: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub environment_count: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TechnicalRequirements {
+    pub capabilities: Vec<String>,
+    pub deployment_models: Vec<String>,
+    pub client_languages: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub integrations: Option<Vec<String>>,
+    pub regions: Vec<String>,
+    pub average_operations_per_second: i64,
+    pub peak_operations_per_second: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub estimated_active_keys: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub maximum_payload_bytes: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub retention_days: Option<i64>,
+    pub consistency_expectation: TechnicalRequirementsConsistencyExpectation,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub latency_p95_ms: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub latency_p99_ms: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub failover_seconds: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rpo_seconds: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rto_seconds: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub private_networking_required: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub offline_or_edge_required: Option<bool>,
+    pub data_classes: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub current_stack: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub migration_source: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub architecture_notes: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SecurityRequirements {
+    pub compliance_frameworks: Vec<String>,
+    pub sso_required: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scim_required: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mfa_required: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mtls_required: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub customer_managed_keys_required: Option<bool>,
+    pub data_residency_required: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub data_residency_locations: Option<Vec<String>>,
+    pub audit_log_required: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audit_retention_days: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub penetration_test_report_required: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub security_questionnaire_required: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subprocessor_notice_required: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub vulnerability_disclosure_requirements: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub additional_security_requirements: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SupportRequirements {
+    /// Requested support plan. This is an intake preference, not an accepted entitlement.
+    pub support_plan: SupportRequirementsSupportPlan,
+    /// Requested support coverage window.
+    pub support_hours: SupportRequirementsSupportHours,
+    pub channels: Vec<String>,
+    pub onboarding_required: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub training_required: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub architecture_review_required: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub migration_assistance_required: Option<bool>,
+    pub named_technical_contact_required: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub technical_account_manager_required: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub incident_bridge_required: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub requested_p1_response_minutes: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub requested_p2_response_minutes: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub requested_p3_response_hours: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub support_notes: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServiceLevelRequest {
+    /// Requested monthly availability target. Only a signed order form can create a contractual SLA.
+    pub requested_availability: ServiceLevelRequestRequestedAvailability,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub custom_availability_percent: Option<f64>,
+    pub service_credit_requested: bool,
+    pub maintenance_notice_hours: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error_budget_policy: Option<ServiceLevelRequestErrorBudgetPolicy>,
+    pub accepts_slo_not_sla_during_evaluation: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub measurement_window: Option<ServiceLevelRequestMeasurementWindow>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exclusions_requested: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub slo_notes: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProcurementProfile {
+    pub contract_path: ProcurementProfileContractPath,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub requested_documents: Option<Vec<String>>,
+    pub term_months: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub auto_renewal_allowed: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub termination_for_convenience_requested: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub termination_notice_days: Option<i64>,
+    pub billing_cadence: ProcurementProfileBillingCadence,
+    pub payment_terms: ProcurementProfilePaymentTerms,
+    pub currency: ProcurementProfileCurrency,
+    pub purchase_order_required: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub vendor_portal_required: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub security_review_required: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub legal_review_required: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub governing_law_preference: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub venue_preference: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub liability_cap_preference: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub indemnity_requirements: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub insurance_requirements: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub audit_rights_requirements: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub data_processing_requirements: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub intellectual_property_requirements: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub procurement_notes: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CommercialProfile {
+    pub budget_band: CommercialProfileBudgetBand,
+    pub pricing_model_preference: CommercialProfilePricingModelPreference,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub estimated_monthly_budget_cents: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub estimated_implementation_budget_cents: Option<i64>,
+    pub billing_contact: Contact,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub procurement_contact: Option<Contact>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub security_contact: Option<Contact>,
+    pub authorized_signatory: Contact,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tax_exempt: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reseller_or_partner: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub commercial_notes: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Attribution {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub campaign: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub referrer: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub locale: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub heard_about_us: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QuoteRequest {
+    pub contact: Contact,
+    pub organization: OrganizationProfile,
+    pub capabilities: Vec<String>,
+    /// Requested deployment model; availability is subject to technical and commercial review.
+    pub deployment_model: QuoteRequestDeploymentModel,
+    pub environments: i64,
+    pub average_operations_per_second: i64,
+    pub peak_operations_per_second: i64,
+    pub retention_days: i64,
+    /// Requested support plan. This is an intake preference, not an accepted entitlement.
+    pub support_plan: QuoteRequestSupportPlan,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compliance_frameworks: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub onboarding_required: Option<bool>,
+    pub budget_band: QuoteRequestBudgetBand,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notes: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attribution: Option<Attribution>,
+    pub acknowledges_non_binding_estimate: bool,
+    pub acknowledges_no_secrets: bool,
+    /// The current Fiducia privacy notice was accepted before submission.
+    pub privacy_notice_accepted: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QuoteReceipt {
+    pub quote_id: String,
+    pub currency: String,
+    pub estimated_monthly_low_cents: i64,
+    pub estimated_monthly_high_cents: i64,
+    pub estimated_implementation_low_cents: i64,
+    pub estimated_implementation_high_cents: i64,
+    pub valid_until: String,
+    pub assumptions: Vec<String>,
+    pub disclaimer: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PreInterestRequest {
+    pub contact: Contact,
+    pub organization: OrganizationProfile,
+    pub use_case_summary: String,
+    pub capabilities: Vec<String>,
+    pub desired_start_window: PreInterestRequestDesiredStartWindow,
+    pub budget_band: PreInterestRequestBudgetBand,
+    /// Requested support plan. This is an intake preference, not an accepted entitlement.
+    pub support_plan: PreInterestRequestSupportPlan,
+    pub product_updates_consent: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attribution: Option<Attribution>,
+    pub acknowledges_no_secrets: bool,
+    /// The current Fiducia privacy notice was accepted before submission.
+    pub privacy_notice_accepted: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PreInterestReceipt {
+    pub registration_id: String,
+    pub created_at: String,
+    pub next_step: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EnterpriseApplicationRequest {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub quote_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pre_interest_registration_id: Option<String>,
+    pub primary_contact: Contact,
+    pub organization: OrganizationProfile,
+    pub project: ProjectProfile,
+    pub technical: TechnicalRequirements,
+    pub security: SecurityRequirements,
+    pub support: SupportRequirements,
+    pub service_levels: ServiceLevelRequest,
+    pub procurement: ProcurementProfile,
+    pub commercial: CommercialProfile,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attribution: Option<Attribution>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub additional_requirements: Option<String>,
+    pub authorized_to_submit: bool,
+    pub acknowledges_requested_terms_are_non_binding: bool,
+    pub acknowledges_no_credentials_or_secrets: bool,
+    pub privacy_notice_accepted: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EnterpriseApplicationReceipt {
+    pub application_id: String,
+    pub created_at: String,
+    pub status: EnterpriseApplicationReceiptStatus,
+    pub next_step: String,
+    pub contract_review_required: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServiceTierSummary {
+    /// Requested support plan. This is an intake preference, not an accepted entitlement.
+    pub support_plan: ServiceTierSummarySupportPlan,
+    /// Requested support coverage window.
+    pub support_hours: ServiceTierSummarySupportHours,
+    pub contractual_sla: bool,
+    /// Requested monthly availability target. Only a signed order form can create a contractual SLA.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub availability_target: Option<ServiceTierSummaryAvailabilityTarget>,
+    pub description: String,
 }
 
 /// Result of a committed write (lock/kv/election/discovery mutation).

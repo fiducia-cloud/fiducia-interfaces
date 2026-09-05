@@ -1,0 +1,33 @@
+name: interface-schemas
+
+# Every JSON Schema published by this repo is checked for well-formedness, for
+# resolvable $refs, and against its own examples. See schema/README-contract.md.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: interface-schemas-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  schemas:
+    name: JSON Schemas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate with the bundled structural checks
+        run: python3 scripts/validate_schemas.py --format github
+      - name: Validate against the JSON Schema meta-schema
+        run: |
+          python3 -m pip install --quiet jsonschema
+          python3 scripts/validate_schemas.py

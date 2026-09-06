@@ -41,7 +41,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
 
       - name: Generate Schema B and compare both peer authorities
-        uses: ORESoftware/typespec-json-schema-validator@7e8310e0bb8ab4d3ee4b9e432e736c0d6feac4f3
+        uses: ORESoftware/typespec-json-schema-validator@1048f31781606934b3716aad334e57e815c869dc
         with:
           typespec: schema-authority-canary/main.tsp
           schema: schema-authority-canary/authored.schema.json

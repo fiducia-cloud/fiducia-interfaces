@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "authored.peer-authority-canary.schema.json",
+  "$defs": {
+    "AuthorityKind": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "AuthorityKind",
+      "type": "string",
+      "enum": ["typespec", "json-schema"]
+    },
+    "PeerAuthorityRegistration": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "PeerAuthorityRegistration",
+      "type": "object",
+      "properties": {
+        "repository": { "type": "string" },
+        "authority": { "$ref": "AuthorityKind" },
+        "contractVersion": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["repository", "authority"],
+      "unevaluatedProperties": false
+    }
+  }
+}

@@ -15,9 +15,10 @@
       "properties": {
         "repository": { "type": "string" },
         "authority": { "$ref": "AuthorityKind" },
-        "contractVersion": { "type": "integer", "minimum": 1 }
+        "generatedWitnessOnly": { "type": "boolean" },
+        "owner": { "type": "string" }
       },
-      "required": ["repository", "authority"],
+      "required": ["repository", "authority", "generatedWitnessOnly"],
       "unevaluatedProperties": false
     }
   }

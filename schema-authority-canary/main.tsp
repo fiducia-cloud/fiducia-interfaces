@@ -15,7 +15,6 @@ enum AuthorityKind {
 model PeerAuthorityRegistration {
   repository: string;
   authority: AuthorityKind;
-
-  @minValue(1)
-  contractVersion?: int32;
+  generatedWitnessOnly: boolean;
+  owner?: string;
 }

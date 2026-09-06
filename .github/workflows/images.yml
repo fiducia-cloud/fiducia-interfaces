@@ -1,0 +1,56 @@
+# Builds Dockerfile.arm64.dkf + Dockerfile.x86-64.dkf (or Dockerfile) and publishes
+# only to explicitly configured registries. GHCR is the default publication target;
+# GCP Artifact Registry and Docker Hub stay disabled until their non-secret repository
+# variables are provisioned. Secrets are org-level: DOCKERHUB_USERNAME,
+# DOCKERHUB_TOKEN, GCP_WORKLOAD_IDENTITY_PROVIDER, and GCP_SERVICE_ACCOUNT (OIDC,
+# no JSON keys).
+name: images
+on:
+  push:
+    branches: [main]
+    paths: ["Dockerfile", "Dockerfile.*.dkf", "src/**", "Cargo.*", "package*.json", "pubspec.*", "go.*", "gleam.toml", "manifest.toml"]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish immutable image manifests to configured registries"
+        required: true
+        default: false
+        type: boolean
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+concurrency:
+  group: images-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  dkf-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with: { node-version: 22 }
+      - name: Verify architecture-derived Dockerfiles
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/ORESoftware/ores-gha-workflows/09317aaf8f89a58b9ee87755db4daa2b242d6cb2/scripts/render-dkf.mjs -o "$RUNNER_TEMP/render-dkf.mjs"
+          node "$RUNNER_TEMP/render-dkf.mjs" . --check
+  images:
+    needs: dkf-drift
+    uses: ORESoftware/ores-gha-workflows/.github/workflows/container-images.yml@main
+    with:
+      image-name: fiducia-cloud/fiducia-interfaces
+      push: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.publish) }}
+      # Empty values intentionally skip registries that have not been provisioned.
+      # Set these as repository variables after the corresponding project/account
+      # exists; do not put infrastructure identifiers or credentials in source.
+      gcp-project: ${{ vars.GCP_PROJECT_ID }}
+      dockerhub-namespace: ${{ vars.DOCKERHUB_NAMESPACE }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}

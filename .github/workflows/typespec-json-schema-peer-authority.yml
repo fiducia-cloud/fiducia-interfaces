@@ -33,13 +33,17 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      - name: Verify checked-out revision
+      - name: Verify checked-out revision and unresolved-conflict absence
         shell: bash
         env:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          git diff --check
+          status=0
+          git grep -n -I -E '^(<<<<<<< .+|=======|>>>>>>> .+)$' -- . || status=$?
+          test "$status" -eq 1
       - name: Set up the tested Node runtime
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -72,6 +76,7 @@ jobs:
           contract_ir: .typespec-json-schema-validator/contract-ir.json
           output_dir: .typespec-json-schema-validator/generated
           max_probes: "64"
+      # The two-declaration canary does not certify unrelated product contracts.
       - name: Verify current evidence and complete consumer declaration scope
         uses: ORESoftware/typespec-json-schema-validator/actions/verify-contract-ir@c745036456dd80408b83217118b8563edb8f6abd
         with:
@@ -81,6 +86,9 @@ jobs:
           schema: schema-authority-canary/authored.schema.json
           generated_schema: .typespec-json-schema-validator/generated/typespec.generated.schema.json
           expected_declarations: '["OreSchemaAuthority.AuthorityKind","OreSchemaAuthority.PeerAuthorityRegistration"]'
+      - name: Verify authored authorities were not modified
+        shell: bash
+        run: git diff --exit-code -- schema-authority-canary/
       - name: Retain receipt, Contract IR, SARIF, and generated witness
         if: ${{ always() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -88,5 +96,5 @@ jobs:
           name: schema-peer-authority-${{ github.event.repository.name }}-${{ github.run_id }}
           path: .typespec-json-schema-validator/
           include-hidden-files: true
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 30

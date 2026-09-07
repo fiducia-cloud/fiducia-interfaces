@@ -4,11 +4,13 @@ on:
   pull_request:
     paths:
       - "schema-authority-canary/**"
+      - "contract-admission/contract-ir-consumer.json"
       - ".github/workflows/typespec-json-schema-peer-authority.yml"
   push:
     branches: [main, dev]
     paths:
       - "schema-authority-canary/**"
+      - "contract-admission/contract-ir-consumer.json"
       - ".github/workflows/typespec-json-schema-peer-authority.yml"
   schedule:
     - cron: "7 5 * * 1"
@@ -31,7 +33,6 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-
       - name: Verify checked-out revision
         shell: bash
         env:
@@ -39,17 +40,48 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
-
-      - name: Generate Schema B and compare both peer authorities
-        uses: ORESoftware/typespec-json-schema-validator@1048f31781606934b3716aad334e57e815c869dc
+      - name: Set up the tested Node runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.16.0
+      - name: Verify repository-owned consumer policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          import { readFileSync } from "node:fs";
+          const manifest = JSON.parse(readFileSync("contract-admission/contract-ir-consumer.json", "utf8"));
+          assert.equal(manifest.schema, "ores.contract-ir-consumer/v1");
+          assert.equal(manifest.repository, process.env.GITHUB_REPOSITORY);
+          assert.equal(manifest.repositoryRole, "interfaces");
+          assert.equal(manifest.canonicalAuthorityRepository, process.env.GITHUB_REPOSITORY);
+          assert.equal(manifest.validator.repository, "ORESoftware/typespec-json-schema-validator");
+          assert.equal(manifest.validator.actionCommit, "c745036456dd80408b83217118b8563edb8f6abd");
+          assert.equal(manifest.validator.contractIrSchema, "ores.typespec-json-schema-validator.contract-ir/v1");
+          assert.equal(manifest.authorityModel.precedence, "none");
+          assert.equal(manifest.admission.allowFallbackAuthority, false);
+          NODE
+      - name: Compare peer authorities and emit fresh Contract IR
+        uses: ORESoftware/typespec-json-schema-validator@c745036456dd80408b83217118b8563edb8f6abd
         with:
           typespec: schema-authority-canary/main.tsp
           schema: schema-authority-canary/authored.schema.json
           report: .typespec-json-schema-validator/report.json
+          sarif: .typespec-json-schema-validator/report.sarif
+          contract_ir: .typespec-json-schema-validator/contract-ir.json
           output_dir: .typespec-json-schema-validator/generated
           max_probes: "64"
-
-      - name: Retain receipt and generated comparison witness
+      - name: Verify current evidence and complete consumer declaration scope
+        uses: ORESoftware/typespec-json-schema-validator/actions/verify-contract-ir@c745036456dd80408b83217118b8563edb8f6abd
+        with:
+          contract_ir: .typespec-json-schema-validator/contract-ir.json
+          report: .typespec-json-schema-validator/report.json
+          typespec: schema-authority-canary/main.tsp
+          schema: schema-authority-canary/authored.schema.json
+          generated_schema: .typespec-json-schema-validator/generated/typespec.generated.schema.json
+          expected_declarations: '["OreSchemaAuthority.AuthorityKind","OreSchemaAuthority.PeerAuthorityRegistration"]'
+      - name: Retain receipt, Contract IR, SARIF, and generated witness
         if: ${{ always() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

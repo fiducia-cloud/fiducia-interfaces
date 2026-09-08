@@ -1,0 +1,59 @@
+name: TJSV canary admission regressions
+on:
+  pull_request:
+  push:
+    branches: [main, dev]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: tjsv-regressions-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  admission:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact source revision
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22.16.0
+      - name: Require fresh compiler-backed peer parity
+        uses: ORESoftware/typespec-json-schema-validator@b5bd51946b53c00b1daeb2723c0b5d54eaeafab7
+        with:
+          typespec: schema-authority-canary/main.tsp
+          schema: schema-authority-canary/authored.schema.json
+          report: .typespec-json-schema-validator/regressions/report.json
+          contract_ir: .typespec-json-schema-validator/regressions/contract-ir.json
+          output_dir: .typespec-json-schema-validator/regressions/generated
+          max_probes: "64"
+      - name: Require positive admission and seven canonical refusals
+        uses: ORESoftware/typespec-json-schema-validator/actions/test-consumer-admission@b5bd51946b53c00b1daeb2723c0b5d54eaeafab7
+        with:
+          contract_ir: .typespec-json-schema-validator/regressions/contract-ir.json
+          report: .typespec-json-schema-validator/regressions/report.json
+          typespec: schema-authority-canary/main.tsp
+          schema: schema-authority-canary/authored.schema.json
+          generated_schema: .typespec-json-schema-validator/regressions/generated/typespec.generated.schema.json
+          expected_declarations: '["OreSchemaAuthority.AuthorityKind","OreSchemaAuthority.PeerAuthorityRegistration"]'
+          verification: .typespec-json-schema-validator/regressions/verification.json
+      - name: Preserve independent authored sources
+        run: git diff --exit-code -- schema-authority-canary/
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: ${{ always() }}
+        with:
+          name: tjsv-regressions-${{ github.event.pull_request.head.sha || github.sha }}
+          path: .typespec-json-schema-validator/regressions/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+# DEN-3828 / upstream issue #20. Coverage is the existing two-declaration canary,
+# not production Fiducia contracts, Raft, SQL, or ORM behavior.
+# Existing native gates, provenance stops, and consumer policy remain unchanged.

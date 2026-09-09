@@ -61,13 +61,13 @@ jobs:
           assert.equal(manifest.repositoryRole, "interfaces");
           assert.equal(manifest.canonicalAuthorityRepository, process.env.GITHUB_REPOSITORY);
           assert.equal(manifest.validator.repository, "ORESoftware/typespec-json-schema-validator");
-          assert.equal(manifest.validator.actionCommit, "c745036456dd80408b83217118b8563edb8f6abd");
+          assert.equal(manifest.validator.actionCommit, "2281843126ab644607b11cf8281d84f382d68dfc");
           assert.equal(manifest.validator.contractIrSchema, "ores.typespec-json-schema-validator.contract-ir/v1");
           assert.equal(manifest.authorityModel.precedence, "none");
           assert.equal(manifest.admission.allowFallbackAuthority, false);
           NODE
       - name: Compare peer authorities and emit fresh Contract IR
-        uses: ORESoftware/typespec-json-schema-validator@c745036456dd80408b83217118b8563edb8f6abd
+        uses: ORESoftware/typespec-json-schema-validator@2281843126ab644607b11cf8281d84f382d68dfc
         with:
           typespec: schema-authority-canary/main.tsp
           schema: schema-authority-canary/authored.schema.json
@@ -78,7 +78,7 @@ jobs:
           max_probes: "64"
       # The two-declaration canary does not certify unrelated product contracts.
       - name: Verify current evidence and complete consumer declaration scope
-        uses: ORESoftware/typespec-json-schema-validator/actions/verify-contract-ir@c745036456dd80408b83217118b8563edb8f6abd
+        uses: ORESoftware/typespec-json-schema-validator/actions/verify-contract-ir@2281843126ab644607b11cf8281d84f382d68dfc
         with:
           contract_ir: .typespec-json-schema-validator/contract-ir.json
           report: .typespec-json-schema-validator/report.json

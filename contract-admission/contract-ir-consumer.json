@@ -1,6 +1,6 @@
 {
   "schema": "ores.contract-ir-consumer/v1",
-  "linearIssue": "DEN-3828",
+  "linearIssue": "DEN-3330",
   "architectureIssue": "ORESoftware/typespec-json-schema-validator#20",
   "repository": "fiducia-cloud/fiducia-interfaces",
   "repositoryRole": "interfaces",
@@ -8,7 +8,7 @@
   "evidenceScope": "repository-local-canary-only",
   "validator": {
     "repository": "ORESoftware/typespec-json-schema-validator",
-    "actionCommit": "c745036456dd80408b83217118b8563edb8f6abd",
+    "actionCommit": "2281843126ab644607b11cf8281d84f382d68dfc",
     "contractIrSchema": "ores.typespec-json-schema-validator.contract-ir/v1"
   },
   "authorityModel": {

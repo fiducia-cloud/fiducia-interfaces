@@ -1,0 +1,106 @@
+name: Opportunity application TypeSpec and JSON Schema parity
+
+on:
+  pull_request:
+    paths:
+      - "contracts/opportunity-application/**"
+      - "contract-admission/opportunity-application-consumer.json"
+      - "src/opportunity-application-policy.mjs"
+      - "src/opportunity-application-policy.test.mjs"
+      - "src/check-opportunity-application-contract.mjs"
+      - "src/check-opportunity-application-contract.test.mjs"
+      - "docs/opportunity-application-contract.md"
+      - ".github/workflows/opportunity-application-contract.yml"
+  push:
+    branches: [main, dev]
+    paths:
+      - "contracts/opportunity-application/**"
+      - "contract-admission/opportunity-application-consumer.json"
+      - "src/opportunity-application-policy.mjs"
+      - "src/opportunity-application-policy.test.mjs"
+      - "src/check-opportunity-application-contract.mjs"
+      - "src/check-opportunity-application-contract.test.mjs"
+      - "docs/opportunity-application-contract.md"
+      - ".github/workflows/opportunity-application-contract.yml"
+  schedule:
+    - cron: "19 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: opportunity-application-contract-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  parity-and-admission:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Verify exact revision and clean conflict state
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          git diff --check
+          status=0
+          git grep -n -I -E '^(<<<<<<< .+|=======|>>>>>>> .+)$' -- . || status=$?
+          test "$status" -eq 1
+
+      - name: Set up tested Node runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.16.0
+
+      - name: Enforce the opportunity safety policy and hostile corpus
+        run: |
+          set -euo pipefail
+          node --test \
+            src/opportunity-application-policy.test.mjs \
+            src/check-opportunity-application-contract.test.mjs
+          node src/check-opportunity-application-contract.mjs
+
+      - name: Compare independent production authorities and replay instances
+        uses: ORESoftware/typespec-json-schema-validator@2281843126ab644607b11cf8281d84f382d68dfc
+        with:
+          typespec: contracts/opportunity-application/main.tsp
+          schema: contracts/opportunity-application/authored.schema.json
+          instances: contracts/opportunity-application/instances
+          report: .typespec-json-schema-validator/opportunity/report.json
+          sarif: .typespec-json-schema-validator/opportunity/report.sarif
+          contract_ir: .typespec-json-schema-validator/opportunity/contract-ir.json
+          output_dir: .typespec-json-schema-validator/opportunity/generated
+          max_probes: "96"
+
+      - name: Require complete current Contract IR and nineteen refusal regressions
+        uses: ORESoftware/typespec-json-schema-validator/actions/test-consumer-admission@2281843126ab644607b11cf8281d84f382d68dfc
+        with:
+          contract_ir: .typespec-json-schema-validator/opportunity/contract-ir.json
+          report: .typespec-json-schema-validator/opportunity/report.json
+          typespec: contracts/opportunity-application/main.tsp
+          schema: contracts/opportunity-application/authored.schema.json
+          generated_schema: .typespec-json-schema-validator/opportunity/generated/typespec.generated.schema.json
+          expected_declarations: '["FiduciaOpportunityContract.ConsequentialCommitments","FiduciaOpportunityContract.ExplicitApproval","FiduciaOpportunityContract.IntakeMode","FiduciaOpportunityContract.OpportunityApplicationPacket","FiduciaOpportunityContract.OpportunityKind","FiduciaOpportunityContract.PacketState","FiduciaOpportunityContract.PublicCompanyReferences"]'
+          verification: .typespec-json-schema-validator/opportunity/verification.json
+
+      - name: Preserve both independently authored authorities
+        run: git diff --exit-code -- contracts/opportunity-application/main.tsp contracts/opportunity-application/authored.schema.json
+
+      - name: Retain receipt, Contract IR, verification, SARIF, and witness
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opportunity-application-contract-${{ github.event.repository.name }}-${{ github.run_id }}
+          path: .typespec-json-schema-validator/opportunity/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30

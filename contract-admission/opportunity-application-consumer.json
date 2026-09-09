@@ -1,0 +1,49 @@
+{
+  "schema": "ores.contract-ir-consumer/v1",
+  "linearIssue": "DEN-3330",
+  "repository": "fiducia-cloud/fiducia-interfaces",
+  "repositoryRole": "interfaces",
+  "canonicalAuthorityRepository": "fiducia-cloud/fiducia-interfaces",
+  "evidenceScope": "production-opportunity-application-contract",
+  "validator": {
+    "repository": "ORESoftware/typespec-json-schema-validator",
+    "actionCommit": "2281843126ab644607b11cf8281d84f382d68dfc",
+    "contractIrSchema": "ores.typespec-json-schema-validator.contract-ir/v1"
+  },
+  "authorityModel": {
+    "typespec": "independently-authored-peer-authority",
+    "jsonSchema": "independently-authored-peer-authority",
+    "generatedJsonSchema": "comparison-evidence-only",
+    "precedence": "none"
+  },
+  "admission": {
+    "requirePassedReceipt": true,
+    "requireAdmissibleContractIr": true,
+    "requireCompleteDeclarationInventory": true,
+    "requireCurrentInputs": true,
+    "allowFallbackAuthority": false
+  },
+  "policy": {
+    "requirePacketShownToAlex": true,
+    "requireExplicitPerPacketApproval": true,
+    "allowConsequentialCommitments": false,
+    "officialCompanyContact": "hello@fiducia.cloud"
+  },
+  "consumerRuntimes": ["typescript", "rust", "go", "dart"],
+  "expectedDeclarations": [
+    "FiduciaOpportunityContract.ConsequentialCommitments",
+    "FiduciaOpportunityContract.ExplicitApproval",
+    "FiduciaOpportunityContract.IntakeMode",
+    "FiduciaOpportunityContract.OpportunityApplicationPacket",
+    "FiduciaOpportunityContract.OpportunityKind",
+    "FiduciaOpportunityContract.PacketState",
+    "FiduciaOpportunityContract.PublicCompanyReferences"
+  ],
+  "downstreamResponsibilities": [
+    "admit-only-current-digest-bound-contract-ir",
+    "reject-incomplete-declaration-inventory",
+    "keep-authored-authorities-independent",
+    "block-submission-without-explicit-per-packet-approval",
+    "block-legal-payment-travel-publicity-and-relocation-commitments"
+  ]
+}

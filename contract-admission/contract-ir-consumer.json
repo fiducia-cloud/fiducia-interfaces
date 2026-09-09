@@ -8,8 +8,10 @@
   "evidenceScope": "repository-local-canary-only",
   "validator": {
     "repository": "ORESoftware/typespec-json-schema-validator",
-    "actionCommit": "c745036456dd80408b83217118b8563edb8f6abd",
-    "contractIrSchema": "ores.typespec-json-schema-validator.contract-ir/v1"
+    "actionCommit": "2281843126ab644607b11cf8281d84f382d68dfc",
+    "contractIrSchema": "ores.typespec-json-schema-validator.contract-ir/v1",
+    "consumerVerificationSchema": "ores.typespec-json-schema-validator.consumer-verification-receipt/v1",
+    "consumerAdmissionNegativeCases": 19
   },
   "authorityModel": {
     "typespec": "independently-authored-peer-authority",
@@ -21,12 +23,15 @@
     "requirePassedReceipt": true,
     "requireAdmissibleContractIr": true,
     "requireZeroUnexplainedFindings": true,
+    "requireExactSourceFileClosure": true,
+    "requireDenseCompleteConsumerScope": true,
     "rejectEditableAuthority": true,
     "allowFallbackAuthority": false
   },
   "downstreamResponsibilities": [
     "own-peer-authorities",
     "publish-digest-bound-contract-ir-evidence",
-    "block-projection-on-stale-or-incomplete-admission"
+    "block-projection-on-stale-or-incomplete-admission",
+    "reverify-current-inputs-before-runtime-or-projection-promotion"
   ]
 }

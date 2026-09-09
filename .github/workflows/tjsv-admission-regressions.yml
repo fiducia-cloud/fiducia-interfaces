@@ -26,7 +26,7 @@ jobs:
         with:
           node-version: 22.16.0
       - name: Require fresh compiler-backed peer parity
-        uses: ORESoftware/typespec-json-schema-validator@b5bd51946b53c00b1daeb2723c0b5d54eaeafab7
+        uses: ORESoftware/typespec-json-schema-validator@2281843126ab644607b11cf8281d84f382d68dfc
         with:
           typespec: schema-authority-canary/main.tsp
           schema: schema-authority-canary/authored.schema.json
@@ -34,8 +34,8 @@ jobs:
           contract_ir: .typespec-json-schema-validator/regressions/contract-ir.json
           output_dir: .typespec-json-schema-validator/regressions/generated
           max_probes: "64"
-      - name: Require positive admission and seven canonical refusals
-        uses: ORESoftware/typespec-json-schema-validator/actions/test-consumer-admission@b5bd51946b53c00b1daeb2723c0b5d54eaeafab7
+      - name: Require positive admission and canonical refusal matrix
+        uses: ORESoftware/typespec-json-schema-validator/actions/test-consumer-admission@2281843126ab644607b11cf8281d84f382d68dfc
         with:
           contract_ir: .typespec-json-schema-validator/regressions/contract-ir.json
           report: .typespec-json-schema-validator/regressions/report.json
@@ -54,6 +54,6 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 14
-# DEN-3828 / upstream issue #20. Coverage is the existing two-declaration canary,
-# not production Fiducia contracts, Raft, SQL, or ORM behavior.
+# DEN-3330 / DEN-3959. Coverage is the existing two-declaration canary,
+# not production Fiducia contracts, Raft, SQL, ORM or persistence behavior.
 # Existing native gates, provenance stops, and consumer policy remain unchanged.

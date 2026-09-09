@@ -1,0 +1,18 @@
+{
+  "contractVersion": "fiducia.opportunity-application/v1",
+  "packetId": "fiducia:synthetic-job:req-123:job",
+  "provider": "Synthetic Provider",
+  "program": "Synthetic Engineering Role",
+  "cycle": "2026",
+  "kind": "job",
+  "state": "submitted",
+  "intakeMode": "portal",
+  "officialIntakeRoute": "https://example.com/jobs/req-123",
+  "references": {"website":"https://fiducia.cloud","githubOrganization":"https://github.com/fiducia-cloud","founderLinkedIn":"https://www.linkedin.com","officialContactEmail":"hello@fiducia.cloud"},
+  "approval": {"shownToAlex":true,"approvedByAlex":true,"packetDigestSha256":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","approvedAt":"2026-09-08T20:00:00Z"},
+  "commitments": {"legalTermsAccepted":false,"paymentObligationAccepted":false,"travelCommitmentAccepted":false,"recordingPublicityConsentAccepted":false,"relocationCommitmentAccepted":false},
+  "verifiedFacts": ["Requisition and role location verified"],
+  "unresolvedFacts": ["Work authorization question"],
+  "requisition": "req-123",
+  "submittedAt": "2026-09-08T20:05:00Z"
+}

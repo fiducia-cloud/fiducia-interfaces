@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fiducia.cloud/schemas/opportunity-application.peer.schema.json",
+  "$defs": {
+    "OpportunityKind": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "OpportunityKind",
+      "type": "string",
+      "enum": ["fundraising", "computing_credit", "ai_credit", "conference", "job"]
+    },
+    "PacketState": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "PacketState",
+      "type": "string",
+      "enum": ["prepared", "approved", "submitted", "acknowledged", "rejected", "withdrawn"]
+    },
+    "IntakeMode": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "IntakeMode",
+      "type": "string",
+      "enum": ["email", "portal"]
+    },
+    "PublicCompanyReferences": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "PublicCompanyReferences",
+      "type": "object",
+      "properties": {
+        "website": { "type": "string" },
+        "githubOrganization": { "type": "string" },
+        "founderLinkedIn": { "type": "string" },
+        "officialContactEmail": { "type": "string" }
+      },
+      "required": ["website", "githubOrganization", "founderLinkedIn", "officialContactEmail"],
+      "unevaluatedProperties": false
+    },
+    "ExplicitApproval": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "ExplicitApproval",
+      "type": "object",
+      "properties": {
+        "shownToAlex": { "type": "boolean" },
+        "approvedByAlex": { "type": "boolean" },
+        "packetDigestSha256": { "type": "string" },
+        "approvedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["shownToAlex", "approvedByAlex", "packetDigestSha256"],
+      "unevaluatedProperties": false
+    },
+    "ConsequentialCommitments": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "ConsequentialCommitments",
+      "type": "object",
+      "properties": {
+        "legalTermsAccepted": { "type": "boolean" },
+        "paymentObligationAccepted": { "type": "boolean" },
+        "travelCommitmentAccepted": { "type": "boolean" },
+        "recordingPublicityConsentAccepted": { "type": "boolean" },
+        "relocationCommitmentAccepted": { "type": "boolean" }
+      },
+      "required": ["legalTermsAccepted", "paymentObligationAccepted", "travelCommitmentAccepted", "recordingPublicityConsentAccepted", "relocationCommitmentAccepted"],
+      "unevaluatedProperties": false
+    },
+    "OpportunityApplicationPacket": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "OpportunityApplicationPacket",
+      "type": "object",
+      "properties": {
+        "contractVersion": { "type": "string" },
+        "packetId": { "type": "string" },
+        "provider": { "type": "string" },
+        "program": { "type": "string" },
+        "cycle": { "type": "string" },
+        "kind": { "$ref": "OpportunityKind" },
+        "state": { "$ref": "PacketState" },
+        "intakeMode": { "$ref": "IntakeMode" },
+        "officialIntakeRoute": { "type": "string" },
+        "references": { "$ref": "PublicCompanyReferences" },
+        "approval": { "$ref": "ExplicitApproval" },
+        "commitments": { "$ref": "ConsequentialCommitments" },
+        "verifiedFacts": { "type": "array", "items": { "type": "string" } },
+        "unresolvedFacts": { "type": "array", "items": { "type": "string" } },
+        "requisition": { "type": "string" },
+        "deadline": { "type": "string", "format": "date-time" },
+        "submittedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["contractVersion", "packetId", "provider", "program", "cycle", "kind", "state", "intakeMode", "officialIntakeRoute", "references", "approval", "commitments", "verifiedFacts", "unresolvedFacts"],
+      "unevaluatedProperties": false
+    }
+  }
+}

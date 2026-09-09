@@ -1,0 +1,17 @@
+{
+  "contractVersion": "fiducia.opportunity-application/v1",
+  "packetId": "fiducia:synthetic-cfp:2026:conference",
+  "provider": "Synthetic Provider",
+  "program": "Synthetic CFP",
+  "cycle": "2026",
+  "kind": "conference",
+  "state": "approved",
+  "intakeMode": "portal",
+  "officialIntakeRoute": "https://example.com/cfp",
+  "references": {"website":"https://fiducia.cloud","githubOrganization":"https://github.com/fiducia-cloud","founderLinkedIn":"https://www.linkedin.com","officialContactEmail":"hello@fiducia.cloud"},
+  "approval": {"shownToAlex":true,"approvedByAlex":true,"packetDigestSha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","approvedAt":"2026-09-08T20:00:00Z"},
+  "commitments": {"legalTermsAccepted":false,"paymentObligationAccepted":false,"travelCommitmentAccepted":false,"recordingPublicityConsentAccepted":false,"relocationCommitmentAccepted":false},
+  "verifiedFacts": ["Deadline and intake route verified"],
+  "unresolvedFacts": ["Travel requirements","Recording terms"],
+  "deadline": "2026-09-11T21:59:00Z"
+}

@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   admission:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -26,7 +26,7 @@ jobs:
         with:
           node-version: 22.16.0
       - name: Require fresh compiler-backed peer parity
-        uses: ORESoftware/typespec-json-schema-validator@b5bd51946b53c00b1daeb2723c0b5d54eaeafab7
+        uses: ORESoftware/typespec-json-schema-validator@2281843126ab644607b11cf8281d84f382d68dfc
         with:
           typespec: schema-authority-canary/main.tsp
           schema: schema-authority-canary/authored.schema.json
@@ -34,8 +34,8 @@ jobs:
           contract_ir: .typespec-json-schema-validator/regressions/contract-ir.json
           output_dir: .typespec-json-schema-validator/regressions/generated
           max_probes: "64"
-      - name: Require positive admission and seven canonical refusals
-        uses: ORESoftware/typespec-json-schema-validator/actions/test-consumer-admission@b5bd51946b53c00b1daeb2723c0b5d54eaeafab7
+      - name: Require positive admission and nineteen canonical refusals
+        uses: ORESoftware/typespec-json-schema-validator/actions/test-consumer-admission@2281843126ab644607b11cf8281d84f382d68dfc
         with:
           contract_ir: .typespec-json-schema-validator/regressions/contract-ir.json
           report: .typespec-json-schema-validator/regressions/report.json
@@ -44,6 +44,25 @@ jobs:
           generated_schema: .typespec-json-schema-validator/regressions/generated/typespec.generated.schema.json
           expected_declarations: '["OreSchemaAuthority.AuthorityKind","OreSchemaAuthority.PeerAuthorityRegistration"]'
           verification: .typespec-json-schema-validator/regressions/verification.json
+      - name: Assert the hardened consumer receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          const receipt = JSON.parse(readFileSync('.typespec-json-schema-validator/regressions/verification.json', 'utf8'));
+          assert.equal(receipt.schema, 'ores.typespec-json-schema-validator.consumer-verification-receipt/v1');
+          assert.equal(receipt.status, 'passed');
+          assert.equal(receipt.admissible, true);
+          assert.equal(receipt.failureCode, null);
+          assert.deepEqual(receipt.declarationIds, [
+            'OreSchemaAuthority.AuthorityKind',
+            'OreSchemaAuthority.PeerAuthorityRegistration',
+          ]);
+          assert.equal(receipt.suppliedIrId, receipt.computedIrId);
+          assert.equal(receipt.suppliedIrId, receipt.expectedIrId);
+          NODE
       - name: Preserve independent authored sources
         run: git diff --exit-code -- schema-authority-canary/
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a

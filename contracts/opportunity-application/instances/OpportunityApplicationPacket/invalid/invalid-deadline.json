@@ -1,3 +1,36 @@
 {
-  "contractVersion":"fiducia.opportunity-application/v1","packetId":"fiducia:synthetic-program:2026:fundraising","provider":"Synthetic Provider","program":"Synthetic Program","cycle":"2026","kind":"fundraising","state":"prepared","intakeMode":"email","officialIntakeRoute":"founders@example.com","references":{"website":"https://fiducia.cloud","githubOrganization":"https://github.com/fiducia-cloud","founderLinkedIn":"https://www.linkedin.com","officialContactEmail":"hello@fiducia.cloud"},"approval":{"shownToAlex":false,"approvedByAlex":false,"packetDigestSha256":""},"commitments":{"legalTermsAccepted":false,"paymentObligationAccepted":false,"travelCommitmentAccepted":false,"recordingPublicityConsentAccepted":false,"relocationCommitmentAccepted":false},"verifiedFacts":["Official intake route verified"],"unresolvedFacts":["Eligibility details"],"deadline":"tomorrow"
+  "contractVersion": "fiducia.opportunity-application/v1",
+  "packetId": "fiducia:synthetic-program:2026:fundraising",
+  "provider": "Synthetic Provider",
+  "program": "Synthetic Program",
+  "cycle": "2026",
+  "kind": "fundraising",
+  "state": "prepared",
+  "intakeMode": "email",
+  "officialIntakeRoute": "founders@example.com",
+  "references": {
+    "website": "https://fiducia.cloud",
+    "githubOrganization": "https://github.com/fiducia-cloud",
+    "founderLinkedIn": "https://www.linkedin.com",
+    "officialContactEmail": "hello@fiducia.cloud"
+  },
+  "approval": {
+    "shownToAlex": false,
+    "approvedByAlex": false,
+    "packetDigestSha256": ""
+  },
+  "commitments": {
+    "legalTermsAccepted": false,
+    "paymentObligationAccepted": false,
+    "travelCommitmentAccepted": false,
+    "recordingPublicityConsentAccepted": false,
+    "relocationCommitmentAccepted": false
+  },
+  "verifiedFacts": [
+    "Official intake route verified"
+  ],
+  "unresolvedFacts": [
+    "Eligibility details"
+  ],
+  "deadline": 42
 }

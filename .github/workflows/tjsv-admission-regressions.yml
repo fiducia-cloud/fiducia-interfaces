@@ -11,7 +11,11 @@ concurrency:
   cancel-in-progress: true
 jobs:
   admission:
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2025]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -19,6 +23,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - name: Verify exact source revision
+        shell: bash
         env:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
@@ -26,7 +31,7 @@ jobs:
         with:
           node-version: 22.16.0
       - name: Require fresh compiler-backed peer parity
-        uses: ORESoftware/typespec-json-schema-validator@2281843126ab644607b11cf8281d84f382d68dfc
+        uses: ORESoftware/typespec-json-schema-validator@5b04b08512f8a03a376dcb96818969e2d83c2d84
         with:
           typespec: schema-authority-canary/main.tsp
           schema: schema-authority-canary/authored.schema.json
@@ -35,7 +40,7 @@ jobs:
           output_dir: .typespec-json-schema-validator/regressions/generated
           max_probes: "64"
       - name: Require positive admission and nineteen canonical refusals
-        uses: ORESoftware/typespec-json-schema-validator/actions/test-consumer-admission@2281843126ab644607b11cf8281d84f382d68dfc
+        uses: ORESoftware/typespec-json-schema-validator/actions/test-consumer-admission@5b04b08512f8a03a376dcb96818969e2d83c2d84
         with:
           contract_ir: .typespec-json-schema-validator/regressions/contract-ir.json
           report: .typespec-json-schema-validator/regressions/report.json
@@ -64,11 +69,12 @@ jobs:
           assert.equal(receipt.suppliedIrId, receipt.expectedIrId);
           NODE
       - name: Preserve independent authored sources
+        shell: bash
         run: git diff --exit-code -- schema-authority-canary/
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: ${{ always() }}
         with:
-          name: tjsv-regressions-${{ github.event.pull_request.head.sha || github.sha }}
+          name: tjsv-regressions-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}
           path: .typespec-json-schema-validator/regressions/
           include-hidden-files: true
           if-no-files-found: error

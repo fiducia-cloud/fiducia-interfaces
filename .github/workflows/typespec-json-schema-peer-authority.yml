@@ -65,7 +65,7 @@ jobs:
           assert.equal(manifest.repositoryRole, "interfaces");
           assert.equal(manifest.canonicalAuthorityRepository, process.env.GITHUB_REPOSITORY);
           assert.equal(manifest.validator.repository, "ORESoftware/typespec-json-schema-validator");
-          assert.equal(manifest.validator.actionCommit, "5b04b08512f8a03a376dcb96818969e2d83c2d84");
+          assert.equal(manifest.validator.actionCommit, "93dd73cb246a09b0a1c62d7192cc62ca6ecbe405");
           assert.equal(manifest.validator.contractIrSchema, "ores.typespec-json-schema-validator.contract-ir/v1");
           assert.equal(manifest.validator.consumerVerificationSchema, "ores.typespec-json-schema-validator.consumer-verification-receipt/v1");
           assert.equal(manifest.validator.consumerAdmissionNegativeCases, 19);
@@ -75,7 +75,7 @@ jobs:
           assert.equal(manifest.admission.allowFallbackAuthority, false);
           NODE
       - name: Compare peer authorities and emit fresh Contract IR
-        uses: ORESoftware/typespec-json-schema-validator@5b04b08512f8a03a376dcb96818969e2d83c2d84
+        uses: ORESoftware/typespec-json-schema-validator@93dd73cb246a09b0a1c62d7192cc62ca6ecbe405
         with:
           typespec: schema-authority-canary/main.tsp
           schema: schema-authority-canary/authored.schema.json
@@ -84,9 +84,24 @@ jobs:
           contract_ir: .typespec-json-schema-validator/contract-ir.json
           output_dir: .typespec-json-schema-validator/generated
           max_probes: "64"
+      - name: Require validator production-audit evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          import { join } from 'node:path';
+          const receipt = JSON.parse(readFileSync(join(process.env.RUNNER_TEMP, 'tjsv-npm-audit-receipt.json'), 'utf8'));
+          assert.equal(receipt.schema, 'tjsv-npm-production-audit-receipt/v1');
+          assert.equal(receipt.status, 'passed');
+          assert.equal(receipt.zeroUnwaivedHighOrCritical, true);
+          assert.equal(receipt.failure, null);
+          assert.equal(receipt.unwaivedHighOrCritical.length, 0);
+          NODE
       # The two-declaration canary does not certify unrelated product contracts.
       - name: Verify current evidence and complete consumer declaration scope
-        uses: ORESoftware/typespec-json-schema-validator/actions/verify-contract-ir@5b04b08512f8a03a376dcb96818969e2d83c2d84
+        uses: ORESoftware/typespec-json-schema-validator/actions/verify-contract-ir@93dd73cb246a09b0a1c62d7192cc62ca6ecbe405
         with:
           contract_ir: .typespec-json-schema-validator/contract-ir.json
           report: .typespec-json-schema-validator/report.json
@@ -113,12 +128,15 @@ jobs:
       - name: Verify authored authorities were not modified
         shell: bash
         run: git diff --exit-code -- schema-authority-canary/
-      - name: Retain receipt, Contract IR, SARIF, generated witness, and consumer verification
+      - name: Best-effort retain receipt, Contract IR, SARIF, generated witness, and consumer verification
         if: ${{ always() }}
+        continue-on-error: true
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: schema-peer-authority-${{ matrix.os }}-${{ github.event.repository.name }}-${{ github.run_id }}
-          path: .typespec-json-schema-validator/
+          path: |
+            .typespec-json-schema-validator/
+            ${{ runner.temp }}/tjsv-npm-audit-receipt.json
           include-hidden-files: true
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 30

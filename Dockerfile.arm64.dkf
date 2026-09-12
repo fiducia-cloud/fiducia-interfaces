@@ -1,7 +1,7 @@
 # GENERATED from Dockerfile (sha256:79cbee1b49d0874b) by ores-gha-workflows/scripts/render-dkf.mjs — target linux/arm64. Do not edit; edit Dockerfile and re-render.
 # syntax=docker/dockerfile:1
 # CI/test image for generated interface contracts.
-FROM --platform=linux/arm64 dart:3.13.0@sha256:8b6175f6c6b89aaf31ffdace4a22d17715c07f1cf3a772dadb10c658f779e23d AS dart-sdk
+FROM --platform=linux/arm64 dart:3.13.3@sha256:7e57e61d97813dc57dd0801656ff4d5c5efafa47bae563a681571543ad30f199 AS dart-sdk
 ARG TARGETARCH
 FROM --platform=linux/arm64 node:26.8.1-bookworm-slim@sha256:367679cf9792759492a486e4aa4b421764d71a9546a6dae8aab81a99eb797b3e AS node-sdk
 FROM --platform=linux/arm64 rust:1.98.0-bookworm@sha256:82150a52ec202c1b14d7817e14516c392bb7f5cfebd88f1ed531cb37ebd39922

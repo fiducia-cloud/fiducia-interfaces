@@ -26,12 +26,15 @@ jobs:
         shell: bash
         env:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          git diff --check
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: 22.16.0
       - name: Require fresh compiler-backed peer parity
-        uses: ORESoftware/typespec-json-schema-validator@5b04b08512f8a03a376dcb96818969e2d83c2d84
+        uses: ORESoftware/typespec-json-schema-validator@93dd73cb246a09b0a1c62d7192cc62ca6ecbe405
         with:
           typespec: schema-authority-canary/main.tsp
           schema: schema-authority-canary/authored.schema.json
@@ -39,8 +42,28 @@ jobs:
           contract_ir: .typespec-json-schema-validator/regressions/contract-ir.json
           output_dir: .typespec-json-schema-validator/regressions/generated
           max_probes: "64"
+      - name: Require validator production-audit evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          import { join } from 'node:path';
+          const receipt = JSON.parse(readFileSync(join(process.env.RUNNER_TEMP, 'tjsv-npm-audit-receipt.json'), 'utf8'));
+          assert.equal(receipt.schema, 'tjsv-npm-production-audit-receipt/v1');
+          assert.equal(receipt.status, 'passed');
+          assert.equal(receipt.zeroUnwaivedHighOrCritical, true);
+          assert.equal(receipt.failure, null);
+          assert.equal(receipt.unwaivedHighOrCritical.length, 0);
+          assert.ok(receipt.tool.registry.startsWith('https://'));
+          assert.ok(/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/u.test(receipt.tool.npmVersion));
+          for (const key of ['packageLockDigest', 'packageJsonDigest', 'auditDocumentDigest']) {
+            assert.ok(/^[0-9a-f]{64}$/u.test(receipt.inputs[key]), `${key} must be SHA-256`);
+          }
+          NODE
       - name: Require positive admission and nineteen canonical refusals
-        uses: ORESoftware/typespec-json-schema-validator/actions/test-consumer-admission@5b04b08512f8a03a376dcb96818969e2d83c2d84
+        uses: ORESoftware/typespec-json-schema-validator/actions/test-consumer-admission@93dd73cb246a09b0a1c62d7192cc62ca6ecbe405
         with:
           contract_ir: .typespec-json-schema-validator/regressions/contract-ir.json
           report: .typespec-json-schema-validator/regressions/report.json
@@ -71,13 +94,17 @@ jobs:
       - name: Preserve independent authored sources
         shell: bash
         run: git diff --exit-code -- schema-authority-canary/
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - name: Best-effort retain TJSV canary evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: ${{ always() }}
+        continue-on-error: true
         with:
           name: tjsv-regressions-${{ matrix.os }}-${{ github.event.pull_request.head.sha || github.sha }}
-          path: .typespec-json-schema-validator/regressions/
+          path: |
+            .typespec-json-schema-validator/regressions/
+            ${{ runner.temp }}/tjsv-npm-audit-receipt.json
           include-hidden-files: true
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
 # DEN-3828 / upstream issue #20. Coverage is the existing two-declaration canary,
 # not production Fiducia contracts, Raft, SQL, or ORM behavior.

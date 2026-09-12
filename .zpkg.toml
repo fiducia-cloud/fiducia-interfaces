@@ -21,7 +21,7 @@ exclude = [".env", ".env.*", ".direnv/**", ".zed/**", ".zed-pack/**", ".vendor/.
 
 [targets.repository]
 dir = "."
-name = "fiducia-interfaces-repository"
+name = "fiducia-interfaces"
 
 [targets.rust]
 dir = "generated/rust"

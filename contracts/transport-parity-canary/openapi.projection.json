@@ -1,0 +1,55 @@
+{
+  "schema": "ores.typespec-json-schema-validator.openapi-projection/v1",
+  "openapi": "3.1.1",
+  "operations": [
+    {
+      "operationId": "evaluate_opportunity_admission",
+      "method": "POST",
+      "path": "/v1/opportunity-admission/evaluate",
+      "parameters": [],
+      "requestBody": {
+        "required": true,
+        "schemaRef": "OpportunityAdmissionRequest"
+      },
+      "responses": [
+        {
+          "status": "200",
+          "schemaRef": "OpportunityAdmissionResponse"
+        }
+      ],
+      "behavior": {
+        "kind": "predicate",
+        "language": "cel",
+        "executable": true,
+        "inputs": [
+          { "name": "shown_to_alex", "type": "boolean", "required": true },
+          { "name": "approved_by_alex", "type": "boolean", "required": true },
+          { "name": "legal_terms_accepted", "type": "boolean", "required": true },
+          { "name": "payment_obligation_accepted", "type": "boolean", "required": true },
+          { "name": "travel_commitment_accepted", "type": "boolean", "required": true },
+          { "name": "recording_publicity_consent_accepted", "type": "boolean", "required": true },
+          { "name": "relocation_commitment_accepted", "type": "boolean", "required": true }
+        ],
+        "output": { "type": "boolean", "nullable": false },
+        "requires": [],
+        "ensures": [
+          "result == (shown_to_alex && approved_by_alex && !legal_terms_accepted && !payment_obligation_accepted && !travel_commitment_accepted && !recording_publicity_consent_accepted && !relocation_commitment_accepted)"
+        ],
+        "invariants": [
+          "legal_terms_accepted == false",
+          "payment_obligation_accepted == false",
+          "travel_commitment_accepted == false",
+          "recording_publicity_consent_accepted == false",
+          "relocation_commitment_accepted == false"
+        ],
+        "expression": "shown_to_alex && approved_by_alex && !legal_terms_accepted && !payment_obligation_accepted && !travel_commitment_accepted && !recording_publicity_consent_accepted && !relocation_commitment_accepted",
+        "algorithm": null,
+        "effects": [],
+        "errors": [],
+        "deterministic": true,
+        "idempotent": true,
+        "pure": true
+      }
+    }
+  ]
+}

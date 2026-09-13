@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fiducia.cloud/schemas/transport-parity-canary.peer.schema.json",
+  "$defs": {
+    "OpportunityAdmissionRequest": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "OpportunityAdmissionRequest",
+      "type": "object",
+      "properties": {
+        "shown_to_alex": { "type": "boolean" },
+        "approved_by_alex": { "type": "boolean" },
+        "legal_terms_accepted": { "type": "boolean" },
+        "payment_obligation_accepted": { "type": "boolean" },
+        "travel_commitment_accepted": { "type": "boolean" },
+        "recording_publicity_consent_accepted": { "type": "boolean" },
+        "relocation_commitment_accepted": { "type": "boolean" }
+      },
+      "required": [
+        "shown_to_alex",
+        "approved_by_alex",
+        "legal_terms_accepted",
+        "payment_obligation_accepted",
+        "travel_commitment_accepted",
+        "recording_publicity_consent_accepted",
+        "relocation_commitment_accepted"
+      ],
+      "unevaluatedProperties": false
+    },
+    "OpportunityAdmissionResponse": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "OpportunityAdmissionResponse",
+      "type": "object",
+      "properties": {
+        "admissible": { "type": "boolean" },
+        "violations": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["admissible", "violations"],
+      "unevaluatedProperties": false
+    }
+  }
+}

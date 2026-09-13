@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package fiducia.transport_parity.v1;
+
+import "options.proto";
+
+message OpportunityAdmissionRequest {
+  bool shown_to_alex = 1 [json_name = "shown_to_alex"];
+  bool approved_by_alex = 2 [json_name = "approved_by_alex"];
+  bool legal_terms_accepted = 3 [json_name = "legal_terms_accepted"];
+  bool payment_obligation_accepted = 4 [json_name = "payment_obligation_accepted"];
+  bool travel_commitment_accepted = 5 [json_name = "travel_commitment_accepted"];
+  bool recording_publicity_consent_accepted = 6 [json_name = "recording_publicity_consent_accepted"];
+  bool relocation_commitment_accepted = 7 [json_name = "relocation_commitment_accepted"];
+}
+
+message OpportunityAdmissionResponse {
+  bool admissible = 1 [json_name = "admissible"];
+  repeated string violations = 2 [json_name = "violations"];
+}
+
+service OpportunityAdmissionService {
+  rpc EvaluateOpportunityAdmission(OpportunityAdmissionRequest)
+      returns (OpportunityAdmissionResponse) {
+    option (ores.behavior.v1.operation_id) = "evaluate_opportunity_admission";
+  }
+}

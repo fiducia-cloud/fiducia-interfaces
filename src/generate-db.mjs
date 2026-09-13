@@ -196,7 +196,11 @@ function main() {
       }
     } else {
       fs.mkdirSync(path.dirname(abs), { recursive: true });
+      try { fs.chmodSync(abs, 0o644); } catch { /* thaw if frozen */ }
       fs.writeFileSync(abs, content);
+      if (!String(rel).toLowerCase().endsWith("readme.md")) {
+        fs.chmodSync(abs, 0o444);
+      }
       console.log(`wrote ${rel}`);
     }
   }

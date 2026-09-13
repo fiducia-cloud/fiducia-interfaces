@@ -1,0 +1,46 @@
+{
+  "schema": "ores.typespec-json-schema-validator.protobuf-projection/v1",
+  "syntax": "proto3",
+  "package": "fiducia.transport_parity.v1",
+  "messages": [
+    {
+      "name": "OpportunityAdmissionRequest",
+      "fields": [
+        { "name": "shown_to_alex", "number": 1, "type": "bool", "cardinality": "singular", "presence": "implicit", "oneof": null, "jsonName": "shown_to_alex" },
+        { "name": "approved_by_alex", "number": 2, "type": "bool", "cardinality": "singular", "presence": "implicit", "oneof": null, "jsonName": "approved_by_alex" },
+        { "name": "legal_terms_accepted", "number": 3, "type": "bool", "cardinality": "singular", "presence": "implicit", "oneof": null, "jsonName": "legal_terms_accepted" },
+        { "name": "payment_obligation_accepted", "number": 4, "type": "bool", "cardinality": "singular", "presence": "implicit", "oneof": null, "jsonName": "payment_obligation_accepted" },
+        { "name": "travel_commitment_accepted", "number": 5, "type": "bool", "cardinality": "singular", "presence": "implicit", "oneof": null, "jsonName": "travel_commitment_accepted" },
+        { "name": "recording_publicity_consent_accepted", "number": 6, "type": "bool", "cardinality": "singular", "presence": "implicit", "oneof": null, "jsonName": "recording_publicity_consent_accepted" },
+        { "name": "relocation_commitment_accepted", "number": 7, "type": "bool", "cardinality": "singular", "presence": "implicit", "oneof": null, "jsonName": "relocation_commitment_accepted" }
+      ],
+      "reservedNumbers": [],
+      "reservedNames": []
+    },
+    {
+      "name": "OpportunityAdmissionResponse",
+      "fields": [
+        { "name": "admissible", "number": 1, "type": "bool", "cardinality": "singular", "presence": "implicit", "oneof": null, "jsonName": "admissible" },
+        { "name": "violations", "number": 2, "type": "string", "cardinality": "repeated", "presence": "implicit", "oneof": null, "jsonName": "violations" }
+      ],
+      "reservedNumbers": [],
+      "reservedNames": []
+    }
+  ],
+  "enums": [],
+  "services": [
+    {
+      "name": "OpportunityAdmissionService",
+      "methods": [
+        {
+          "name": "EvaluateOpportunityAdmission",
+          "inputType": "OpportunityAdmissionRequest",
+          "outputType": "OpportunityAdmissionResponse",
+          "clientStreaming": false,
+          "serverStreaming": false,
+          "errorModel": null
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "schema": "ores.typespec-json-schema-validator.protobuf-behavior-bindings/v1",
+  "package": "fiducia.transport_parity.v1",
+  "bindings": [
+    {
+      "service": "OpportunityAdmissionService",
+      "method": "EvaluateOpportunityAdmission",
+      "operationId": "evaluate_opportunity_admission"
+    }
+  ]
+}

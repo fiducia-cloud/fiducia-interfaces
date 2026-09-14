@@ -12,7 +12,18 @@ zed install --frozen
 zed build
 if [[ -f Cargo.toml ]]; then if [[ -f Cargo.lock ]]; then zed develop --no-install -c 'cargo check --locked --all-targets'; else zed develop --no-install -c 'cargo check --all-targets'; fi; fi
 if [[ -f go.mod ]]; then zed develop --no-install -c 'go test ./...'; fi
-if [[ -f package.json ]]; then if [[ -f pnpm-lock.yaml ]]; then pm='corepack pnpm'; ins='corepack pnpm install --frozen-lockfile'; elif [[ -f package-lock.json ]]; then pm='npm'; ins='npm ci'; elif [[ -f yarn.lock ]]; then pm='corepack yarn'; ins='corepack yarn install --immutable'; else pm='npm'; ins='npm install --ignore-scripts'; fi; if node -e 'const p=require("./package.json");process.exit(p.scripts?.typecheck?0:1)'; then s=typecheck; elif node -e 'const p=require("./package.json");process.exit(p.scripts?.build?0:1)'; then s=build; else echo 'Node package has no typecheck/build script' >&2; exit 1; fi; zed develop --no-install -c "$ins && $pm run $s"; fi
+if [[ -f package.json ]]; then
+  if [[ -f pnpm-lock.yaml ]]; then pm='corepack pnpm'; ins='corepack pnpm install --frozen-lockfile';
+  elif [[ -f package-lock.json ]]; then pm='npm'; ins='npm ci';
+  elif [[ -f yarn.lock ]]; then pm='corepack yarn'; ins='corepack yarn install --immutable';
+  else pm='npm'; ins='npm install --ignore-scripts'; fi
+  if node -e 'const p=require("./package.json");process.exit(p.scripts?.typecheck?0:1)'; then s=typecheck;
+  elif node -e 'const p=require("./package.json");process.exit(p.scripts?.build?0:1)'; then s=build;
+  elif node -e 'const p=require("./package.json");process.exit(p.scripts?.check?0:1)'; then s=check;
+  elif node -e 'const p=require("./package.json");process.exit(p.scripts?.test?0:1)'; then s=test;
+  else echo 'Node package has no typecheck/build/check/test script; skipping Node consumer validation.' >&2; s=''; fi
+  if [[ -n "$s" ]]; then zed develop --no-install -c "$ins && $pm run $s"; fi
+fi
 if [[ -f pyproject.toml || -f setup.py ]]; then zed develop --no-install -c 'python3 -m compileall -q .'; fi
 if [[ -f pom.xml ]]; then zed develop --no-install -c 'mvn -B -DskipTests compile'; fi
 if [[ -f gradlew ]]; then zed develop --no-install -c './gradlew --no-daemon classes'; fi

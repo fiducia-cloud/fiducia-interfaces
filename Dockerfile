@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # CI/test image for generated interface contracts.
-FROM dart:3.13.3@sha256:7e57e61d97813dc57dd0801656ff4d5c5efafa47bae563a681571543ad30f199 AS dart-sdk
+FROM dart:3.14.0-211.1.beta@sha256:3afca6cdf526fe40156f477ef5b7e7879b98d1dc85d4e3ff77ac69c72f521725 AS dart-sdk
 FROM node:26.8.1-bookworm-slim@sha256:367679cf9792759492a486e4aa4b421764d71a9546a6dae8aab81a99eb797b3e AS node-sdk
 FROM rust:1.98.0-bookworm@sha256:82150a52ec202c1b14d7817e14516c392bb7f5cfebd88f1ed531cb37ebd39922
 COPY --from=dart-sdk /usr/lib/dart /usr/lib/dart

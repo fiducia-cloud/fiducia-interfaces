@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package ores.behavior.v1;
+
+import "google/protobuf/descriptor.proto";
+
+// Stable bridge from an RPC method to the independently authored behavioral
+// authority. The behavior body remains in behavior.contract.json; this option
+// carries identity rather than duplicating CEL/Dafny/etc. source into .proto.
+extend google.protobuf.MethodOptions {
+  string operation_id = 51000;
+}

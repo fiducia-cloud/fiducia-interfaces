@@ -32,25 +32,3 @@ Every repository in this GitHub org maps to that Linear project unless a nested 
 8. Fetch again and repeat from step 1 until every writable repo has a clean tree, local `main` equals `origin/main`, all intended branch/worktree work is represented in `main`, checks pass or a concrete Linear blocker is filed, and conflict-marker scans are clean.
 
 Do not claim completion if any repository, branch, worktree, failure, or read-only exception was silently skipped. Report the exact final state and link remaining Linear issues and pull requests.
-
-## Functional programming conformance
-
-This repository carries an FP conformance ratchet. Before you land a change:
-
-```sh
-python3 tools/fp-conformance/fp_conformance.py .
-```
-
-CI compares your findings against `tools/fp-conformance/budget.json` and fails
-only when a rule's count *increases*. Do not raise the budget to get green — fix
-the new violations. When you clear a class of violation, lower the budget in the
-same commit with `--write-budget`.
-
-The principles, the rule codes and the remedy for each are in `FP-GUIDELINES.md`.
-
-## Repository-local Git worktrees
-
-- Create or use a Git worktree only when the human operator explicitly authorizes it for the current task. Concurrency or a dirty checkout is not permission by itself.
-- Put every authorized worktree at `<repository-root>/tmp/worktrees/<name>`; from the repository root, use `./tmp/worktrees/<name>`. Never place worktrees beside repositories or organization directories.
-- Keep `tmp`, `temp`, `tmp/worktrees`, and `temp/worktrees` ignored in the repository-root `.gitignore`. Do not commit files from those directories.
-- Relocate or remove a worktree only when the operator explicitly requests it. Before removal, preserve and publish intended changes, verify its commit is represented on the target branch, and confirm there are no tracked, untracked, ignored-sensitive, or in-use files that must survive. Remove it with `git worktree remove <path>` without `--force`; never delete a worktree directory with `rm`.

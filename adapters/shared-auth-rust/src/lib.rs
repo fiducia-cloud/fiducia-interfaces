@@ -6,14 +6,11 @@
 //! one audited implementation without embedding a source-control credential in
 //! the container build.
 //!
-//! Three entry points are intentionally distinct:
+//! Two entry points are intentionally distinct:
 //!
 //! - [`Guard::authenticate`] may fall back to direct Supabase verification when
 //!   Shared Auth is unavailable. This proves identity only and never invents
 //!   roles or a Shared Auth session.
-//! - [`Guard::authenticate_shared`] requires Shared Auth to verify or exchange
-//!   the credential, but does not require a global role. This is the customer
-//!   portal path: application-owned membership remains authoritative.
 //! - [`Guard::authorize`] requires a role signed by Shared Auth. A directly valid
 //!   provider token cannot satisfy this method; if Shared Auth is unavailable,
 //!   the decision is [`Outcome::Degraded`], not privileged access.
@@ -51,11 +48,6 @@ pub struct Identity {
     pub session_id: Option<String>,
     pub email: Option<String>,
     pub email_verified: bool,
-    /// Authenticator Assurance Level carried by the Shared Auth session. Direct
-    /// provider verification is conservatively normalized to AAL1.
-    pub assurance_level: u8,
-    /// Authentication methods (`amr`) asserted by Shared Auth.
-    pub auth_methods: Vec<String>,
     pub roles: Vec<String>,
     pub authority: Authority,
 }
@@ -265,39 +257,6 @@ impl Guard {
             return self.local_decision(token, false).await;
         }
         self.race_authentication(token).await
-    }
-
-    /// Authenticate through Shared Auth only, without requiring a global role.
-    ///
-    /// Existing Shared Auth tokens are verified locally against the pinned
-    /// issuer/audience/project and revocation-backed JWKS contract. Provider
-    /// tokens are exchanged and introspected through Shared Auth. Unlike
-    /// [`Guard::authenticate`], this method never falls back to accepting a
-    /// directly verified Supabase token, so an application can keep tenant
-    /// authorization in its own database without making Shared Auth optional.
-    pub async fn authenticate_shared(&self, token: Option<&str>) -> Decision {
-        let Some(token) = normalized_token(token) else {
-            return Decision::without_upgrade(Outcome::Anonymous);
-        };
-        if self.is_shared_auth_token(token) {
-            return self.local_decision(token, false).await;
-        }
-
-        let started = Instant::now();
-        match tokio::time::timeout(self.config.race_deadline, self.exchange(token, false)).await {
-            Ok(Ok(exchanged)) => Decision {
-                outcome: authenticated(exchanged.identity, started),
-                session_upgrade: Some(exchanged.upgrade),
-            },
-            Ok(Err(Failure::Invalid)) => Decision::without_upgrade(Outcome::Unauthenticated),
-            Ok(Err(Failure::Forbidden)) => Decision::without_upgrade(Outcome::Forbidden),
-            Ok(Err(Failure::Unavailable)) => Decision::without_upgrade(Outcome::Degraded {
-                reason: "Shared Auth authentication is unavailable",
-            }),
-            Err(_) => Decision::without_upgrade(Outcome::Degraded {
-                reason: "Shared Auth authentication deadline exceeded",
-            }),
-        }
     }
 
     /// Authorize a role-signed identity. Direct provider verification never
@@ -621,8 +580,6 @@ impl Guard {
             session_id: None,
             email: user.email,
             email_verified: user.email_confirmed_at.is_some(),
-            assurance_level: 1,
-            auth_methods: vec!["supabase".to_string()],
             roles: Vec::new(),
             authority: Authority::Supabase,
         })
@@ -733,8 +690,6 @@ fn decode_with_jwks(
         session_id: claims.sid,
         email: claims.email,
         email_verified: claims.email_verified,
-        assurance_level: claims.aal,
-        auth_methods: claims.amr,
         roles: claims.roles,
         authority: Authority::SharedAuth,
     };
@@ -755,8 +710,6 @@ fn identity_from_introspection(
         session_id: claims.sid,
         email: claims.email,
         email_verified: claims.email_verified,
-        assurance_level: claims.aal,
-        auth_methods: claims.amr,
         roles: claims.roles,
         authority,
     };
@@ -776,9 +729,7 @@ fn validate_shared_identity(
         || !valid_identifier(&identity.shared_user_id)
         || !valid_identifier(&identity.provider_subject)
         || !valid_optional_email(identity.email.as_deref())
-        || !(1..=3).contains(&identity.assurance_level)
-        || !unique_valid_identifiers(&identity.auth_methods)
-        || !unique_valid_identifiers(&identity.roles)
+        || identity.roles.iter().any(|role| !valid_identifier(role))
     {
         return Err(Failure::Invalid);
     }
@@ -828,12 +779,6 @@ fn valid_optional_email(email: Option<&str>) -> bool {
     })
 }
 
-fn unique_valid_identifiers(values: &[String]) -> bool {
-    values.iter().enumerate().all(|(index, value)| {
-        valid_identifier(value) && !values[..index].iter().any(|seen| seen == value)
-    })
-}
-
 fn unverified_issuer(token: &str) -> Option<String> {
     let payload = token.split('.').nth(1)?;
     let decoded = base64::engine::general_purpose::URL_SAFE_NO_PAD
@@ -872,10 +817,6 @@ struct ExchangeResponse {
     roles: Vec<String>,
 }
 
-const fn default_assurance_level() -> u8 {
-    1
-}
-
 #[derive(Deserialize)]
 struct IntrospectResponse {
     active: bool,
@@ -893,10 +834,6 @@ struct IntrospectResponse {
     email: Option<String>,
     #[serde(default)]
     email_verified: bool,
-    #[serde(default = "default_assurance_level")]
-    aal: u8,
-    #[serde(default)]
-    amr: Vec<String>,
     #[serde(default)]
     roles: Vec<String>,
 }
@@ -917,10 +854,6 @@ struct SharedClaims {
     email: Option<String>,
     #[serde(default)]
     email_verified: bool,
-    #[serde(default = "default_assurance_level")]
-    aal: u8,
-    #[serde(default)]
-    amr: Vec<String>,
     #[serde(default)]
     roles: Vec<String>,
     #[serde(rename = "exp")]
@@ -1034,8 +967,6 @@ mod tests {
                 "sid": "00000000-0000-4000-8000-000000000001",
                 "email": "customer@example.invalid",
                 "email_verified": true,
-                "aal": 2,
-                "amr": ["password", "totp"],
                 "roles": roles,
             })),
         )
@@ -1119,8 +1050,6 @@ mod tests {
                 "sid": "00000000-0000-4000-8000-000000000001",
                 "email": "customer@example.invalid",
                 "email_verified": true,
-                "aal": 2,
-                "amr": ["password", "totp"],
                 "roles": roles,
                 "iss": "https://auth.example.invalid",
                 "aud": "fiducia",
@@ -1148,45 +1077,12 @@ mod tests {
         let token = shared_token("fiducia-customer", &["customer"]);
         let decision = guard.authorize(Some(&token)).await;
         assert!(matches!(
-            &decision.outcome,
+            decision.outcome,
             Outcome::Authenticated {
                 authority: Authority::SharedAuth,
                 ..
             }
         ));
-        let identity = decision.outcome.identity().unwrap();
-        assert_eq!(identity.assurance_level, 2);
-        assert_eq!(
-            identity.auth_methods,
-            vec!["password".to_string(), "totp".to_string()]
-        );
-        assert!(decision.session_upgrade.is_none());
-    }
-
-    #[tokio::test]
-    async fn strict_shared_authentication_exchanges_provider_and_preserves_assurance() {
-        let base = start_authority(Scenario::SharedWins).await;
-        let guard = Guard::new(config(&base)).unwrap();
-        let decision = guard.authenticate_shared(Some(&provider_token())).await;
-        let identity = decision.outcome.identity().unwrap();
-        assert_eq!(identity.authority, Authority::SharedAuth);
-        assert_eq!(identity.assurance_level, 2);
-        assert_eq!(
-            identity.auth_methods,
-            vec!["password".to_string(), "totp".to_string()]
-        );
-        assert_eq!(
-            decision.session_upgrade.unwrap().access_token(),
-            "new-shared-session"
-        );
-    }
-
-    #[tokio::test]
-    async fn strict_shared_authentication_never_accepts_direct_provider_fallback() {
-        let base = start_authority(Scenario::SharedUnavailable).await;
-        let guard = Guard::new(config(&base)).unwrap();
-        let decision = guard.authenticate_shared(Some(&provider_token())).await;
-        assert!(matches!(decision.outcome, Outcome::Degraded { .. }));
         assert!(decision.session_upgrade.is_none());
     }
 

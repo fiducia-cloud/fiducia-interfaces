@@ -7,7 +7,9 @@
   "scripts": {
     "generate": "node src/generate.mjs && node src/generate-db.mjs",
     "check": "node src/generate.mjs --check && node src/generate-db.mjs --check",
-    "test": "node --test src/*.test.mjs && node src/generate.mjs --check && node src/generate-db.mjs --check && cargo test --manifest-path generated/rust/Cargo.toml && cargo check --manifest-path generated/rust-db/Cargo.toml && tsc --noEmit --target es2020 --module esnext --lib es2020,dom src/typescript-usage.test.ts"
+    "test": "node --test src/*.test.mjs && node src/generate.mjs --check && node src/generate-db.mjs --check && cargo test --manifest-path generated/rust/Cargo.toml && cargo check --manifest-path generated/rust-db/Cargo.toml && tsc --noEmit --target es2020 --module esnext --lib es2020,dom src/typescript-usage.test.ts",
+    "lint:ores": "if [ -f ../../../.ores-lint/lint.sh ]; then sh ../../../.ores-lint/lint.sh; else echo 'ores-lint not installed'; fi",
+    "prepublishOnly": "npm run lint:ores"
   },
   "exports": {
     "./schema": "./schema/index.json",
@@ -23,5 +25,13 @@
     "./rust": "./generated/rust/src/lib.rs",
     "./python": "./generated/python/fiducia_interfaces.py",
     "./go": "./generated/go/interfaces.go"
+  },
+  "oresLint": {
+    "note": "Declared, not installed. ores-lint resolves these from a global install - see .ores-lint/README.md",
+    "requires": {
+      "eslint": ">=9",
+      "typescript-eslint": ">=8 (optional; without it .ts files are skipped)"
+    },
+    "install": "npm i -g eslint typescript-eslint"
   }
 }

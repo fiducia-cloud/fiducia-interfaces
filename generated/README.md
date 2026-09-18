@@ -48,6 +48,13 @@ that compile. Unit tests should feed **valid** and **invalid** instances (missin
 required keys, wrong types, extra properties) and compare schema keys to
 `.cli-flags.toml` env names or route-map keys when those exist.
 
+The repository-level runtime check (CI job `generated-contract`) validates the
+freeze policy and any JSON Schema fixtures against Draft 2020-12:
+
+```sh
+python3 scripts/check-generated-contract.py --freeze --require-readonly
+```
+
 ```sh
 f2e check-contract --config .cli-flags.toml --json env.fixture.json
 ```

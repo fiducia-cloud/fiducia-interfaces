@@ -1,0 +1,116 @@
+{
+  "schema_version": "1.0.0",
+  "service": "fiducia-api-server",
+  "title": "Fiducia public API",
+  "version": "0.1.0",
+  "description": "Authoritative public HTTP/RPC operation inventory. Commercial-intake DTO shapes remain authored in schema/commercial_intake.schema.json and generated into the Rust interfaces crate; this route map binds those existing types instead of duplicating their schemas.",
+  "files": {
+    "commercial_intake_json_schema": "schema/commercial_intake.schema.json",
+    "generated_rust_interfaces": "generated/rust/src/lib.rs"
+  },
+  "map": {
+    "list_service_tiers": {
+      "path": "/v1/service-tiers",
+      "methods": ["GET"],
+      "rpc_key": "fiducia.service_tiers.list",
+      "summary": "List requestable Fiducia service profiles and non-contractual availability/support targets.",
+      "authorization": {
+        "mode": "public"
+      },
+      "transports": ["http"]
+    },
+    "create_quote": {
+      "path": "/v1/quotes",
+      "methods": ["POST"],
+      "rpc_key": "fiducia.quotes.create",
+      "summary": "Validate a QuoteRequest and create an idempotent non-binding software quote receipt.",
+      "authorization": {
+        "mode": "public"
+      },
+      "idempotency": "required",
+      "header_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["idempotency-key"],
+        "properties": {
+          "idempotency-key": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          }
+        }
+      },
+      "binding": {
+        "param_types": ["QuoteRequest"],
+        "return_type": "QuoteReceipt",
+        "function_type": "QuoteRequest -> QuoteReceipt",
+        "file": "schema/commercial_intake.schema.json",
+        "symbol": "QuoteRequest"
+      },
+      "transports": ["http"]
+    },
+    "register_pre_interest": {
+      "path": "/v1/pre-interest-registrations",
+      "methods": ["POST"],
+      "rpc_key": "fiducia.pre_interest.register",
+      "summary": "Validate a PreInterestRequest and persist an idempotent pre-interest registration.",
+      "authorization": {
+        "mode": "public"
+      },
+      "idempotency": "required",
+      "header_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["idempotency-key"],
+        "properties": {
+          "idempotency-key": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          }
+        }
+      },
+      "binding": {
+        "param_types": ["PreInterestRequest"],
+        "return_type": "PreInterestReceipt",
+        "function_type": "PreInterestRequest -> PreInterestReceipt",
+        "file": "schema/commercial_intake.schema.json",
+        "symbol": "PreInterestRequest"
+      },
+      "transports": ["http"]
+    },
+    "submit_enterprise_application": {
+      "path": "/v1/enterprise-applications",
+      "methods": ["POST"],
+      "rpc_key": "fiducia.enterprise_applications.submit",
+      "summary": "Validate an EnterpriseApplicationRequest and persist an idempotent enterprise application for human review.",
+      "authorization": {
+        "mode": "public"
+      },
+      "idempotency": "required",
+      "header_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["idempotency-key"],
+        "properties": {
+          "idempotency-key": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9._:-]+$"
+          }
+        }
+      },
+      "binding": {
+        "param_types": ["EnterpriseApplicationRequest"],
+        "return_type": "EnterpriseApplicationReceipt",
+        "function_type": "EnterpriseApplicationRequest -> EnterpriseApplicationReceipt",
+        "file": "schema/commercial_intake.schema.json",
+        "symbol": "EnterpriseApplicationRequest"
+      },
+      "transports": ["http"]
+    }
+  }
+}

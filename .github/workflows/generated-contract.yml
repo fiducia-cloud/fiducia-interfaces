@@ -1,0 +1,28 @@
+name: generated-contract
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: generated-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Runtime generated contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Install jsonschema
+        run: python3 -m pip install --quiet jsonschema
+      - name: Check generated policy, freeze bits, and JSON Schema runtime
+        run: python3 scripts/check-generated-contract.py --freeze --require-readonly

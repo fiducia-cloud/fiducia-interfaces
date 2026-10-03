@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 # CI/test image for generated interface contracts.
-FROM dart:3.13.3@sha256:7e57e61d97813dc57dd0801656ff4d5c5efafa47bae563a681571543ad30f199 AS dart-sdk
-FROM node:26.8.1-bookworm-slim@sha256:367679cf9792759492a486e4aa4b421764d71a9546a6dae8aab81a99eb797b3e AS node-sdk
-FROM rust:1.98.0-bookworm@sha256:82150a52ec202c1b14d7817e14516c392bb7f5cfebd88f1ed531cb37ebd39922
+FROM dart:3.12.2@sha256:13140e26d84f4fda57cea31942222112aeb2eec10e5e6874c1c0f70beed189ab AS dart-sdk
+FROM node:26.5.1-bookworm-slim@sha256:9e6f9357d371591e32ab6f2d8a26d63bdd0d17c29eee3f4f3e7e454d9634bf73 AS node-sdk
+FROM rust:1.97.1-bookworm@sha256:77fac8b98f9f46062bb680b6d25d5bcaabfc400143952ebc572e924bcbedc3fa
 COPY --from=dart-sdk /usr/lib/dart /usr/lib/dart
 COPY --from=node-sdk /usr/local/bin/node /usr/local/bin/node
 COPY --from=node-sdk /usr/local/lib/node_modules /usr/local/lib/node_modules
@@ -20,18 +20,4 @@ USER 65532:65532
 RUN npm ci --ignore-scripts
 COPY --chown=65532:65532 . .
 RUN npm test
-
-# --- sops: decrypt at `docker run`, never at `docker build` ------------------
-# The image carries only CIPHERTEXT (env/enc/<SOPS_ENV>.env.enc) and the sops
-# binary. The age key arrives at run time (SOPS_AGE_KEY / SOPS_AGE_KEY_FILE);
-# scripts/sops-entrypoint.sh decrypts into the process environment and execs
-# the real command, so no plaintext ever lands in a layer or on disk.
-# See env/README.md.
-ARG SOPS_ENV=local
-COPY --chmod=0755 --from=ghcr.io/getsops/sops:v3.10.2-alpine /usr/local/bin/sops /usr/local/bin/sops
-COPY --chmod=0755 scripts/sops-entrypoint.sh /usr/local/bin/sops-entrypoint.sh
-COPY --chmod=0644 env/enc/${SOPS_ENV}.env.enc /app/secrets/app.env
-ENV SOPS_SECRETS_FILE=/app/secrets/app.env
-
-ENTRYPOINT ["/usr/local/bin/sops-entrypoint.sh"]
 CMD ["npm", "test"]

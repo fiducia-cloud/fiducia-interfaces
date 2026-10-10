@@ -1,0 +1,22 @@
+name: Oreslang interface runtime admission safety gate
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  oreslang-runtime-denial:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Deny premature Oreslang runtime surfaces
+        run: node scripts/verify-oreslang-runtime-admission.mjs
+      - name: Negative runtime admission regressions
+        run: node --test tests/oreslang-runtime-admission.test.mjs

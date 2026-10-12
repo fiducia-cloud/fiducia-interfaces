@@ -58,6 +58,18 @@ test('raw byte payload roundtrip preserves zero, invalid UTF8 and newline with e
     expectsBytes: true
   }), { requestCodec: 'raw', responseCodec: 'raw' });
   assert.throws(() => admitHttp({ contentType: 'application/json', accept: '*/*' }));
+  assert.deepEqual(admitHttp({
+    contentType: 'application/json', accept: 'application/json'
+  }), { requestCodec: 'json', responseCodec: 'json' });
+  for (const example of [
+    { contentType: 'application/json', accept: 'application/json', expectsBytes: true },
+    { contentType: 'application/json', accept: 'application/octet-stream', expectsBytes: true },
+    { contentType: 'application/octet-stream', accept: 'application/json', expectsBytes: true },
+    { contentType: 'application/octet-stream', accept: 'application/octet-stream', expectsBytes: false },
+    { contentType: 'application/json', accept: 'application/json', expectsBytes: 'true' }
+  ]) {
+    assert.throws(() => admitHttp(example), /bytes contract/);
+  }
 });
 test('oversized frames reject before allocation or semantic acceptance', () => {
   const oversized = Buffer.alloc(1024 * 1024 + 1);

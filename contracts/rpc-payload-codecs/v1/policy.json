@@ -1,0 +1,74 @@
+{
+  "schema": "fiducia.rpc-payload-policy.v1",
+  "default_codec": "json",
+  "maximum_payload_bytes": 1048576,
+  "maximum_frame_bytes": 1048580,
+  "codecs": [
+    {
+      "id": "json",
+      "mime": "application/json",
+      "enabled": true,
+      "semantic_kind": "structured",
+      "transports": [
+        "http",
+        "tcp-ndjson",
+        "tcp-length32",
+        "websocket"
+      ]
+    },
+    {
+      "id": "messagepack",
+      "mime": "application/msgpack",
+      "enabled": false,
+      "semantic_kind": "structured",
+      "transports": [
+        "http",
+        "tcp-length32",
+        "websocket"
+      ]
+    },
+    {
+      "id": "cbor",
+      "mime": "application/cbor",
+      "enabled": false,
+      "semantic_kind": "structured",
+      "transports": [
+        "http",
+        "tcp-length32",
+        "websocket"
+      ]
+    },
+    {
+      "id": "protobuf",
+      "mime": "application/x-protobuf",
+      "enabled": false,
+      "semantic_kind": "structured",
+      "transports": [
+        "http",
+        "tcp-length32",
+        "websocket"
+      ]
+    },
+    {
+      "id": "raw",
+      "mime": "application/octet-stream",
+      "enabled": true,
+      "semantic_kind": "bytes-only",
+      "transports": [
+        "http",
+        "tcp-length32",
+        "websocket"
+      ]
+    }
+  ],
+  "framing": {
+    "tcp_ndjson": "json-only",
+    "tcp_binary": "uint32be-length-prefix",
+    "websocket": "binary-preserves-bytes",
+    "http": "content-type-and-accept"
+  },
+  "authority": "codec-does-not-replace-postdecode-semantic-validation",
+  "streaming": "separate-control",
+  "auth": "separate-control",
+  "compression": "separate-control"
+}

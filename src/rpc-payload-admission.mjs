@@ -39,8 +39,13 @@ export function admitHttp({ contentType, accept, expectsBytes = false }) {
   const requestCodec = resolveContentType(contentType);
   check(typeof accept === 'string', 'missing Accept header');
   const responseCodec = resolveContentType(accept);
-  check((requestCodec !== 'raw' && responseCodec !== 'raw') || expectsBytes,
-    'raw codec requires explicit bytes contract');
+  // A single expectsBytes flag describes BOTH sides of this reference
+  // exchange. Do not admit mixed JSON/raw negotiation with one ambiguous
+  // flag; directional contracts require separately declared policies.
+  check(typeof expectsBytes === 'boolean', 'invalid bytes contract');
+  check((requestCodec === 'raw') === expectsBytes
+    && (responseCodec === 'raw') === expectsBytes,
+    'HTTP codec conflicts with explicit bytes contract');
   return Object.freeze({ requestCodec, responseCodec });
 }
 export function encodePayload(value, { codec = 'json', expectsBytes = false } = {}) {

@@ -2,7 +2,7 @@
 # CI/test image for generated interface contracts.
 FROM dart:3.13.4@sha256:2d74fb22d7f8dba07862754953f5ebc50f3ac35a7b7ce18b6dd5629056c80f05 AS dart-sdk
 FROM node:26.10.0-bookworm-slim@sha256:662933cf47f013bc8e4beb31a6116448427a82057ba7c42c97e4c5ba766504c2 AS node-sdk
-FROM rust:1.98.1-bookworm@sha256:93ce27a88655056a51dbdd8f5f2d7ddc071c7b0070fb288a37b5a285fc83971e
+FROM rust:1.100.0-bookworm@sha256:ade39a710ef85f3506cffcfec3e8a24ba090badef1dff2fb798f71d878833fea
 COPY --from=dart-sdk /usr/lib/dart /usr/lib/dart
 COPY --from=node-sdk /usr/local/bin/node /usr/local/bin/node
 COPY --from=node-sdk /usr/local/lib/node_modules /usr/local/lib/node_modules
